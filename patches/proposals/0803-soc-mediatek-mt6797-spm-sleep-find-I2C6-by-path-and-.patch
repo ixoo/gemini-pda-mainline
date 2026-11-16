@@ -1,0 +1,92 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 16 Nov 2026 11:03:22 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: find I2C6 by path, and log
+ every refusal
+
+The first D3 run returned -ENODEV from sodi_once_ms with nothing logged.
+The SODI path looked the I2C6 adapter up by the compatible
+mediatek,mt6797-i2c, but the Gemini DT gives that node its own,
+mediatek,mt6797-idvfs-i2c, so the lookup found nothing. Find the node by
+its path, /i2c@1100e000, as the project's other I2C6 code does, and log
+a line for every reason the period is refused or not entered.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 35 ++++++++++++++++---------
+ 1 file changed, 22 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 4f79ee9f7..42b822564 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -799,21 +799,21 @@ static void spm_log_wake(const char *what)
+ 		 spm_rd(SPM_PASR_DPD_0));
+ }
+ 
+-/* The I2C6 adapter: the programs soft-reset I2C6, so no transfer may run */
++/*
++ * The I2C6 adapter: the programs soft-reset I2C6, so no transfer may run.
++ * Found by path, since the Gemini DT gives the node its own compatible.
++ */
+ static struct i2c_adapter *spm_i2c6(void)
+ {
++	struct i2c_adapter *adap = NULL;
+ 	struct device_node *np;
+ 	struct resource res;
+ 
+-	for_each_compatible_node(np, NULL, "mediatek,mt6797-i2c") {
+-		if (!of_address_to_resource(np, 0, &res) && res.start == I2C6_PHYS) {
+-			struct i2c_adapter *adap = of_find_i2c_adapter_by_node(np);
+-
+-			of_node_put(np);
+-			return adap;
+-		}
+-	}
+-	return NULL;
++	np = of_find_node_by_path("/i2c@1100e000");
++	if (np && !of_address_to_resource(np, 0, &res) && res.start == I2C6_PHYS)
++		adap = of_find_i2c_adapter_by_node(np);
++	of_node_put(np);
++	return adap;
+ }
+ 
+ /*
+@@ -830,8 +830,10 @@ static int sodi_once(u64 ms)
+ 
+ 	if (!s.sodi.ready)
+ 		return -ENODEV;
+-	if (ms < 1 || ms > 2000)
++	if (ms < 1 || ms > 2000) {
++		dev_info(&s.pdev->dev, "sodi: %llu ms is outside 1-2000, refused\n", ms);
+ 		return -EINVAL;
++	}
+ 	/*
+ 	 * SODI does not honour DRAM requests from AP DMA or USB: refuse unless
+ 	 * both are clock-gated, as the vendor's conditions require.
+@@ -842,11 +844,15 @@ static int sodi_once(u64 ms)
+ 		return -EBUSY;
+ 	}
+ 	i2c6 = spm_i2c6();
+-	if (!i2c6)
++	if (!i2c6) {
++		dev_info(&s.pdev->dev, "sodi: no I2C6 adapter, refused\n");
+ 		return -ENODEV;
++	}
+ 	ret = spm_pmic_prepare();
+-	if (ret)
++	if (ret) {
++		dev_info(&s.pdev->dev, "sodi: PMIC preparation failed (%d)\n", ret);
+ 		goto out_pmic;
++	}
+ 
+ 	s.sodi.ticks = div_u64(ms * 32768, 1000);
+ 	s.sodi.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
+@@ -863,6 +869,9 @@ static int sodi_once(u64 ms)
+ 	write_sysreg(cntp | ARCH_TIMER_CTRL_IT_MASK, cntp_ctl_el0);
+ 	isb();
+ 	ret = spm_run(&s.sodi);
++	if (ret && !s.entered)
++		dev_info(&s.pdev->dev, "sodi: not entered (%d): CPU1-9 online, PCM busy, or modem or C2K on\n",
++			 ret);
+ 	write_sysreg(cntv, cntv_ctl_el0);
+ 	write_sysreg(cntp, cntp_ctl_el0);
+ 	isb();

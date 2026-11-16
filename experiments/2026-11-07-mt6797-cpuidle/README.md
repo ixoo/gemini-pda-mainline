@@ -2484,6 +2484,28 @@ returns; the custodian then reads the log over Wi-Fi. It checks the module's ver
 `cpu-mhz`'s hashes and that `mt6797-gate-unused` is loaded before changing
 anything. A wrong memory hash syncs the log and powers off.
 
+**D3, first try (2026-11-16, image 133, boot `9a1464ca…`).** Custodian's
+report; nothing reached the SPM, taint 0 before and after, the restore
+worked.
+
+- Run 1 stopped at setup: the module did not load because
+  `pcm_suspend.bin` was not staged on the card root (S1 ran from the RAM
+  root). d3.sh now checks both programs' hashes before it starts.
+- Run 2: the module loaded both programs (`ffdd0000` and `ffdd2000`), MTU3
+  was runtime-suspended with `power/control` `auto`, CPU0 alone, screen
+  blank. Writing 100 to `sodi_once_ms` returned `ENODEV` with nothing
+  logged.
+
+**Cause:** 0802 found the I2C6 adapter by the compatible
+`mediatek,mt6797-i2c`, but the Gemini DT gives I2C6 its own,
+`mediatek,mt6797-idvfs-i2c` (0116), so the lookup found nothing and the path
+returned without a log line.
+[`0803`](../../patches/proposals/0803-soc-mediatek-mt6797-spm-sleep-find-I2C6-by-path-and-.patch)
+finds it by path, `/i2c@1100e000`, as the project's other I2C6 code does
+(`i2c-mt65xx` binds that compatible and registers a normal adapter), and logs
+a line for every refusal. Module only; compile-checked with `W=1` on the
+full series. No write list change.
+
 | Result | Next |
 | --- | --- |
 | CG and PDN both pass | D4: the vendor's full SODI wake set, SYS_CIRQ, and wakes from a key, an audio period and a Wi-Fi packet |

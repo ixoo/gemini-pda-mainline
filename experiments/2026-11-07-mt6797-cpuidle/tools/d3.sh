@@ -31,6 +31,9 @@ MHZ=/tmp/cpu-mhz
 MHZ_SHA=22a0acfc
 FW=/lib/firmware/mediatek/mt6797/pcm_sodi.bin
 FW_SHA=dda8cca1e110d57137afb8ef4957da758c19d38db45ea2bb30bc7133cc122ae4
+# The module needs the suspend program too, or it does not load
+FW_SUSPEND=/lib/firmware/mediatek/mt6797/pcm_suspend.bin
+FW_SUSPEND_SHA=d6e8a0b8851e78e95891c995605ffbf210eade56583b14cf6b4a67e7d770f4e0
 SODI=/sys/kernel/debug/sodi_once_ms
 PARAM=/sys/module/mt6797_spm_sleep/parameters
 RADIOS=/usr/lib/systemd/system-sleep/gemini-radios
@@ -140,6 +143,8 @@ else
 	log "the image's module: $(modinfo -F filename mt6797-spm-sleep 2>/dev/null)"
 fi
 [ "$(sha256sum "$FW" | cut -d' ' -f1)" = "$FW_SHA" ] || stop "$FW missing or its hash differs"
+[ "$(sha256sum "$FW_SUSPEND" | cut -d' ' -f1)" = "$FW_SUSPEND_SHA" ] ||
+	stop "$FW_SUSPEND missing or its hash differs"
 case $(sha256sum "$MHZ" | cut -c1-8) in
 "$MHZ_SHA") ;;
 *) stop "$MHZ missing or not $MHZ_SHA" ;;
