@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 16 Nov 2026 14:56:14 -0500
+Subject: [PATCH] wifi: mt6797: read back the interrupt registers after arming
+
+On the first image with 0807 the WLAN interrupt never fired, though arming
+returned 0. Log WHLPCR and WHIER as read back after the writes, once, to show
+whether they took.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c  |  4 ++--
+ drivers/net/wireless/mediatek/mt6797/hif.h  |  2 +-
+ drivers/net/wireless/mediatek/mt6797/join.c | 14 ++++++++++++--
+ 3 files changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 6f078c9..75bdf5f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -990,8 +990,8 @@ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+ 	if (!value)
+ 		return -EINVAL;
+ 	*value = 0;
+-	if (!hif || (reg != 0 && reg != 4 && reg != 0x90 && reg != 0x20 &&
+-		     reg != 0xe0))
++	if (!hif || (reg != 0 && reg != 4 && reg != 0x14 && reg != 0x90 &&
++		     reg != 0x20 && reg != 0xe0))
+ 		return -EINVAL;
+ 	if (!mutex_trylock(&hif->mutex))
+ 		return -EBUSY;
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index fbab822..fa24af6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -130,7 +130,7 @@ void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
+ 			       struct mt6797_hif_rx_batch_stats *stats);
+ 
+ /* Absolute monotonic nanoseconds; positive remaining budget <= one second.
+- * WCIR (0), WHLPCR (4), WRPLR (0x90) only. No register writes are exposed.
++ * WCIR (0), WHLPCR (4), WHIER (0x14), WRPLR (0x90) only.
+  */
+ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+ 		      u32 *value);
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index ca84cb6..b5fde47 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -2967,9 +2967,19 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 		} else if (irq_ret != -EBUSY) {
+ 			mac->irq_gave_up = true;
+ 		}
+-		if (irq_ret != -EBUSY)
++		if (irq_ret != -EBUSY) {
++			u32 whlpcr = 0, whier = 0;
++			u64 end = ktime_get_ns() + 100 * NSEC_PER_MSEC;
++
++			/* Read back what the arming wrote. */
++			if (!irq_ret) {
++				mt6797_hif_read32(mac->hif, 4, end, &whlpcr);
++				mt6797_hif_read32(mac->hif, 0x14, end, &whier);
++			}
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+-				 "one-shot WLAN interrupt armed: status=%d\n", irq_ret);
++				 "one-shot WLAN interrupt armed: status=%d whlpcr=0x%08x whier=0x%08x\n",
++				 irq_ret, whlpcr, whier);
++		}
+ 	}
+ 	pass_delay = msecs_to_jiffies(20);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+-- 
+2.43.0
+
