@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT
+# Lets the left USB-C controller (MTU3) power down while no cable is in, freeing the SSUSB
+# clocks that block deep idle (2026-11-16). Needs a boot image with 0800 and 0801 as fixed in
+# 753574f7 (image 134 or later); on older images it does harm (role-change warnings on 132,
+# 500 mA replugs on 133). M2 passed on image 134. Undo by hand:
+# echo on > /sys/bus/platform/devices/11271000.usb/power/control
+ACTION=="add", SUBSYSTEM=="platform", KERNEL=="11271000.usb", ATTR{power/control}="auto"

@@ -2641,3 +2641,21 @@ default was long gone, and the new iwd logged "No default interface for wiphy 4"
 down until `iw phy phy4 interface add wlan0 type managed`, after which iwd connected at once. A
 boot or a module reload creates the kernel's default netdev again, so when upgrading in place,
 reboot instead of restarting iwd.
+
+#### The left USB-C controller powers down without a cable (gemini-base 66, 2026-11-16)
+
+From the USB-C session: 0800 and 0801 let MTU3 (`11271000.usb`) runtime-suspend while no VBUS
+is present, which turns off the SSUSB clocks that block SODI. Upstream MTU3 forbids runtime PM
+by default, so `60-gemini-usb-autosuspend.rules` writes `auto` to its `power/control` on add,
+including coldplug at boot. Their M2 passed on image 134, boot `fef9e0f2`, over four unplug and
+plug cycles with no warnings: the clocks off with the cable out, then on each plug the gadget
+configured, `usb0` up with its address, a new USB SSH session, the charger typed CDP and the
+guard back at 1.5 A.
+
+The rule needs a boot image with 0800 and 0801 as fixed in `753574f7`, image 134 or later; on
+132 role changes warn and on 133 replugs charge at 500 mA. M2 didn't cover the rule applying by
+itself at boot, a wall charger after a power-down, or system suspend while powered down. Undo
+by hand with `echo on > /sys/bus/platform/devices/11271000.usb/power/control`.
+
+Built in an Arch chroot over card-32's image: `gemini-base-66` (`6a341c8f…`); `udevadm verify`
+passes on the rule. Not on the device.
