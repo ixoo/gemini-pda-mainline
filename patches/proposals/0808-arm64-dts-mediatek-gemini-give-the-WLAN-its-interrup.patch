@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 16 Nov 2026 14:35:55 -0500
+Subject: [PATCH 808/808] arm64: dts: mediatek: gemini: give the WLAN its
+ interrupt
+
+The WLAN host interrupt is GIC SPI 283, active low, as on the vendor kernel.
+The mac driver serves receive from it.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index f7925b255..d9d7dbe04 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -186,6 +186,7 @@ consys@10001340 {
+ 
+ 		wifi {
+ 			compatible = "mediatek,mt6797-wlan";
++			interrupts = <GIC_SPI 283 IRQ_TYPE_LEVEL_LOW>;
+ 		};
+ 	};
+ 
+-- 
+2.43.0
+

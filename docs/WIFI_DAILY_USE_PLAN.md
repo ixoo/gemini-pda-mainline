@@ -63,6 +63,12 @@ Status: plan, updated 2026-11-01.
   as the custodian reports: enable count 0 at idle while joined and after a download, the gate closed in 199 of
   200 samples, and AP_DMA gone from the SODI and deep idle blockers. Three 64 MiB downloads ran at about 39.5
   Mbit/s against about 40 before, with no new errors. CONSYS and Bluetooth started; FM was not checked.
+- Receive was only polled, so a frame arriving during SODI waited for the next poll (cpuidle D4: ping round
+  trips up to 2 s), and an idle link still woke about ten times a second. At the owner's request ("interrupt
+  driven wifi"), 0807 serves receive from the WLAN interrupt that 0808 adds to the device tree (GIC SPI 283,
+  active low, as on the vendor kernel): WHIER gets the vendor's default sources, WHLPCR's host interrupt is
+  enabled once a link is up, and a quiet link is polled once a second. A line that keeps waking the worker
+  with nothing to read is given up. Compiled only; the DT line needs an image.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the

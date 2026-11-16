@@ -1,0 +1,296 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 16 Nov 2026 14:35:55 -0500
+Subject: [PATCH 807/808] wifi: mt6797: serve receive from the WLAN interrupt
+
+Receive was only polled, so an idle station woke about ten times a second for
+it, and a frame that arrived during SODI waited for the next poll: ping round
+trips reached 2 s. When the device tree gives the WLAN interrupt, request it,
+and once a link is up set WHIER to the vendor's default sources and enable
+the host interrupt in WHLPCR. The handler masks the line and wakes the worker,
+which reads WHISR as before and unmasks the line after that pass. A quiet link
+is then polled once a second, for the driver's own deadlines.
+
+A line that wakes the worker 64 times in a row with nothing to read is given
+up, and receive is polled at the old intervals. Without an interrupt in the
+device tree, or with wlan_irq=0, nothing changes.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 42 ++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  4 ++
+ drivers/net/wireless/mediatek/mt6797/join.c   | 48 ++++++++++++++++++-
+ .../net/wireless/mediatek/mt6797/mac-priv.h   | 15 ++++++
+ drivers/net/wireless/mediatek/mt6797/main.c   | 41 ++++++++++++++++
+ 5 files changed, 148 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 89887dd36..6f078c99d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -940,6 +940,48 @@ void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
+ }
+ EXPORT_SYMBOL_GPL(mt6797_hif_rx_batch_stats);
+ 
++/* WHLPCR's global interrupt enable is set and cleared by these bits; WHIER
++ * takes TX done, both receive queues, the abnormal status and the firmware's
++ * software interrupts, the vendor's default.
++ */
++#define MT6797_HIF_WHLPCR		0x04
++#define MT6797_HIF_WHLPCR_INT_EN_SET	BIT(0)
++#define MT6797_HIF_WHLPCR_INT_EN_CLR	BIT(1)
++#define MT6797_HIF_WHIER		0x14
++#define MT6797_HIF_WHIER_DEFAULT	(GENMASK(31, 8) | BIT(6) | BIT(2) | BIT(1) | BIT(0))
++
++static int mt6797_hif_write32_locked(struct mt6797_hif *hif, unsigned int reg,
++				     u32 value)
++{
++	/* Function 1, WRITE, byte mode, fixed port, four bytes. */
++	int error = mt6797_hif_write(hif, 0, BIT(31) | (1U << 28) | (reg << 9) | 4U);
++
++	if (error)
++		return error;
++	return mt6797_hif_write(hif, 0x1000, value);
++}
++
++int mt6797_hif_host_interrupt(struct mt6797_hif *hif, bool enable, u64 deadline_ns)
++{
++	int error;
++
++	if (!hif)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (!error && enable)
++		error = mt6797_hif_write32_locked(hif, MT6797_HIF_WHIER,
++						  MT6797_HIF_WHIER_DEFAULT);
++	if (!error)
++		error = mt6797_hif_write32_locked(hif, MT6797_HIF_WHLPCR,
++						  enable ? MT6797_HIF_WHLPCR_INT_EN_SET :
++							   MT6797_HIF_WHLPCR_INT_EN_CLR);
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++EXPORT_SYMBOL_GPL(mt6797_hif_host_interrupt);
++
+ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+ 		      u32 *value)
+ {
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index ba5e9df01..fbab822d7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -134,6 +134,10 @@ void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
+  */
+ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+ 		      u32 *value);
++/* The host interrupt on: WHIER's sources as the vendor sets them, then WHLPCR's
++ * global enable; off: the global enable cleared. Busy callers get -EBUSY.
++ */
++int mt6797_hif_host_interrupt(struct mt6797_hif *hif, bool enable, u64 deadline_ns);
+ /* One ordinary section only, <=1 MiB. Caller supplies immutable, validated,
+  * distinct metadata/data and retains them until return. Successful submission
+  * is neither whole-image completion nor permission to issue START.
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 219f3f01c..ca84cb616 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -1994,6 +1994,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 	skb_queue_head_init(&discard);
+ 	skb_queue_head_init(&data_completed);
+ 	mutex_lock(&mac->mutex);
++	mac->join_pass_read = false;
++	mac->join_pass_found = false;
+ 	/* Dedicated re-arm pass (proposal 0180), checked before the running/retired
+ 	 * bail because a healthy stage-3 terminal has set join_retired and cleared
+ 	 * join_running. Poison here is first_error||closing only, never the healthy
+@@ -2446,6 +2448,7 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 		}
+ 	}
+ 	mt6797_hif_rx_batch_pass(mac->hif);
++	mac->join_pass_read = true;
+ 	for (n = 0; n < 8; n++) {
+ 		bool got = false;
+ 
+@@ -2519,6 +2522,7 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			if (ret)
+ 				goto failed;
+ 			got = true;
++			mac->join_pass_found = true;
+ 			branch = 5;
+ 			/* Count the actual consumed length into the sample or the drain
+ 			 * bucket. nd_over marks the post-stop phase (window over by any
+@@ -2951,6 +2955,22 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 		mac->join_rearm_pending = true;
+ 		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
+ 	}
++	/* Once a link is up, the WLAN interrupt serves receive. */
++	if (mac->irq > 0 && !mac->irq_armed && !mac->irq_gave_up &&
++	    mac->join_data_phase && !mac->join_data_ended) {
++		int irq_ret = mt6797_hif_host_interrupt(mac->hif, true,
++							ktime_get_ns() + 100 * NSEC_PER_MSEC);
++
++		if (!irq_ret) {
++			mac->irq_armed = true;
++			enable_irq(mac->irq);
++		} else if (irq_ret != -EBUSY) {
++			mac->irq_gave_up = true;
++		}
++		if (irq_ret != -EBUSY)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN interrupt armed: status=%d\n", irq_ret);
++	}
+ 	pass_delay = msecs_to_jiffies(20);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	unsigned int delay_ms;
+@@ -2967,11 +2987,14 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 
+ 	delay_ms = mt6797_join_pump_delay(&mac->join_pump_zero_runs,
+ 					  pending, pump_progress);
+-	if (pump_progress)
++	if (pump_progress) {
+ 		mac->join_pump_active_ns = ktime_get_ns();
++		mac->join_pass_found = true;
++	}
+ 	if (delay_ms == MT6797_JOIN_PUMP_IDLE_MS && !pending &&
+ 	    mt6797_mac_join_quiet(mac))
+-		delay_ms = MT6797_JOIN_PUMP_QUIET_MS;
++		delay_ms = mac->irq_armed && !mac->irq_gave_up ?
++			   MT6797_JOIN_PUMP_IRQ_QUIET_MS : MT6797_JOIN_PUMP_QUIET_MS;
+ 	if (pending && delay_ms == MT6797_JOIN_PUMP_IDLE_MS)
+ 		dev_info_once(wiphy_dev(mac->hw->wiphy),
+ 			      "one-shot WLAN join pump stalled: queued=%u inflight=%u slots=%u credit=%u debt=%u data_debt=%u\n",
+@@ -2986,6 +3009,27 @@ void mt6797_mac_join_work(struct work_struct *work)
+ failed:
+ 	ret = mt6797_mac_join_fail_stop(mac, ret, branch, &discard, &internal);
+ unlock:
++	/* Unmask the interrupt only after a pass that read WHISR, which clears
++	 * the level; a line that stays up with nothing to read is given up.
++	 */
++	if (mac->irq > 0 && atomic_read(&mac->irq_masked) && mac->join_pass_read &&
++	    !mac->irq_gave_up) {
++		dev_info_once(wiphy_dev(mac->hw->wiphy),
++			      "one-shot WLAN interrupt served: found=%u\n",
++			      mac->join_pass_found);
++		if (mac->join_pass_found)
++			mac->irq_empty = 0;
++		else if (++mac->irq_empty >= MT6797_MAC_IRQ_EMPTY_LIMIT)
++			mac->irq_gave_up = true;
++		if (mac->irq_gave_up) {
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN interrupt given up: empty=%u\n",
++				 mac->irq_empty);
++		} else {
++			atomic_set(&mac->irq_masked, 0);
++			enable_irq(mac->irq);
++		}
++	}
+ 	mutex_unlock(&mac->mutex);
+ 	/* One worker serializes RX_ni and TX_status_ni, outside driver locks. */
+ 	mutex_lock(&mac->ccmp_receive_mutex);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index bfaea6138..17b83210b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -173,6 +173,14 @@ struct mt6797_join_rearm_state {
+  */
+ #define MT6797_JOIN_PUMP_QUIET_AFTER_NS (1ULL * NSEC_PER_SEC)
+ #define MT6797_JOIN_PUMP_QUIET_MS 100U
++/* With the WLAN interrupt serving receive, a quiet link is polled only for
++ * the driver's own deadlines.
++ */
++#define MT6797_JOIN_PUMP_IRQ_QUIET_MS 1000U
++/* Passes woken by the interrupt that found nothing, in a row, after which
++ * the interrupt is given up and receive is polled again.
++ */
++#define MT6797_MAC_IRQ_EMPTY_LIMIT 64U
+ 
+ #define MT6797_JOIN_PUMP_PENDING_MS 1U
+ 
+@@ -478,6 +486,13 @@ struct mt6797_mac {
+ 	struct delayed_work join_work;
+ 	unsigned int join_pump_zero_runs;
+ 	u64 join_pump_active_ns;
++	/* The WLAN interrupt: 0 when there is none. The handler masks it and
++	 * wakes the worker, which unmasks it after a pass that read WHISR.
++	 */
++	int irq;
++	atomic_t irq_masked;
++	bool irq_armed, irq_gave_up, join_pass_read, join_pass_found;
++	unsigned int irq_empty;
+ 	struct mt6797_data_slots data_slots;
+ 	struct sk_buff *join_inflight;
+ 	u64 join_deadline, join_frame_deadline;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 56f340bb9..8300b4e61 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -3,8 +3,43 @@
+  * operations, scan and regulatory configuration.
+  */
+ 
++#include <linux/interrupt.h>
++#include <linux/of.h>
++#include <linux/of_irq.h>
+ #include "mac-priv.h"
+ 
++static bool wlan_irq = true;
++module_param(wlan_irq, bool, 0444);
++MODULE_PARM_DESC(wlan_irq, "Serve receive from the WLAN interrupt when the device tree gives one");
++
++static irqreturn_t mt6797_mac_irq(int irq, void *data)
++{
++	struct mt6797_mac *mac = data;
++
++	disable_irq_nosync(irq);
++	atomic_set(&mac->irq_masked, 1);
++	mod_delayed_work(system_wq, &mac->join_work, 0);
++	return IRQ_HANDLED;
++}
++
++/* The WLAN interrupt from the CONSYS node's wifi child; 0 without one. */
++static int mt6797_mac_request_irq(struct device *dev, struct mt6797_mac *mac)
++{
++	struct device_node *np;
++	int irq;
++
++	if (!wlan_irq)
++		return 0;
++	np = of_get_compatible_child(dev->of_node, "mediatek,mt6797-wlan");
++	irq = np ? of_irq_get(np, 0) : 0;
++	of_node_put(np);
++	if (irq <= 0)
++		return 0;
++	if (request_irq(irq, mt6797_mac_irq, IRQF_NO_AUTOEN, "mt6797-wlan", mac))
++		return 0;
++	return irq;
++}
++
+ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 				   bool cancel);
+ 
+@@ -2464,6 +2499,8 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 		ieee80211_unregister_hw(hw);
+ 		goto free_hw;
+ 	}
++	mac->irq = mt6797_mac_request_irq(dev, mac);
++	dev_info(dev, "one-shot WLAN interrupt: irq=%d\n", mac->irq);
+ 	*out = hw;
+ 	return 0;
+ free_hw:
+@@ -2489,9 +2526,13 @@ static void mt6797_mac_unregister(struct ieee80211_hw *hw)
+ 	struct mt6797_mac *mac = hw->priv;
+ 
+ 	ieee80211_unregister_hw(hw);
++	if (mac->irq > 0)
++		disable_irq(mac->irq);
+ 	cancel_delayed_work_sync(&mac->ccmp_loss_work);
+ 	cancel_delayed_work_sync(&mac->scan_work);
+ 	cancel_delayed_work_sync(&mac->join_work);
++	if (mac->irq > 0)
++		free_irq(mac->irq, mac);
+ 	skb_queue_purge(&mac->join_queue);
+ 	skb_queue_purge(&mac->credit_retired_queue);
+ 	ieee80211_free_hw(hw);
+-- 
+2.43.0
+
