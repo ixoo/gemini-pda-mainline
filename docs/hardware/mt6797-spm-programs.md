@@ -256,16 +256,48 @@ CPU off, but keeps 26 MHz and infra.
 
 Screen-on idle. Observed differences from deep idle:
 
-- It loads the VCORE state from `SPM_SW_RSV_5` into `r6` bits 24:23. Flag 15
-  (`DIS_SRCCLKEN_LOW`) forces `R7_FORCE_26M_WAKE` and `FORCE_INFRA_WAKE`.
-- Only the APSRC and NFC events are enabled. Unless flag 13 (`SODI_NO_EVENT`):
-  CG mode (flag 12, or `DUMMY1_PWR_CON` bit 1) enables a second APSRC handler
-  pair that gates the DRAM clocks without powering the PHY down. PDN mode
-  enables the pair that also powers the PHY down. 26 MHz, infra and VRF18
-  stay up.
-- One call performs the CPU, cluster and MCUSYS power-down (unless flag 0).
-- Flag 14 (`ENABLE_SODI3`) changes two steps inside the APSRC handlers; they
-  were not traced in detail.
+- **VCORE state.** Entry ORs `SPM_SW_RSV_5` bits 24:23 into `r6`. The
+  `0xfd000000` seed forces bit 24, so only bit 23 counts: it comes from
+  `SPM_SW_RSV_5` bit 23 or from flag 23. It is used in one place only, the
+  PDN-mode APSRC wake handler. That handler issues PMIC-wrapper slot 11 and
+  then slot 0 when bits 23 and 24 are both set, slot 6 otherwise. The PDN
+  sleep handler always issues slots 9 and 10. Both are skipped if flag 3
+  (`DIS_VCORE_DVS`) or `SPM_SW_RSV_3` bit 1 is set. No DRAM-frequency
+  (shuffle) or PLL step depends on the VCORE state. SODI never changes the
+  DRAM frequency outside the SCP-IRQ path.
+- **Events.** Only the APSRC and NFC clock-buffer events are enabled, unless
+  flag 13 (`SODI_NO_EVENT`) disables them all. 26 MHz, infra and VRF18 stay
+  up. There are two APSRC handler pairs:
+  - CG mode (flag 12, or `DUMMY1_PWR_CON` bit 1): DRAM self-refresh only.
+  - PDN mode: self-refresh, DRAM PHY power-down (unless flag 2), MEMPLL off
+    and the wrapper slots above.
+
+  The program switches between them at run time. When neither selector is
+  set, the CG sleep handler sets `SPM_AP_STANDBY_CON` bits 24, 25 and 27,
+  enables the PDN pair and, if the modem and CONN APSRC requests that this
+  register selects are idle, continues into the PDN sleep. When `DUMMY1`
+  bit 1 is set, the PDN sleep handler clears those `SPM_AP_STANDBY_CON` bits
+  and returns to CG mode. Exit restores neither.
+- **Counter.** `SPM_PASR_DPD_0` is cleared at entry. At exit it receives
+  the APSRC-sleep counters: +1 per CG sleep, +`0x10000` per PDN sleep.
+- **Flag 14** (`ENABLE_SODI3`): the PDN sleep handler also enables the 26 MHz,
+  infra and VRF18 events (`PCM_EVENT_VECTOR_EN` `0x33f3`), so SODI3 goes
+  as deep as suspend's clock steps. In this program the 26 MHz handlers write
+  `0x100a4034` without the flag-17 test.
+- **Flag 15** (`DIS_SRCCLKEN_LOW`) forces `R7_FORCE_26M_WAKE` and
+  `FORCE_INFRA_WAKE` from entry until exit.
+- **Flag 7** means something else here. It is tested only in the NFC
+  clock-buffer handlers, which then write the unidentified pair
+  `0x10229004`/`0x10229008` (`0x267ffd2` when the buffer turns on,
+  `0x2680050` when it turns off). `pcm_suspend` never tests flag 7.
+- **Flags not tested:** 4, 5, 16, 18 and 19 (no thermal path). Flag 1 is
+  tested only in the 26 MHz sleep handler, and flag 10 only on the SCP-IRQ
+  path.
+- **CPU, PLLs and I2C.** One call performs the CPU, cluster and MCUSYS
+  power-down (unless flag 0). Entry turns the ARM PLLs off and moves
+  `ddrphycfg_sel` to parent 0. Exit always restores them; there is no
+  flag-10 test as in suspend. GCE is not touched. `I2C_APPM` and the I2C6
+  soft reset are handled as in suspend.
 
 ## 6. The VCORE-DVFS programs (`pcm_vcorefs_lpm/hpm/ultra`)
 
