@@ -2618,6 +2618,9 @@ and these differences, on SODI periods only:
 
 There is no PSCI or SiP call, and no PMIC wrapper write, as in D3.
 
+**Approved** by the owner on 2026-11-16 ("Approve D4"), for the list above
+with the 0804 module from `54d1d448` or later.
+
 **What the D4 module still does not handle.** An edge interrupt that is
 already pending at the GIC when the period starts doesn't wake the program.
 It is served when the period ends: late, but not lost. CIRQ's flush may
@@ -2625,7 +2628,7 @@ also deliver an edge a second time, as in upstream suspend. Both matter for
 D5, where idle periods follow each other. D5's driver checks the GIC
 pending words before each entry.
 
-### Request D4 (proposed)
+### Request D4 (approved 2026-11-16)
 
 - **Candidate:** the running image (134 or later) with `mt6797-spm-sleep.ko`
   from a Buildbox build of the commit recording this stage (module only).
