@@ -1,0 +1,352 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 16 Nov 2026 13:20:00 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: SODI device wakes through
+ SYS_CIRQ
+
+Stage D4 of the cpuidle experiment. One SODI period now uses the vendor
+MT6797 SODI wake sources (WAKE_SRC_FOR_SODI, 0x0f57c5f5) instead of the
+suspend test pair, and records every enabled edge SPI in SYS_CIRQ while
+the GIC is masked: the block is cloned from the GIC (enable, edge
+configuration, sysirq polarity) before the mask, and flushed and disabled
+before the GIC is restored, as the vendor does around SODI. Register
+layout from upstream irq-mtk-cirq (v1); lines from SPI 72.
+
+The period is also refused while MSDC0 or MSDC1 is clocked, or while an
+AFE memory interface runs, since SODI honours neither DRAM request and
+mainline AFE buffers are in DRAM. The checks now run with interrupts off.
+Each period logs the cloned lines and the CIRQ status at the wake.
+
+Suspend is unchanged.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 187 ++++++++++++++++++++++--
+ 1 file changed, 173 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 42b822564..c24530da7 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -17,6 +17,7 @@
+ #include <asm/sysreg.h>
+ #include <clocksource/arm_arch_timer.h>
+ #include <crypto/sha2.h>
++#include <linux/bitops.h>
+ #include <linux/bits.h>
+ #include <linux/debugfs.h>
+ #include <linux/delay.h>
+@@ -32,6 +33,7 @@
+ #include <linux/of_platform.h>
+ #include <linux/of_reserved_mem.h>
+ #include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
+ #include <linux/regmap.h>
+ #include <linux/smp.h>
+ #include <linux/suspend.h>
+@@ -70,6 +72,7 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define GICD_TYPER		0x0004
+ #define GICD_ISENABLER		0x0100
+ #define GICD_ICENABLER		0x0180
++#define GICD_ICFGR		0x0c00
+ #define GIC_MAX_REGS		32
+ /* The SPM's interrupt, SPI 180, is GIC INTID 212 (sysirq only inverts it). */
+ #define SPM_GIC_INTID		(32 + 180)
+@@ -154,6 +157,44 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ /* Wake sources: PCM timer and EINT */
+ #define S1_WAKE_SRC		(BIT(0) | BIT(6))
+ 
++/*
++ * The vendor's MT6797 SODI wake sources (WAKE_SRC_FOR_SODI, D4): PCM timer,
++ * keypad, APXGPT, CONN2AP, EINT, CONN watchdog, CCIF0, SCP, USB (two),
++ * C2K watchdog, secure EINT, CCIF1, audio, SYS_CIRQ, debug power request,
++ * modem watchdog, CLDMA and SEJ.
++ */
++#define SODI_WAKE_SRC		0x0f57c5f5
++
++/*
++ * SYS_CIRQ records edge interrupts while the GIC is masked and wakes the
++ * program (wake source 22); flushing it replays them into the GIC. The
++ * register layout is upstream irq-mtk-cirq's v1. It covers SPI 72 onwards.
++ */
++#define CIRQ_PHYS		0x10204000
++#define CIRQ_SPI_FIRST		72
++#define CIRQ_LINES		220
++#define CIRQ_WORDS		DIV_ROUND_UP(CIRQ_LINES, 32)
++#define CIRQ_STA		0x000
++#define CIRQ_ACK		0x040
++#define CIRQ_MASK_SET		0x0c0
++#define CIRQ_MASK_CLR		0x100
++#define CIRQ_SENS_CLR		0x1c0
++#define CIRQ_POL_SET		0x240
++#define CIRQ_POL_CLR		0x280
++#define CIRQ_CON		0x300
++#define CIRQ_EN			BIT(0)
++#define CIRQ_EDGE		BIT(1)
++#define CIRQ_FLUSH		BIT(2)
++
++/* MCUCFG sysirq polarity words: a set bit inverts a low or falling SPI */
++#define SYSIRQ_POL0		0x620	/* SPI 0-255 */
++#define SYSIRQ_POL1		0x690	/* SPI 256-383 */
++
++/* The AFE's memory interface enables (DL1 .. VUL_DATA2), all DRAM on mainline */
++#define AFE_PHYS		0x11220000
++#define AFE_DAC_CON0		0x010
++#define AFE_MEMIF_ON		GENMASK(9, 1)
++
+ /*
+  * SPM_SW_FLAG for one SODI period (D3): S1's flags without bit 7, which
+  * pcm_sodi tests in its NFC clock-buffer handlers with another meaning, and
+@@ -192,6 +233,7 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define CG1_AUXADC		BIT(10)
+ #define CG2_I2C_APPM		BIT(1)
+ #define CG1_AP_DMA		BIT(18)
++#define CG1_MSDC		(BIT(2) | BIT(4))	/* MSDC0 (eMMC), MSDC1 (microSD) */
+ #define CG2_SSUSB		(BIT(9) | BIT(18) | BIT(24))
+ #define CLK_CFG_0		0x040
+ 
+@@ -228,7 +270,9 @@ struct spm_scen {
+ 	unsigned int wfi_count;	/* WFI_EN words set, from MP0_CPU0 */
+ 	u32 ticks;		/* PCM timer, 32,768 Hz */
+ 	u32 flags;
++	u32 wake_src;
+ 	bool slots;		/* load the PMIC wrapper's suspend phase */
++	bool cirq;		/* clone edge interrupts into SYS_CIRQ */
+ 	bool ready;
+ };
+ 
+@@ -254,6 +298,12 @@ static struct {
+ 	bool gic_masked;
+ 	void __iomem *infra;
+ 	void __iomem *topck;
++	void __iomem *cirq;
++	void __iomem *afe;
++	struct device *afe_dev;
++	u32 cirq_edge[CIRQ_WORDS];
++	u32 cirq_sta[CIRQ_WORDS];
++	unsigned int cirq_lines;
+ 	struct spm_scen sleep;
+ 	struct spm_scen sodi;
+ 	u32 flags;
+@@ -558,6 +608,69 @@ static void spm_gic_restore(void)
+ 	s.gic_masked = false;
+ }
+ 
++/* Whether the GIC delivers an SPI as low or falling (sysirq inverts it) */
++static bool spm_spi_inverted(unsigned int spi)
++{
++	u32 off = spi < 256 ? SYSIRQ_POL0 + 4 * (spi / 32) :
++			      SYSIRQ_POL1 + 4 * ((spi - 256) / 32);
++
++	return readl(s.mcucfg + off) & BIT(spi % 32);
++}
++
++/*
++ * Before the GIC is masked: record every enabled edge SPI in SYS_CIRQ, with
++ * its polarity, and nothing else (the vendor's mt_cirq_clone_gic and
++ * mt_cirq_enable, in edge-only mode as upstream).
++ */
++static void spm_cirq_enable(void)
++{
++	unsigned int w, b, line, intid;
++	u32 edge, rise;
++
++	s.cirq_lines = 0;
++	for (w = 0; w < CIRQ_WORDS; w++) {
++		writel(~0u, s.cirq + CIRQ_MASK_SET + 4 * w);
++		writel(~0u, s.cirq + CIRQ_ACK + 4 * w);
++		edge = 0;
++		rise = 0;
++		for (b = 0; b < 32; b++) {
++			line = 32 * w + b;
++			if (line >= CIRQ_LINES)
++				break;
++			intid = 32 + CIRQ_SPI_FIRST + line;
++			if (!(readl(s.gicd + GICD_ISENABLER + 4 * (intid / 32)) &
++			      BIT(intid % 32)))
++				continue;
++			if (!(readl(s.gicd + GICD_ICFGR + 4 * (intid / 16)) &
++			      BIT(2 * (intid % 16) + 1)))
++				continue;
++			edge |= BIT(b);
++			if (!spm_spi_inverted(CIRQ_SPI_FIRST + line))
++				rise |= BIT(b);
++		}
++		s.cirq_edge[w] = edge;
++		s.cirq_lines += hweight32(edge);
++		writel(edge, s.cirq + CIRQ_SENS_CLR + 4 * w);
++		writel(rise, s.cirq + CIRQ_POL_SET + 4 * w);
++		writel(edge & ~rise, s.cirq + CIRQ_POL_CLR + 4 * w);
++		writel(edge, s.cirq + CIRQ_MASK_CLR + 4 * w);
++	}
++	writel(readl(s.cirq + CIRQ_CON) | CIRQ_EN | CIRQ_EDGE, s.cirq + CIRQ_CON);
++}
++
++/* Before the GIC is restored: note, replay and disable (mt_cirq_flush) */
++static void spm_cirq_disable(void)
++{
++	unsigned int w;
++
++	for (w = 0; w < CIRQ_WORDS; w++)
++		s.cirq_sta[w] = readl(s.cirq + CIRQ_STA + 4 * w);
++	writel(readl(s.cirq + CIRQ_CON) | CIRQ_FLUSH, s.cirq + CIRQ_CON);
++	writel(readl(s.cirq + CIRQ_CON) & ~(CIRQ_EN | CIRQ_EDGE), s.cirq + CIRQ_CON);
++	for (w = 0; w < CIRQ_WORDS; w++)
++		writel(~0u, s.cirq + CIRQ_MASK_SET + 4 * w);
++}
++
+ /*
+  * Run one program on CPU0 with interrupts off, from the PCM reset to its
+  * return, and put the SPM back as it was found.
+@@ -662,7 +775,7 @@ static int spm_run(const struct spm_scen *sc)
+ 	/* S15-S17: wake timer, wake sources, interrupt mask */
+ 	spm_wr(PCM_TIMER_VAL, sc->ticks);
+ 	spm_wr(PCM_CON1, spm_rd(PCM_CON1) | SPM_KEY | PCM_TIMER_EN);
+-	spm_wr(SPM_WAKEUP_EVENT_MASK, ~(u32)S1_WAKE_SRC);
++	spm_wr(SPM_WAKEUP_EVENT_MASK, ~sc->wake_src);
+ 	v = spm_rd(SPM_IRQ_MASK) & BIT(2);
+ 	spm_wr(SPM_IRQ_MASK, v | ISRM_RET_IRQ_AUX);
+ 
+@@ -687,6 +800,8 @@ static int spm_run(const struct spm_scen *sc)
+ 	 * powered, and without this a wake interrupt can take it out of WFI at
+ 	 * the GIC while the program goes on sleeping.
+ 	 */
++	if (sc->cirq)
++		spm_cirq_enable();
+ 	if (gic_mask)
+ 		spm_gic_mask();
+ 
+@@ -701,6 +816,8 @@ static int spm_run(const struct spm_scen *sc)
+ 		}
+ 	}
+ 	s.wake.wfi_loops = i;
++	if (sc->cirq)
++		spm_cirq_disable();
+ 	spm_gic_restore();
+ 
+ 	/* X1: wake status */
+@@ -822,9 +939,32 @@ static struct i2c_adapter *spm_i2c6(void)
+  * interrupt is masked for the wait so that CPU0 stays in WFI, and I2C6 is
+  * held so that the program's reset does not cut a transfer.
+  */
++/*
++ * SODI does not honour DRAM requests from AP DMA, USB, MSDC or the audio
++ * DMA: name the first that runs. Called with interrupts off, so nothing on
++ * CPU0 can start one before the period. Mainline's AFE keeps its clocks on
++ * while bound, so its enable word can be read then.
++ */
++static const char *sodi_busy(void)
++{
++	struct device *afe = s.afe_dev;
++
++	if (!(readl(s.infra + INFRA_CG1_STA) & CG1_AP_DMA))
++		return "AP DMA";
++	if (~readl(s.infra + INFRA_CG2_STA) & CG2_SSUSB)
++		return "USB";
++	if (~readl(s.infra + INFRA_CG1_STA) & CG1_MSDC)
++		return "MSDC";
++	if (afe && READ_ONCE(afe->driver) && pm_runtime_active(afe) &&
++	    (readl(s.afe + AFE_DAC_CON0) & AFE_MEMIF_ON))
++		return "audio DMA";
++	return NULL;
++}
++
+ static int sodi_once(u64 ms)
+ {
+ 	struct i2c_adapter *i2c6;
++	const char *busy;
+ 	u64 cntv, cntp;
+ 	int ret;
+ 
+@@ -834,15 +974,6 @@ static int sodi_once(u64 ms)
+ 		dev_info(&s.pdev->dev, "sodi: %llu ms is outside 1-2000, refused\n", ms);
+ 		return -EINVAL;
+ 	}
+-	/*
+-	 * SODI does not honour DRAM requests from AP DMA or USB: refuse unless
+-	 * both are clock-gated, as the vendor's conditions require.
+-	 */
+-	if (!(readl(s.infra + INFRA_CG1_STA) & CG1_AP_DMA) ||
+-	    (~readl(s.infra + INFRA_CG2_STA) & CG2_SSUSB)) {
+-		dev_info(&s.pdev->dev, "sodi: AP DMA or USB clocks running, refused\n");
+-		return -EBUSY;
+-	}
+ 	i2c6 = spm_i2c6();
+ 	if (!i2c6) {
+ 		dev_info(&s.pdev->dev, "sodi: no I2C6 adapter, refused\n");
+@@ -868,8 +999,11 @@ static int sodi_once(u64 ms)
+ 	write_sysreg(cntv | ARCH_TIMER_CTRL_IT_MASK, cntv_ctl_el0);
+ 	write_sysreg(cntp | ARCH_TIMER_CTRL_IT_MASK, cntp_ctl_el0);
+ 	isb();
+-	ret = spm_run(&s.sodi);
+-	if (ret && !s.entered)
++	busy = sodi_busy();
++	ret = busy ? -EBUSY : spm_run(&s.sodi);
++	if (busy)
++		dev_info(&s.pdev->dev, "sodi: %s running, refused\n", busy);
++	else if (ret && !s.entered)
+ 		dev_info(&s.pdev->dev, "sodi: not entered (%d): CPU1-9 online, PCM busy, or modem or C2K on\n",
+ 			 ret);
+ 	write_sysreg(cntv, cntv_ctl_el0);
+@@ -880,6 +1014,13 @@ static int sodi_once(u64 ms)
+ 	disable_irq(s.irq);
+ 	i2c_unlock_bus(i2c6, I2C_LOCK_ROOT_ADAPTER);
+ 	spm_log_wake(sodi_pdn ? "sodi pdn" : "sodi cg");
++	if (s.entered)
++		dev_info(&s.pdev->dev,
++			 "sodi cirq: %u lines edge=%08x %08x %08x %08x %08x %08x %08x sta=%08x %08x %08x %08x %08x %08x %08x\n",
++			 s.cirq_lines, s.cirq_edge[0], s.cirq_edge[1], s.cirq_edge[2],
++			 s.cirq_edge[3], s.cirq_edge[4], s.cirq_edge[5], s.cirq_edge[6],
++			 s.cirq_sta[0], s.cirq_sta[1], s.cirq_sta[2], s.cirq_sta[3],
++			 s.cirq_sta[4], s.cirq_sta[5], s.cirq_sta[6]);
+ out_pmic:
+ 	spm_pmic_finish();
+ 	put_device(&i2c6->dev);
+@@ -1010,6 +1151,12 @@ static void spm_unmap(void)
+ 		iounmap(s.carve);
+ 	if (s.gicd)
+ 		iounmap(s.gicd);
++	if (s.cirq)
++		iounmap(s.cirq);
++	if (s.afe)
++		iounmap(s.afe);
++	if (s.afe_dev)
++		put_device(s.afe_dev);
+ 	if (s.topck)
+ 		iounmap(s.topck);
+ 	if (s.infra)
+@@ -1028,7 +1175,7 @@ static void spm_unmap(void)
+ 
+ static int __init spm_sleep_init(void)
+ {
+-	struct platform_device *pwrap_pdev;
++	struct platform_device *pwrap_pdev, *afe_pdev;
+ 	struct device_node *np;
+ 	void __iomem *chip;
+ 	unsigned int hwcid;
+@@ -1084,6 +1231,7 @@ static int __init spm_sleep_init(void)
+ 	s.sleep.src2_mask = 0x00f1001f;
+ 	s.sleep.wfi_count = WFI_EN_COUNT;
+ 	s.sleep.flags = s.flags;
++	s.sleep.wake_src = S1_WAKE_SRC;
+ 	s.sleep.slots = true;
+ 	ret = spm_load_program(&s.pdev->dev, SPM_FW_NAME, spm_fw_sha256, 0, &s.sleep);
+ 	if (ret)
+@@ -1093,7 +1241,18 @@ static int __init spm_sleep_init(void)
+ 	s.sodi.src_req = 0;
+ 	s.sodi.src2_mask = 0x08ff009f;
+ 	s.sodi.wfi_count = 8;
+-	if (spm_load_program(&s.pdev->dev, SODI_FW_NAME, sodi_fw_sha256, 0x2000,
++	s.sodi.wake_src = SODI_WAKE_SRC;
++	s.sodi.cirq = true;
++	s.cirq = ioremap(CIRQ_PHYS, 0x400);
++	s.afe = ioremap(AFE_PHYS, 0x1000);
++	np = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-audio");
++	afe_pdev = np ? of_find_device_by_node(np) : NULL;
++	of_node_put(np);
++	if (afe_pdev)
++		s.afe_dev = &afe_pdev->dev;
++	if (!s.cirq || !s.afe)
++		dev_info(&s.pdev->dev, "no SYS_CIRQ or AFE mapping, SODI test off\n");
++	else if (spm_load_program(&s.pdev->dev, SODI_FW_NAME, sodi_fw_sha256, 0x2000,
+ 			     &s.sodi))
+ 		dev_info(&s.pdev->dev, "no SODI program, SODI test off\n");
+ 	else

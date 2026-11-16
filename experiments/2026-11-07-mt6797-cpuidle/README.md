@@ -1777,7 +1777,7 @@ reload it each time, as S1 does.
 | D1 | A `=m` module that only evaluates the entry conditions at each CPU0 idle and counts how often each one blocks, through debugfs (no SPM write) | None | Running, plus the module |
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
-| D4 | D3 with a device interrupt as the wake: a key, then an audio period, then a Wi-Fi packet, each through SYS_CIRQ | D3 plus CIRQ | Running |
+| D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
 | D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | Running |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
@@ -2553,6 +2553,130 @@ devices.
 
 After D3: D4 adds SYS_CIRQ and the vendor's full wake set, and wakes from a
 key, an audio period and a Wi-Fi packet; D5 is the CPU0-only cpuidle driver.
+
+### D4: device wakes through SYS_CIRQ (prepared 2026-11-16)
+
+**What changes from D3.**
+[`0804`](../../patches/proposals/0804-soc-mediatek-mt6797-spm-sleep-SODI-device-wakes-thro.patch)
+(module only) gives a SODI period the vendor's SODI wake sources and
+SYS_CIRQ:
+
+- **Wake set.** `WAKE_SRC_FOR_SODI` for MT6797 without the TEE variant,
+  `0x0f57c5f5`: the PCM timer, keypad, APXGPT, CONN2AP, EINT, CONN watchdog,
+  CCIF0, SCP, both USB lines, C2K watchdog, secure EINT, CCIF1, audio,
+  SYS_CIRQ, the debug power request, modem watchdog, CLDMA and SEJ. D3 used
+  the suspend pair (timer and EINT).
+- **SYS_CIRQ.** Upstream `irq-mtk-cirq` cannot be used as it is: it sits in
+  the interrupt hierarchy, needs a DT node and only acts in syscore suspend.
+  So the module programs the block itself, as the vendor does around SODI.
+  - *Before the GIC mask:* it records every enabled edge SPI from SPI 72
+    upwards (220 lines) in SYS_CIRQ, with its polarity from the sysirq
+    words, and enables the block in edge-only mode.
+  - *After the return, before the GIC is restored:* it reads the status,
+    flushes (the block replays the recorded edges into the GIC), disables
+    the block and masks every line, which was its state in D0.
+  - The register layout is upstream's v1. Level SPIs need no clone: the
+    ones that matter have their own wake bits (EINT, keypad, CONN2AP,
+    audio), and they stay asserted until the GIC is unmasked.
+- **Two more refusals.** The vendor's conditions also require the MSDC
+  clocks off (its `msdc_clk_status`), and its audio driver forbids SODI
+  while a buffer is in DRAM (`AudDrv_Emi_Clk_On()`, see the
+  [audio page](../../docs/hardware/gemini-audio.md)). The period is refused
+  in two cases:
+  - MSDC0 (eMMC) or MSDC1 (microSD) is clocked (`0x10001094` bits 2 and 4
+    not gated);
+  - an AFE memory interface is on (`AFE_DAC_CON0` bits 1-9). Mainline's AFE
+    keeps its clocks on for as long as it is bound, so the word is read
+    only then.
+
+  All the gate checks now run with interrupts off, just before the PCM
+  kick, so CPU0 cannot start a transfer after the check.
+- **Logging.** Each period logs one more line: the number of cloned lines,
+  their mask words and the CIRQ status at the wake.
+
+Compile-checked with `W=1` on the full station series; checkpatch is
+quiet. Suspend is unchanged.
+
+**The audio wake is out of D4.** Mainline plays from DRAM, so SODI must not
+run during playback, and 0804 refuses it. Music in SODI needs the AFE to
+play from its 48 KiB SRAM, which is the audio session's work. D4 therefore
+tests a key and an inbound Wi-Fi packet.
+
+**D4 writes for owner approval.** D3's approved list
+and these differences, on SODI periods only:
+
+| # | Register | D4 |
+| --- | --- | --- |
+| S16 | `SPM_WAKEUP_EVENT_MASK` (`0x100060c4`) | `0xf0a83a0a` (the complement of `0x0f57c5f5`) instead of `0xffffffbe` |
+| Q1 | CIRQ `MASK_SET` `0x102040c0`-`0d8` (7 words) | `0xffffffff`, at entry and again at exit |
+| Q2 | CIRQ `ACK` `0x10204040`-`058` | `0xffffffff`, at entry (drops old status) |
+| Q3 | CIRQ `SENS_CLR` `0x102041c0`-`1d8` | the cloned lines (edge) |
+| Q4 | CIRQ `POL_SET` `0x10204240`-`258`, `POL_CLR` `0x10204280`-`298` | the cloned lines, rising and falling |
+| Q5 | CIRQ `MASK_CLR` `0x10204100`-`118` | the cloned lines |
+| Q6 | CIRQ `CON` `0x10204300` | read value \| `0x3` (enable, edge only) at entry; \| `0x4` (flush) after the return, then with `0x3` cleared |
+| R2 | GICD `ICFGR` `0x19000c00` + 4n, sysirq `0x10220620`-`63c` and `0x10220690`-`69c`, CIRQ `STA` `0x10204000`-`018`, `AFE_DAC_CON0` `0x11220010` | reads only (the AFE word only while its driver is bound) |
+
+There is no PSCI or SiP call, and no PMIC wrapper write, as in D3.
+
+**What the D4 module still does not handle.** An edge interrupt that is
+already pending at the GIC when the period starts doesn't wake the program.
+It is served when the period ends: late, but not lost. CIRQ's flush may
+also deliver an edge a second time, as in upstream suspend. Both matter for
+D5, where idle periods follow each other. D5's driver checks the GIC
+pending words before each entry.
+
+### Request D4 (proposed)
+
+- **Candidate:** the running image (134 or later) with `mt6797-spm-sleep.ko`
+  from a Buildbox build of the commit recording this stage (module only).
+  `pcm_sodi.bin` and `pcm_suspend.bin` stay staged as for D3.
+- **Setup:** a detached script with its log on storage. On battery with the
+  cable out; **Wi-Fi joined and left up**; MTU3 `power/control` `auto`;
+  `mt6797-gate-unused` loaded; no audio playing; the screen blanked; CPU1-9
+  offline. Every period is 2000 ms in CG mode.
+- **Windows:**
+  - **C, inbound packets.** The custodian pings the device from the laptop
+    once a second for about three minutes, starting any time after the
+    launch. The script waits up to 300 s for echo requests to arrive
+    (`/proc/net/snmp` `InEchos`), then runs 60 periods back to back while
+    they keep coming. The hash follows the window.
+  - **A, quiet.** Once the pings stop: 20 periods, each followed by the
+    hash.
+  - **B, a key.** The custodian tells the owner to press one key once. The
+    window runs up to 300 s and ends at the first period a key ends. The
+    hash follows each period.
+- **Hypothesis:** an inbound packet ends a period early, through CONN2AP or
+  SYS_CIRQ, and so does a key press, through EINT. Memory stays intact.
+- **Unique observation:** the first device wakes from SODI on mainline, the
+  wake source each one uses, and how often SODI is broken with Wi-Fi joined
+  and nothing happening.
+- **Pass:**
+  - every write returns 0 or is refused (refusals are logged and counted);
+  - every period returns;
+  - in C, most periods end early by `conn2ap` or `cirq`, and the laptop's
+    ping shows no loss and RTTs well under the 2000 ms period (a missed
+    wake shows as RTTs near 2 s);
+  - in B, one period ends early by `eint` (the keyboard's EINT10), and the
+    key reaches the input layer (its EINT count goes up);
+  - every hash is equal, and no warning appears.
+- **Stop** at the first of: a failed write that is not a refusal; ten
+  refusals in a row; `returned=0`; a wrong hash (power off); an Oops,
+  `WARNING` or RCU stall; no Wi-Fi SSH within 120 s of the end (a hang: the
+  owner's force-off). No retry.
+
+**Script:** [`tools/d4.sh`](tools/d4.sh), run detached as root with the
+module path; it logs to `/var/tmp/d4.log`. It checks the same things as
+d3.sh, and also that the module contains 0804's CIRQ line. Wi-Fi is not
+touched, so the custodian can read the log over SSH at the end. They should
+stay off SSH during A, since their traffic would end A's periods early.
+
+| Result | Next |
+| --- | --- |
+| Packets and the key wake SODI, memory intact | D5: the CPU0-only cpuidle driver, with the GIC pending check before each entry |
+| Packets wake, the key does not | Check whether the EINT wake bit or the CIRQ clone misses EINT10; no D5 until a key wakes |
+| Packets do not wake (RTTs near 2 s, timer wakes in C) | Read `r12` and the CIRQ status; find CONSYS's wake path (CONN2AP or which SPI) before anything else |
+| Periods end at once with a source no one triggered (for example a USB bit) | Drop that source from the wake set, record why, and repeat only that window |
+| Refusals dominate a window (MSDC or AP DMA) | Name the holder, as for AP DMA and SSUSB; it is D5's work list |
 
 ### What it should save
 
