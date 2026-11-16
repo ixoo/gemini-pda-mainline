@@ -271,6 +271,12 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   Stage 2's code is 0812, written at the owner's request ("Stage 1 + write 2"): `mac.power_save=1` (maximum) or
   `2` (fast) offers firmware-managed power save, and `iw dev <if> set power_save on/off` switches between that
   profile and constantly awake. The default sends nothing. Compiled only; not admitted to run.
+
+  Stage 1 baseline (custodian, boot `2d4dcc57`, power save off, screen blanked, no SSH, all CPUs online, no
+  SODI): battery discharge averaged 153.6 mA over 602 s (median 152.7), with 3.2 WLAN interrupts and 3.3
+  received frames a second, 1.4 of them dropped, and nothing sent. With all CPUs online and no SODI, the radio's
+  share of that may be small, so stage 2 compares power save on and off on one boot in the same state, plus
+  SODI windows.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
