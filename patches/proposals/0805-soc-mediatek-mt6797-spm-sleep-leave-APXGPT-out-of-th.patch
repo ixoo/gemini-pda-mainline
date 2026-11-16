@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 16 Nov 2026 14:10:00 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: leave APXGPT out of the SODI
+ wake set
+
+In the first D4 run every SODI period returned at once with r12 bit 4,
+APXGPT: mainline has no GPT node, so nothing services the GPT, and its
+event stays asserted. Leave it out by default, as the PCM timer ends the
+period anyway. The wake set becomes a parameter, sodi_wake_src, limited to
+the vendor set, so that another source found asserted can be left out
+without a new build. The PCM timer is always on.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index c24530da7..920ca3d68 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -164,6 +164,7 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+  * modem watchdog, CLDMA and SEJ.
+  */
+ #define SODI_WAKE_SRC		0x0f57c5f5
++#define WAKE_APXGPT		BIT(4)
+ 
+ /*
+  * SYS_CIRQ records edge interrupts while the GIC is masked and wakes the
+@@ -339,6 +340,15 @@ static bool gic_mask = true;
+ module_param(gic_mask, bool, 0644);
+ MODULE_PARM_DESC(gic_mask, "Disable every SPI but the SPM's at the GIC while CPU0 waits");
+ 
++/*
++ * The SODI wake sources, limited to the vendor's set; the PCM timer is always
++ * on. APXGPT is left out: mainline has no GPT node, so nothing services the
++ * GPT, and in D4 its event was asserted at the start of every period.
++ */
++static unsigned int sodi_wake_src = SODI_WAKE_SRC & ~WAKE_APXGPT;
++module_param(sodi_wake_src, uint, 0644);
++MODULE_PARM_DESC(sodi_wake_src, "SODI wake sources, within 0x0f57c5f5 (the timer is always on)");
++
+ static bool sodi_pdn;
+ module_param(sodi_pdn, bool, 0644);
+ MODULE_PARM_DESC(sodi_pdn, "SODI test in PDN mode (DRAM PHY and MEMPLL off) instead of CG mode");
+@@ -986,6 +996,7 @@ static int sodi_once(u64 ms)
+ 	}
+ 
+ 	s.sodi.ticks = div_u64(ms * 32768, 1000);
++	s.sodi.wake_src = (READ_ONCE(sodi_wake_src) & SODI_WAKE_SRC) | BIT(0);
+ 	s.sodi.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
+ 	if (sodi_pdn)
+ 		s.sodi.flags &= ~SODI_FLAG_CG_MODE;
+@@ -1241,7 +1252,6 @@ static int __init spm_sleep_init(void)
+ 	s.sodi.src_req = 0;
+ 	s.sodi.src2_mask = 0x08ff009f;
+ 	s.sodi.wfi_count = 8;
+-	s.sodi.wake_src = SODI_WAKE_SRC;
+ 	s.sodi.cirq = true;
+ 	s.cirq = ioremap(CIRQ_PHYS, 0x400);
+ 	s.afe = ioremap(AFE_PHYS, 0x1000);

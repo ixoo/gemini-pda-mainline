@@ -7,6 +7,9 @@
 #
 #   setsid nohup sh d4.sh /path/to/mt6797-spm-sleep.ko </dev/null >/dev/null 2>&1 &
 #
+# D4_WAKE=0x... sets the module's sodi_wake_src (within the vendor set; the
+# default leaves APXGPT out, 0805).
+#
 # Wi-Fi stays up. The script waits for the desktop's idle blank, takes
 # CPU1-9 offline and runs three windows of 2000 ms periods:
 #   C  inbound ping: it waits up to 300 s for ICMP echo requests (the
@@ -23,6 +26,7 @@
 # Unique observation: the first device wakes from SODI on mainline, which
 # wake source each one uses, and the natural wake rate with Wi-Fi joined.
 # Stops: a failed write that is not a refusal; ten refusals in a row;
+# five periods in a row ended at once by the same source other than the timer;
 # returned=0; a new WARNING, Oops, BUG or RCU stall; a wrong hash, after
 # which the script syncs and powers off, since memory may be corrupt.
 set -u
@@ -129,6 +133,13 @@ period() {
 	SLEPT=$(( 0x${tout:-0} * 1000 / 32768 ))
 	sta=$(echo "$out" | grep "sodi cirq:" | tail -n 1 | sed -n 's/.*cirq: \([0-9]*\) lines.* sta=\(.*\)/\1 lines, sta \2/p')
 	log "    r12 $R12, slept $SLEPT ms; $(wake_names "$R12"); cirq $sta"
+	if [ "$SLEPT" -eq 0 ] && [ "$R12" = "$LAST_R12" ]; then
+		INSTANT=$((INSTANT + 1))
+	else
+		INSTANT=0
+	fi
+	LAST_R12=$R12
+	[ "$INSTANT" -ge 4 ] && stop "five periods in a row ended at once by r12 $R12: a source no one triggered"
 }
 
 # The wake sources named in r12 (SPM_WAKEUP_EVENT_MASK bit names).
@@ -151,6 +162,8 @@ early() {
 # ---- checks before anything changes ----
 DMESG0=$(dmesg | wc -l)
 REFUSED=0
+INSTANT=0
+LAST_R12=""
 log "D4 start, $(uname -r), boot $(cat /proc/sys/kernel/random/boot_id), taint $(cat /proc/sys/kernel/tainted)"
 [ "$(id -u)" -eq 0 ] || stop "not root"
 [ -f "$KO" ] || stop "no module at '$KO'"
@@ -160,6 +173,7 @@ case $(modinfo -F vermagic "$KO") in
 *) stop "the module's vermagic does not match $(uname -r)" ;;
 esac
 grep -q 'sodi cirq' "$KO" || stop "the module has no SYS_CIRQ (0804)"
+grep -q 'sodi_wake_src' "$KO" || stop "the module has no sodi_wake_src (0805)"
 [ "$(sha256sum "$FW" | cut -d' ' -f1)" = "$FW_SHA" ] || stop "$FW missing or its hash differs"
 [ "$(sha256sum "$FW_SUSPEND" | cut -d' ' -f1)" = "$FW_SUSPEND_SHA" ] ||
 	stop "$FW_SUSPEND missing or its hash differs"
@@ -187,7 +201,8 @@ log "gadget power/control auto (was $USB_CONTROL), runtime $(cat "/sys/bus/platf
 if [ -d /sys/module/mt6797_spm_sleep ]; then
 	rmmod mt6797_spm_sleep || stop "the running SPM module did not unload"
 fi
-insmod "$KO" || stop "insmod failed"
+insmod "$KO" ${D4_WAKE:+sodi_wake_src=$D4_WAKE} || stop "insmod failed"
+log "sodi_wake_src $(printf '%08x' "$(cat /sys/module/mt6797_spm_sleep/parameters/sodi_wake_src)")"
 new_dmesg | grep -E 'mt6797-spm-sleep|pcm_' | sed 's/^/    /'
 [ -e "$SODI" ] || stop "no $SODI: the SODI program was not loaded"
 

@@ -2681,6 +2681,51 @@ stay off SSH during A, since their traffic would end A's periods early.
 | Periods end at once with a source no one triggered (for example a USB bit) | Drop that source from the wake set, record why, and repeat only that window |
 | Refusals dominate a window (MSDC or AP DMA) | Name the holder, as for AP DMA and SSUSB; it is D5's work list |
 
+**D4, first run (2026-11-16, image 135, boot `4cc2b9ba…`).** Custodian's
+report:
+- *Candidate:* image 135 is `27f2e76b` (`Image.gz` `785d7151…`); the module
+  (`849818e4…`) came from the `cedacc07` build, whose `Image.gz` is the same;
+  `d4.sh` `6c51a79c`.
+- *Setup:* battery 95 %, cable out, Wi-Fi up, MTU3 `auto` and suspended,
+  taint 0 at the start and the end.
+- **Safe but uninformative.** All 500 periods returned at once with `r12`
+  `00000010`: APXGPT, slept 0 ms. No other wake source appeared. The memory
+  hash (`5abed55b4a4c85e5`) was equal after every period. The restore worked
+  and dmesg had no warning.
+- **C:** 60 of 60 periods ended early, none by a packet; 19 echo requests
+  arrived in the window. The laptop's 180 pings: no loss, RTT
+  32.9/49.5/119.2 ms (min/avg/max). Those numbers say nothing about SODI,
+  since CPU0 was in fact never asleep.
+- **A:** 20 of 20 ended early.
+- **B:** one refusal ("AP DMA running"). The screen lit with no key wake
+  seen. The keyboard's EINT10 count went from 195 to 231, so the presses
+  reached the input layer between periods.
+- **SYS_CIRQ cloned 0 lines** in every period: no enabled SPI from 72
+  upwards is configured as edge on this station. So CIRQ has nothing to do
+  here; device wakes depend on the SPM's own wake bits (EINT, CONN2AP,
+  keypad).
+
+**Cause (inference, not measured):** mainline has no APXGPT node, so nothing
+programs, acknowledges or disables the GPT block at `0x10008000`. Its event
+to the SPM stays asserted from whatever the boot loader left there. D3 never
+saw it because its wake set was only the timer and EINT. The PCM timer
+already ends each period, so APXGPT is not needed.
+
+**Change.**
+[`0805`](../../patches/proposals/0805-soc-mediatek-mt6797-spm-sleep-leave-APXGPT-out-of-th.patch)
+leaves APXGPT out by default. The wake set becomes a module parameter,
+`sodi_wake_src`, always limited to the vendor set with the timer forced on,
+so another source found stuck can be dropped without a new build (`D4_WAKE=`
+in d4.sh). The default mask is `0xf0a83a1a`, which is the approved
+`0xf0a83a0a` with APXGPT masked, so it stays inside the approved list.
+d4.sh now checks that the module has 0805. It also stops after five periods
+in a row ended at once by the same source, since such a run cannot answer
+anything. Compile-checked with `W=1`; checkpatch is quiet.
+
+**Rerun:** the same request with the module from a build of the commit that
+records this. If another source turns out stuck, the script stops early,
+and the rerun drops that source with `D4_WAKE` and repeats.
+
 ### What it should save
 
 | State | Today | Expected |
