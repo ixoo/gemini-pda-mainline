@@ -11,13 +11,15 @@ with no cable: the SoC's deep idle waits on them.
 
 The PMIC's charger detection does see VBUS. Set the controller's role
 switch to none when VBUS goes and to device when it comes, after the
-charger type detection so that the pullup does not disturb it. Leave a
+charger type detection so that the pullup does not disturb it. The switch is
+looked up at each change and released after it, since the controller
+can be unbound and bound again with a new switch. Leave a
 host role alone: it is set by whoever drives the port as a host, and
 its VBUS comes from this side.
 ---
  drivers/power/supply/Kconfig           |  4 ++-
- drivers/power/supply/mt6351-usb-type.c | 44 ++++++++++++++++++++++++++
- 2 files changed, 47 insertions(+), 1 deletion(-)
+ drivers/power/supply/mt6351-usb-type.c | 39 ++++++++++++++++++++++++++
+ 2 files changed, 42 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
 index db30caedf..3a52cc596 100644
@@ -39,7 +41,7 @@ index db30caedf..3a52cc596 100644
  config CHARGER_BQ25980
  	tristate "TI BQ25980 battery charger driver"
 diff --git a/drivers/power/supply/mt6351-usb-type.c b/drivers/power/supply/mt6351-usb-type.c
-index c7f3306df..19d01d6cf 100644
+index c7f3306df..13c77e391 100644
 --- a/drivers/power/supply/mt6351-usb-type.c
 +++ b/drivers/power/supply/mt6351-usb-type.c
 @@ -27,6 +27,7 @@
@@ -50,16 +52,7 @@ index c7f3306df..19d01d6cf 100644
  #include <linux/workqueue.h>
  
  #define MT6351_CHR_CON0			0x0f78
-@@ -65,6 +66,8 @@ struct mt6351_usb_type {
- 	struct power_supply *psy;
- 	struct delayed_work work;
- 	struct notifier_block nb;
-+	struct usb_role_switch *role_sw;
-+	int role_vbus;
- 	bool started;
- 	bool online;
- 	int usb_type;
-@@ -172,6 +175,43 @@ static int mt6351_usb_type_detect(struct mt6351_usb_type *ut)
+@@ -172,6 +173,42 @@ static int mt6351_usb_type_detect(struct mt6351_usb_type *ut)
  	return type;
  }
  
@@ -72,38 +65,37 @@ index c7f3306df..19d01d6cf 100644
 + */
 +static void mt6351_usb_type_set_role(struct mt6351_usb_type *ut, bool vbus)
 +{
++	struct usb_role_switch *sw;
 +	struct device_node *np;
-+	enum usb_role role = vbus ? USB_ROLE_DEVICE : USB_ROLE_NONE;
 +	int ret;
 +
-+	if (ut->role_vbus == vbus)
++	/*
++	 * Look the switch up at each change and drop it after: the controller
++	 * may be unbound and bound again, which replaces its switch.
++	 */
++	np = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-mtu3");
++	if (!np)
++		return;
++	sw = usb_role_switch_find_by_fwnode(of_fwnode_handle(np));
++	of_node_put(np);
++	if (!sw)
 +		return;
 +
-+	if (!ut->role_sw) {
-+		np = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-mtu3");
-+		if (!np)
-+			return;
-+		ut->role_sw = usb_role_switch_find_by_fwnode(of_fwnode_handle(np));
-+		of_node_put(np);
-+		if (!ut->role_sw)
-+			return;
++	if (usb_role_switch_get_role(sw) != USB_ROLE_HOST) {
++		ret = usb_role_switch_set_role(sw, vbus ? USB_ROLE_DEVICE :
++						      USB_ROLE_NONE);
++		if (ret)
++			dev_warn_ratelimited(ut->dev,
++					     "cannot set the USB role: %d\n", ret);
 +	}
 +
-+	if (usb_role_switch_get_role(ut->role_sw) == USB_ROLE_HOST)
-+		return;
-+
-+	ret = usb_role_switch_set_role(ut->role_sw, role);
-+	if (ret) {
-+		dev_warn(ut->dev, "cannot set the USB role: %d\n", ret);
-+		return;
-+	}
-+	ut->role_vbus = vbus;
++	usb_role_switch_put(sw);
 +}
 +
  static void mt6351_usb_type_work(struct work_struct *work)
  {
  	struct mt6351_usb_type *ut =
-@@ -191,6 +231,7 @@ static void mt6351_usb_type_work(struct work_struct *work)
+@@ -191,6 +228,7 @@ static void mt6351_usb_type_work(struct work_struct *work)
  				dev_warn_ratelimited(ut->dev, "detection failed: %d\n", type);
  				queue_delayed_work(system_power_efficient_wq,
  						   &ut->work, USB_TYPE_RETRY);
@@ -111,7 +103,7 @@ index c7f3306df..19d01d6cf 100644
  				return;
  			}
  			dev_info(ut->dev, "charger attached: %s\n",
-@@ -207,6 +248,7 @@ static void mt6351_usb_type_work(struct work_struct *work)
+@@ -207,6 +245,7 @@ static void mt6351_usb_type_work(struct work_struct *work)
  			WRITE_ONCE(ut->online, false);
  			power_supply_changed(ut->psy);
  		}
@@ -119,22 +111,6 @@ index c7f3306df..19d01d6cf 100644
  	}
  }
  
-@@ -296,6 +338,7 @@ static void mt6351_usb_type_stop(void *data)
- 
- 	power_supply_unreg_notifier(&ut->nb);
- 	cancel_delayed_work_sync(&ut->work);
-+	usb_role_switch_put(ut->role_sw);
- }
- 
- static int mt6351_usb_type_probe(struct platform_device *pdev)
-@@ -341,6 +384,7 @@ static int mt6351_usb_type_probe(struct platform_device *pdev)
- 		return -ENOMEM;
- 
- 	ut->usb_type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
-+	ut->role_vbus = -1;
- 	INIT_DELAYED_WORK(&ut->work, mt6351_usb_type_work);
- 
- 	cfg.drv_data = ut;
 -- 
 2.43.0
 

@@ -1058,8 +1058,16 @@ was balanced only because device used to be entered from host alone. 0800's
 switches between device and none disabled it with no matching enable.
 
 Fix, folded into 0800 (compile-checked, not run): only a switch out of host
-turns VBUS off, since only host turned it on. 0801 is unchanged. Image 132
-carries the earlier 0800, so M1 runs again on a new image, from the start.
+turns VBUS off, since only host turned it on. Image 132 carries the earlier
+0800, so M1 runs again on a new image, from the start.
+
+Review fix to 0801, from the cpuidle work, also folded in and compile-checked:
+0801 kept the role switch it found at the first change. Unbinding MTU3
+replaces its switch, so the kept one would be stale. The role class
+refuses a call on an unregistered switch, but a call racing the unbind could
+still reach MTU3. Role control would also stop for good after a rebind. 0801
+now looks the switch up at each change and releases it after. Until a
+build with this fix, MTU3 isn't unbound on an image that has 0801.
 
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
