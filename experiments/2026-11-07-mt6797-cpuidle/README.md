@@ -2917,7 +2917,11 @@ D4c is window C again, within the approved D4b list, with no write change:
 - Memory hash equal, no refusals, taint 0, no warning; the CPUs were
   restored.
 - Windows A and B did not run: the screen was lit when A started, so the
-  script started no period. The key wake already passed in D4b.
+  script started no period. The key wake already passed in D4b. Asked
+  whether they touched the device around 15:52:05, the owner was not
+  sure, so the cause of that unblank is unknown; it is not counted as a
+  spontaneous unblank. A rerun of A and B needs the owner's yes and hands
+  off the device for the whole run.
 
 **D4 is complete.** SODI periods are ended by the PCM timer, a key (EINT,
 or SYS_CIRQ), and an inbound packet (SYS_CIRQ and CONN2AP), with memory
