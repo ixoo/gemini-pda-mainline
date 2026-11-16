@@ -1,0 +1,202 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 16 Nov 2026 18:31:12 -0500
+Subject: [PATCH] wifi: mt6797: offer firmware 802.11 power save behind a
+ parameter
+
+With power save refused, the firmware stays awake for every beacon, and on a
+quiet link the SoC left SODI about every 56 ms. With power_save=1 (maximum) or
+2 (fast), offer power save to mac80211 as firmware-managed, and send the
+firmware's power-save profile, command 0x05 for BSS 0, when mac80211 changes
+it and when the data phase opens. iw's power_save setting then switches
+between that profile and constantly awake. The default, 0, offers nothing and
+sends nothing, since CONFIG_CFG80211_DEFAULT_PS would otherwise turn power save
+on at every join.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 12 ++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  5 ++
+ drivers/net/wireless/mediatek/mt6797/join.c   |  2 +
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  7 +++
+ drivers/net/wireless/mediatek/mt6797/main.c   | 60 ++++++++++++++++++-
+ 5 files changed, 85 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 7b0f17c76..8e7978efa 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1571,6 +1571,18 @@ int mt6797_hif_join_pm_connected(struct mt6797_hif *hif, unsigned int sequence,
+ }
+ EXPORT_SYMBOL_GPL(mt6797_hif_join_pm_connected);
+ 
++int mt6797_hif_join_ps_profile(struct mt6797_hif *hif, unsigned int sequence,
++			       unsigned int profile, u64 deadline_ns)
++{
++	u8 payload[4] = { 0, profile, 0, 0 };
++
++	if (profile > 2)
++		return -EINVAL;
++	return mt6797_hif_send_join_command(hif, 0x05, sequence, payload,
++					   sizeof(payload), false, deadline_ns);
++}
++EXPORT_SYMBOL_GPL(mt6797_hif_join_ps_profile);
++
+ int mt6797_hif_join_pm_abort(struct mt6797_hif *hif, unsigned int sequence,
+ 			     u64 deadline_ns)
+ {
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index e60654d67..7e61b5293 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -223,6 +223,11 @@ int mt6797_hif_join_filter(struct mt6797_hif *hif, unsigned int sequence,
+ int mt6797_hif_join_key(struct mt6797_hif *hif, unsigned int sequence,
+ 			bool add, bool pairwise, const u8 *peer,
+ 			unsigned int key_id, const u8 *material, u64 deadline_ns);
++/* The firmware's 802.11 power-save profile for BSS 0 (command 0x05):
++ * 0 constantly awake, 1 maximum power save, 2 fast power save.
++ */
++int mt6797_hif_join_ps_profile(struct mt6797_hif *hif, unsigned int sequence,
++			       unsigned int profile, u64 deadline_ns);
+ int mt6797_hif_join_pm_connected(struct mt6797_hif *hif, unsigned int sequence,
+ 				 unsigned int dtim, unsigned int aid, unsigned int interval,
+ 				 u64 deadline_ns);
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 640ae551b..574eb82c8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -580,6 +580,8 @@ static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
+ 	memset(&mac->ccmp_gtk_rx, 0, sizeof(mac->ccmp_gtk_rx));
+ 	mac->ccmp_gtk_attempted = false;
+ 	mac->ccmp_gtk_deferred = NULL;
++	/* The firmware starts each lifetime constantly awake (assumed). */
++	mac->ps_sent = 0;
+ 	mac->ccmp_last_checked_rx = 0;
+ 	mac->ccmp_timeout_ignored = 0;
+ 	reinit_completion(&mac->ccmp_dtim_done);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 17b83210b..6d6bd7844 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -491,6 +491,12 @@ struct mt6797_mac {
+ 	 */
+ 	int irq;
+ 	atomic_t irq_masked;
++	/* 802.11 power save: the profile offered (0: none), whether mac80211
++	 * wants it on, and the profile last sent this lifetime.
++	 */
++	unsigned int ps_profile;
++	bool ps_wanted;
++	int ps_sent;
+ 	bool irq_armed, irq_gave_up, join_pass_read, join_pass_found;
+ 	unsigned int irq_empty;
+ 	struct mt6797_data_slots data_slots;
+@@ -828,6 +834,7 @@ int mt6797_mac_join_open_lifetime(struct mt6797_mac *mac);
+ void mt6797_mac_join_read_bss(struct mt6797_mac *mac, struct ieee80211_vif *vif,
+ 			      const struct ieee80211_bss_conf *info);
+ void mt6797_mac_join_await(struct mt6797_mac *mac, bool teardown);
++void mt6797_mac_join_send_ps(struct mt6797_mac *mac);
+ bool mt6797_mac_join_retire_idle_scan(struct mt6797_mac *mac);
+ int mt6797_mac_send(struct mt6797_mac *mac,
+ 		    enum mt6797_normal_config_kind kind,
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 8300b4e61..c78c77b77 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -9,6 +9,13 @@
+ #include "mac-priv.h"
+ 
+ static bool wlan_irq = true;
++
++/* Off by default: CONFIG_CFG80211_DEFAULT_PS would turn power save on at every
++ * join once the hardware offers it.
++ */
++static uint power_save;
++module_param(power_save, uint, 0444);
++MODULE_PARM_DESC(power_save, "802.11 power save offered to mac80211: 0 none, 1 maximum, 2 fast");
+ module_param(wlan_irq, bool, 0444);
+ MODULE_PARM_DESC(wlan_irq, "Serve receive from the WLAN interrupt when the device tree gives one");
+ 
+@@ -1294,8 +1301,13 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 	 * configuration; only a radio-specific request is unsupported here.
+ 	 */
+ 	if (!mac->scan_ready || mac->first_error || mac->closing || radio_idx != -1 ||
+-	    (hw->conf.flags & (IEEE80211_CONF_PS | IEEE80211_CONF_MONITOR)))
++	    (hw->conf.flags & IEEE80211_CONF_MONITOR) ||
++	    ((hw->conf.flags & IEEE80211_CONF_PS) && !mac->ps_profile))
+ 		ret = -EOPNOTSUPP;
++	if (!ret && (changed & IEEE80211_CONF_CHANGE_PS)) {
++		mac->ps_wanted = hw->conf.flags & IEEE80211_CONF_PS;
++		mt6797_mac_join_send_ps(mac);
++	}
+ 	{
+ 		const struct cfg80211_chan_def *def = &hw->conf.chandef;
+ 		const struct ieee80211_channel *channel = def->chan;
+@@ -1572,6 +1584,44 @@ static int mt6797_ccmp_disable_key(struct mt6797_mac *mac)
+ 	return 0;
+ }
+ 
++/* Send the power-save profile mac80211 wants, once the data phase is open.
++ * Called with the mutex held. A failure is logged and leaves the profile as
++ * the firmware has it; a refused command ends nothing.
++ */
++void mt6797_mac_join_send_ps(struct mt6797_mac *mac)
++{
++	unsigned int profile = mac->ps_wanted ? mac->ps_profile : 0;
++	int ret;
++
++	if (!mac->ps_profile || !mac->join_data_phase || mac->join_data_ended ||
++	    mac->ps_sent == (int)profile || mac->closing || mac->first_error)
++		return;
++	if (mac->join_inflight || mac->data_slots.count || mac->join_page_debt) {
++		ret = mt6797_mac_join_wait_management(mac);
++		if (ret)
++			goto out;
++	}
++	if (mac->join_page_debt || mac->join_credit_pending || mac->sequence > 253) {
++		ret = -EBUSY;
++		goto out;
++	}
++	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 1;
++	ret = mt6797_hif_join_ps_profile(mac->hif, mac->sequence++, profile,
++					 mac->join_credit_deadline);
++	mt6797_mac_join_refused(mac, ret);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	if (!ret)
++		mac->ps_sent = profile;
++out:
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN power save: profile=%u status=%d\n", profile, ret);
++}
++
+ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 			      struct ieee80211_vif *vif, struct ieee80211_sta *sta,
+ 			      struct ieee80211_key_conf *key)
+@@ -1780,6 +1830,8 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		if (ret)
+ 			goto failed;
+ 		schedule_delayed_work(&mac->join_work, 0);
++		/* mac80211 may have asked for power save before the link was up. */
++		mt6797_mac_join_send_ps(mac);
+ 	}
+ 	mutex_unlock(&mac->mutex);
+ 	return 0;
+@@ -2411,6 +2463,12 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	SET_IEEE80211_PERM_ADDR(hw, data + 4);
+ 	hw->queues = 4;
+ 	ieee80211_hw_set(hw, REPORTS_TX_ACK_STATUS);
++	/* The firmware sends the null frames and wakes for DTIMs itself. */
++	if (power_save && power_save <= 2) {
++		mac->ps_profile = power_save == 1 ? 1 : 2;
++		ieee80211_hw_set(hw, SUPPORTS_PS);
++		ieee80211_hw_set(hw, SUPPORTS_DYNAMIC_PS);
++	}
+ 	ieee80211_hw_set(hw, SINGLE_SCAN_ON_ALL_BANDS);
+ 	hw->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION);
+ 	hw->wiphy->reg_notifier = mt6797_mac_regulatory;
+-- 
+2.43.0
+

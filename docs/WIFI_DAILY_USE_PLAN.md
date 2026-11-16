@@ -267,6 +267,10 @@ Each one joins, gets DHCP and carries a 60 s transfer.
 
   The gain to measure, against stage 1: SODI wakes on a quiet link moving from beacon pace to DTIM pace or
   slower, and the battery current falling, both on the same boot by toggling the parameter.
+
+  Stage 2's code is 0812, written at the owner's request ("Stage 1 + write 2"): `mac.power_save=1` (maximum) or
+  `2` (fast) offers firmware-managed power save, and `iw dev <if> set power_save on/off` switches between that
+  profile and constantly awake. The default sends nothing. Compiled only; not admitted to run.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
