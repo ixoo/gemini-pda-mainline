@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 passed (right-port host, full and high speed) after 0608 and 0620; U4 (left-port host) failed: no boost VBUS, and `sink` did not end the source state while a partner was attached; 0623 fixes the second, compile-checked only |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 passed (right-port host, full and high speed) after 0608 and 0620; U4 (left-port host) failed: no boost VBUS, and `sink` did not end the source state while a partner was attached; 0623 fixes the second, compile-checked only; the left port powers down with no VBUS (0800, 0801), M2 passed on boot `fef9e0f2` |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -1107,6 +1107,29 @@ non-standard again → the PHY's power state isn't enough, and the boot pass
 differs by its pullup; next, run the detection after the role goes to
 *device*, as at boot. A charger misread only on some cycles → record the
 timing between the plug and the detection. M1's stop rules apply.
+
+**M2 passed (2026-11-16).** Run by the custodian with the owner. Image 134,
+built from `753574f7`: package `linux-7.1.3-gemini-1c2966b7…`, `Image.gz`
+`d78174ab…`, boot2 `dcec7dc2…`, written with `flash-boot2` and verified. Boot
+`fef9e0f2`, taint 0 and no warnings throughout.
+
+- Baseline, cable in: CDP at boot, guard input limit 1.5 A, role `device`,
+  gadget `configured`, the SSUSB clocks on, USB SSH working. Then
+  `control=auto`.
+- Four unplug and plug cycles. Every unplug, after 10 s: role `none`, runtime
+  suspended with usage 0, `infra_ssusb_sys`, `_bus` and `_ref` at enable 0 and
+  prepare 0; the guard returned to 500 mA 4–6 s later.
+- Every plug: "charger attached: CDP (charging host)", then role `device`,
+  gadget `configured`, MTU3 active, clocks on and `usb0` with its address
+  within 1 s. The guard set 1.5 A 1.3–6.5 s after the attach, on its own
+  period. A new USB SSH session from the laptop worked each time, 13–23 s
+  after the drop, including the owner's time to replug.
+
+So with `power/control=auto` the left port holds no SSUSB clock while VBUS is
+absent, and a plug restores the gadget, USB SSH and the charger type. Held
+for the controller, BC1.1 reads correctly. Not covered: a wall charger or
+other charger types after a power-down, a system suspend while powered down,
+and the card root setting `auto` by itself at boot.
 
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
