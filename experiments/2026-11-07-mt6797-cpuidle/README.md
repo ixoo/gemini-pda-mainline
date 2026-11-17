@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); D5, D5a and D5b reset on image 137; D5c proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); 0816/0817 reset image 137, 0806 passes (D5c); D5d proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3296,7 +3296,7 @@ Three differences remain:
   went through `mt6797_sodi`'s WFI state;
 - **0816's other shared changes,** such as the pending check.
 
-### Request D5c (proposed): the 0806 module on image 137
+### Request D5c (approved 2026-11-17): the 0806 module on image 137
 
 The station config has `# CONFIG_MODVERSIONS is not set`, and images 136
 and 137 share a release string. So module 9cf7b397, the 0806 build that
@@ -3319,6 +3319,67 @@ structure it uses. The run should still check that it loads cleanly.
 | --- | --- |
 | Windows A-C pass, hashes equal | The cause is in 0816's module. Next: an 0817 module that skips the cpuidle registration (a parameter), to split the registration from the rest |
 | Reset or hang | The cause is image 137 or the Wi-Fi module set, not 0816. Compare the Wi-Fi and CONSYS module hashes with the image-136 runs; if they differ, rerun with the image-136 set |
+
+### D5c: the 0806 module passes on image 137 (custodian, 2026-11-17)
+
+**Approved** by the owner ("Approve D5c").
+
+**Setup.** Image 137 (boot2 0653d4a3), boot b8d5a469. Module 9cf7b397 (the
+0806 build from 35259fb3) loaded cleanly with a matching vermagic. `d4.sh`
+97ae6706 with `D4_CIRQ_LEVEL=1`, Wi-Fi power save on, cable out, battery
+42 %, hands off. The radio modules on disk were mac e989cbc1, wlan-core
+0f3a9a9e and consys ea4e60fe, the same as in the image-136 runs. 180 of
+180 pings were answered, averaging 93 ms.
+
+**Observed.** Sleep per period in ms:
+
+| Window | Periods | Median | Mean | p90 |
+| --- | --- | --- | --- | --- |
+| C, pings | 60, all ended early by a packet | 97 | 126 | 293 |
+| A, quiet | 20 | 378 | 292 | — |
+| B, quiet | 347, no key | 320 | 296 | 641 |
+
+Every period was ended by CONN2AP through SYS_CIRQ. All 368 hash checks
+were equal. There was 1 refusal (MSDC), taint stayed 0, and there was no
+warning or Oops.
+
+**Result.** Image 137 and the Wi-Fi module set are cleared: the 0806
+module ran 427 periods there. The 0816 and 0817 modules reset the device
+within 15-22 periods under pings. So the cause is in 0816's changes that
+0817 kept. By reading the code, `sodi_once` differs from 0806 in only two
+ways:
+- the GIC pending check, which runs before any SPM change and only reads;
+- the CPU0 cpuidle driver, registered at load. With the SODI state
+  disabled, CPU0's ordinary idle still runs through the cpuidle core and
+  the driver's WFI state instead of the default idle.
+
+Level recording is set by `d4.sh` in every run. The rest of 0816 is only
+reached from the SODI state.
+
+### Request D5d (proposed): 0817 without the cpuidle driver
+
+[`0819`](../../patches/proposals/0819-soc-mediatek-mt6797-spm-sleep-optionally-skip-the-SO.patch)
+(module only) adds `sodi_idle` (default on). Loaded with `sodi_idle=0`, the
+module does not register the cpuidle driver and is otherwise 0817. It is
+compile-checked with `W=1`, with and without `CONFIG_CPU_IDLE`, and
+checkpatch `--strict` is quiet. There is no write change.
+
+- **Candidate:** image 137, unchanged, and `mt6797-spm-sleep.ko` from a
+  Buildbox build of the commit recording this stage. No boot2 write.
+- **Run:** [`tools/d4.sh`](tools/d4.sh) with `D4_CIRQ_LEVEL=1`, as in D5c,
+  and `D4_IDLE=0`, which loads the module with `sodi_idle=0`. Check that
+  `/sys/devices/system/cpu/cpuidle/current_driver` reads `none` before
+  the windows.
+- *Hypothesis:* without the cpuidle driver, the 0817 module passes as 0806
+  did.
+- *Unique observation:* whether the cpuidle registration alone separates
+  the resets from the passes.
+- **Stops:** as in D4. A reset is recovered as in D5a.
+
+| Outcome | Decision |
+| --- | --- |
+| Windows A-C pass | The registered cpuidle driver causes the resets, even with SODI disabled. Next: find how CPU0's idle under cpuidle differs from the default idle (the WFI state, the governor's tick handling), before any SODI idle |
+| Reset or hang | The pending check, or another 0816 change, is the cause. Next: 0817 without the pending check |
 
 ### What it should save
 

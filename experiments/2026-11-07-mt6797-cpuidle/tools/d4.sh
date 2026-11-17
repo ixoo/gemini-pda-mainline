@@ -10,6 +10,8 @@
 # D4_WAKE=0x... sets the module's sodi_wake_src (within the vendor set; the
 # default leaves APXGPT out, 0805). D4_CIRQ_LEVEL=1 sets sodi_cirq_level, so
 # level SPIs (the WLAN interrupt among them) are recorded in SYS_CIRQ (0806).
+# D4_IDLE=0 loads the module with sodi_idle=0, so its cpuidle driver is not
+# registered (0819, stage D5d).
 # No period starts while the screen is lit: SODI with the display scanning
 # out is not part of D4.
 #
@@ -217,6 +219,7 @@ if [ -d /sys/module/mt6797_spm_sleep ]; then
 fi
 level=""
 [ "${D4_CIRQ_LEVEL:-0}" = 1 ] && level=sodi_cirq_level=1
+[ "${D4_IDLE:-1}" = 0 ] && level="$level sodi_idle=0"
 # shellcheck disable=SC2086 # empty parameters must vanish
 insmod "$KO" ${D4_WAKE:+sodi_wake_src=$D4_WAKE} $level || stop "insmod failed"
 [ -n "$level" ] && log "sodi_cirq_level $(cat /sys/module/mt6797_spm_sleep/parameters/sodi_cirq_level)"

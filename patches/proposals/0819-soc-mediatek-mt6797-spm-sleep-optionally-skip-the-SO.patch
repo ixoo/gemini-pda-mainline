@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 17 Nov 2026 17:06:17 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally skip the SODI
+ idle state
+
+With 0816 or 0817 loaded on an image with CONFIG_CPU_IDLE, SODI test
+periods stopped returning under inbound pings and the device reset
+(stages D5a, D5b). The 0806 module passed the same test on that image
+(D5c). The cpuidle driver registration is the largest difference left.
+
+Add sodi_idle (default on): when off at load, the CPU0 cpuidle driver
+is not registered, and the rest of the module is unchanged.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 9599a3c0d..549f37466 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -1157,6 +1157,11 @@ static unsigned int sodi_idle_max_ms = 2000;
+ module_param(sodi_idle_max_ms, uint, 0644);
+ MODULE_PARM_DESC(sodi_idle_max_ms, "SODI idle: longest period in ms (1-2000)");
+ 
++/* Whether to register the cpuidle driver at all (stage D5d bisects it) */
++static bool sodi_idle = true;
++module_param(sodi_idle, bool, 0444);
++MODULE_PARM_DESC(sodi_idle, "SODI idle: register the CPU0 cpuidle driver");
++
+ static const u8 sodi_wake_bit[] = { 0, 2, 5, 6, 22 };
+ static const char * const sodi_wake_name[] = {
+ 	"timer", "keypad", "conn2ap", "eint", "cirq",
+@@ -1368,7 +1373,7 @@ static void sodi_idle_register(void)
+ 	struct device_node *np;
+ 	int ret;
+ 
+-	if (!IS_ENABLED(CONFIG_CPU_IDLE) || !s.sodi.ready)
++	if (!IS_ENABLED(CONFIG_CPU_IDLE) || !sodi_idle || !s.sodi.ready)
+ 		return;
+ 	np = of_find_compatible_node(NULL, NULL, "pwm-backlight");
+ 	s.bl = np ? of_find_backlight_by_node(np) : NULL;
+-- 
+2.43.0
+
