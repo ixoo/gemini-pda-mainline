@@ -3091,6 +3091,17 @@ state's sysfs `disable` file and takes CPU1-9 offline, as D4 did.
 | A reset or hang early in the run | Recover by force-off; check P2's absence first, then the earlier CIRQ programming |
 | Hash mismatch | Power off (the script does); SODI idle is withheld until the cause is found |
 
+**Wi-Fi power save, measured since (custodian, 2026-11-16).** These
+figures come from the Wi-Fi record's test, without SODI. On boot
+2d4dcc57, on battery, with the screen blanked and the link idle, the
+Wi-Fi driver's fast power save (0815, `power_save=2`) cut the current from
+142.7 mA to about 85 mA (A/B/A, 10 min each). The handled WLAN interrupts
+rose from 3.8 to about 5.6 per second, with the same received traffic. So
+power save lets the firmware sleep between DTIMs, but it does not reduce
+the host wakes. Whether it changes how often CONN2AP ends a SODI period is
+not measured yet. D5 should run with power save on, the realistic case,
+and the custodian should note its setting in the log.
+
 ### What it should save
 
 | State | Today | Expected |
