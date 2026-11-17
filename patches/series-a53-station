@@ -873,6 +873,7 @@ proposals/0810-wifi-mt6797-set-the-SDIO-like-master-interrupt-enabl.patch
 proposals/0811-soc-mediatek-mt6797-consys-set-the-HIF-interrupt-ena.patch
 proposals/0812-wifi-mt6797-offer-firmware-802.11-power-save-behind-.patch
 proposals/0813-wifi-mt6797-take-power-save-from-BSS_CHANGED_PS.patch
+proposals/0814-wifi-mt6797-admit-the-power-save-profile-command.patch
 proposals/0695-power-supply-bq25890-offer-the-guard-s-thresholds-on-.patch
 proposals/0696-pmdomain-mediatek-describe-the-MT6797-VDEC-domain.patch
 proposals/0697-clk-mediatek-mt6797-power-VDECSYS-through-runtime-PM.patch

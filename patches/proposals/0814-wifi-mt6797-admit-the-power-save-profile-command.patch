@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 16 Nov 2026 19:06:47 -0500
+Subject: [PATCH] wifi: mt6797: admit the power-save profile command
+
+The join-command encoder admits a fixed list of firmware commands, and the
+power-save profile, 0x05, was not on it: on the device 0813's request came
+back -EINVAL at once, with nothing sent. Admit it for BSS 0 with a profile of
+0, 1 or 2 and its two reserved bytes zero; it stays refused during cleanup,
+like every other command but removal and abort. Also stop logging a request
+that changes nothing.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c  | 6 ++++++
+ drivers/net/wireless/mediatek/mt6797/main.c | 4 ++--
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 8e7978e..98f07fa 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -200,6 +200,12 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 	    !t->tc4_limit || t->tc4_limit > 0xffffU || t->tc4_free > t->tc4_limit)
+ 		return mt6797_normal_abort(t);
+ 	switch (cid) {
++	case 0x05:
++		/* The power-save profile, BSS 0 only: 0, 1 or 2. */
++		if (bytes != 4 || payload[0] || payload[1] > 2 || payload[2] || payload[3])
++			return -EINVAL;
++		required = 4;
++		break;
+ 	case 0x07:
+ 		required = MT6797_JOIN_KEY_BYTES;
+ 		break;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 90f2066..656f9b6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1600,10 +1600,10 @@ void mt6797_mac_join_send_ps(struct mt6797_mac *mac)
+ 	unsigned int profile = mac->ps_wanted ? mac->ps_profile : 0;
+ 	int ret;
+ 
+-	if (!mac->ps_profile)
++	if (!mac->ps_profile || mac->ps_sent == (int)profile)
+ 		return;
+ 	if (!mac->join_data_phase || mac->join_data_ended ||
+-	    mac->ps_sent == (int)profile || mac->closing || mac->first_error) {
++	    mac->closing || mac->first_error) {
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN power save held: profile=%u sent=%d data=%u ended=%u closing=%u first=%d\n",
+ 			 profile, mac->ps_sent, mac->join_data_phase, mac->join_data_ended,
+-- 
+2.43.0
+
