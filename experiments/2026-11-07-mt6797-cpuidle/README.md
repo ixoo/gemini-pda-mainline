@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | Running |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); prepared |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -2325,7 +2325,7 @@ Where each way of saving CPU and SoC power stands on this unit:
 | s2idle | Kernel | Works | 73 mA | — |
 | `mem` suspend (Route A, S1) | `mt6797-spm-sleep` + vendor `pcm_suspend.bin`, CPU kept powered | Works on the station; lid close, charger wake (0688/0689) | 42 mA | Soak K1; loading at boot |
 | Unused infra gates | `mt6797-gate-unused` (0768, 0770, 0789) | Works, 26 gates (+ ICUSB with 0789) | about 3 mA | — |
-| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | Periods on demand return, CG and PDN (D3); a key and an inbound packet wake them (D4, D4c); cpuidle (D5) next | — | — |
+| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | Periods on demand return, CG and PDN (D3); a key and an inbound packet wake them (D4, D4c); cpuidle (D5) prepared, needs a new image | — | — |
 | Deep idle | Vendor `pcm_deepidle.bin` | Deferred | — | SODI first; then DISP_PWM (0788) and the display domain |
 | Lazy RCU | Config | Folded into the station fragments | tick restarts −7 % | — |
 | HZ 100 | Config | T2 pending | — | — |
@@ -2977,6 +2977,119 @@ save while Wi-Fi is up, until the extra wakes are explained.
 **D4 is complete.** SODI periods are ended by the PCM timer, a key (EINT,
 or SYS_CIRQ), and an inbound packet (SYS_CIRQ and CONN2AP), with memory
 intact. The next stage is D5.
+
+### D5: SODI as CPU0's idle state (prepared 2026-11-16)
+
+**What changes.**
+[`0816`](../../patches/proposals/0816-soc-mediatek-mt6797-spm-sleep-SODI-as-CPU0-s-idle-st.patch)
+(module only) registers a cpuidle driver for CPU0 alone, with two states:
+WFI and SODI. SODI starts disabled; writing 0 to
+`/sys/devices/system/cpu/cpu0/cpuidle/state1/disable` enables it. The menu
+governor then picks it when it expects CPU0 to stay idle for at least
+2 ms. Its exit latency is set at 1 ms, the vendor's figure, until D5
+measures it.
+
+Each SODI entry runs with interrupts off. It falls back to WFI, and counts
+why, unless all of these hold:
+- CPU0 is the only online CPU;
+- the backlight is off (`pwm-backlight` blank), which keeps SODI away from
+  a display that scans out (the D4 scramble);
+- no suspend or `sodi_once_ms` test is in progress;
+- the next local timer event is at least 2 ms away;
+- I2C6 is free (a trylock, since the program resets it);
+- AP DMA, USB, MSDC and the audio DMA are idle (as in D4).
+
+The PCM timer ends the period 1 ms before the next local timer event,
+capped at 2 s (`sodi_idle_max_ms`), and the local timer is masked for the
+wait, as in D3. The wait itself is an RCU idle period. Any error other than
+a refusal (a period that never returns, a PCM reset that fails) stops SODI
+for good until the module is reloaded.
+
+Three changes apply to every SODI period, the `sodi_once_ms` test
+included:
+- **Before the PCM reset**, SYS_CIRQ records the enabled interrupts and the
+  GIC masks them. These are the same writes as D4b, made earlier, so an
+  interrupt that arrives while the program loads is recorded too.
+- **The GIC pending check.** If an enabled interrupt is already pending
+  after the mask, the period is refused: SYS_CIRQ never saw it, so it would
+  wait for the PCM timer. This was D4's open point.
+- **Level recording is the default** (`sodi_cirq_level=1`), as D4b and D4c
+  showed it records the WLAN line and ends the period.
+
+`/sys/kernel/debug/sodi_idle` reports:
+- entries and refusals by reason;
+- wakes by source (timer, keypad, CONN2AP, EINT, SYS_CIRQ, other);
+- the SYS_CIRQ lines that ended periods;
+- the time spent entering, sleeping and leaving, from the arch counter.
+
+**No PMIC write in idle.** D3 and D4 applied P1-P3 (VGPU low-IQ, the
+power-good force, the VCORE sleep voltage) around each test period through
+the PMIC wrapper's regmap. That regmap sleeps, so the idle path cannot use
+it, and holding P2 for hours while awake would mask power-good faults. The
+inference is that SODI does not need them:
+- P1 and P3 act only while `SRCLKEN0` is low, and SODI keeps 26 MHz up;
+- with VCORE DVS off (flag 3), SODI issues no wrapper command, so no rail
+  moves and power-good has nothing to guard.
+
+This is not tested. D5 is the first SODI run without them, and an early
+reset in D5 points here first. `sodi_once_ms` still applies them.
+
+**The cpuidle core needs a new image.** The station config has
+`# CONFIG_CPU_IDLE is not set` (from `gemini-handoff.fragment`; image 136
+has it too). The station SPM fragment now sets `CONFIG_CPU_IDLE=y` and the
+menu governor, and keeps `ARM_PSCI_CPUIDLE` out. With no driver
+registered, idle stays the plain WFI it is today, so this config change can
+go into the next batched image with nothing else depending on it.
+
+Compile-checked with `W=1` with and without `CONFIG_CPU_IDLE`; checkpatch
+`--strict` is quiet.
+
+**D5 writes for owner approval.** The approved D4 and D4b lists, with
+these differences, on SODI periods only:
+
+| # | Register | D5 |
+| --- | --- | --- |
+| S15 | `PCM_TIMER_VAL` | per period, from cpuidle: the time to the next local timer event less 1 ms, at most 2 s (1-65,536 ticks), inside D3's approved 1-2000 ms |
+| G1-G4, Q1-Q6, Q3b | GIC mask, SYS_CIRQ | the same values, written before the PCM reset instead of after the kick |
+| G5 | GICD `ISENABLER6` `0x19000118` bit 20 (SPI 180, the SPM) | set after the kick, from cpuidle only, for the wait |
+| G6 | GICD `ICENABLER6` `0x19000198` bit 20 | after the return's interrupt clear, from cpuidle only |
+| R3 | GICD `ISPENDR0`-`n` `0x19000200` + 4n | reads only |
+| P1-P3 | PMIC | **not written** from cpuidle |
+
+T1 (CPU0's timer masks) is as in D3. Outside the SPM, the run writes the
+state's sysfs `disable` file and takes CPU1-9 offline, as D4 did.
+
+### Request D5 (proposed)
+
+- **Candidate:** an image with `CONFIG_CPU_IDLE=y` and the menu governor,
+  built on Buildbox from a commit at or after the one recording this stage,
+  with `mt6797-spm-sleep.ko` from the same build, and `pcm_sodi.bin` staged
+  as before. Batch the image with any other built-in changes waiting.
+- **State:** cable out, Wi-Fi joined and quiet, `mt6797-gate-unused`
+  loaded, nobody touching the device, no SSH connection until the log says
+  "done".
+- **Script:** [`tools/d5.sh`](tools/d5.sh), run as root and detached. It
+  reloads the module, waits for the idle blank and takes CPU1-9 offline.
+  Then it runs four windows of 180 s: SODI off, on, off, on. Each window
+  logs the charge-counter current, the state's usage and time, the
+  interrupt count, and in the on windows the module's counters. It checks
+  the memory hash after each window.
+- *Hypothesis:* with the screen dark and CPU0 alone, the governor enters
+  SODI by itself, memory stays intact, and the current falls against the
+  off windows by the share of time spent in SODI.
+- *Unique observation:* the first autonomous SODI residency, its entry and
+  exit cost, the refusal census, and the lines that end the periods.
+- **Stops:** a period with no return (the module's "stopped" counter); a
+  new WARNING, Oops, BUG or RCU stall; the screen lit or CPU1-9 back; a
+  wrong hash, after which the script powers off.
+
+| Outcome | Decision |
+| --- | --- |
+| SODI entered, memory intact, current lower than off | D5 continues with the Wi-Fi power-save and music cases; keep the program resident if entry cost is a large share |
+| SODI entered, no current gain | Compare entry and exit cost with the period length; with about 10 beacon wakes a second, Wi-Fi power save comes before more SODI work |
+| Entries mostly refused | The leading reason is the work list (MSDC or I2C6 most likely), as for AP DMA and SSUSB |
+| A reset or hang early in the run | Recover by force-off; check P2's absence first, then the earlier CIRQ programming |
+| Hash mismatch | Power off (the script does); SODI idle is withheld until the cause is found |
 
 ### What it should save
 

@@ -1,0 +1,544 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 16 Nov 2026 21:38:37 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: SODI as CPU0's idle state
+
+D4 showed SODI periods ended by the PCM timer, a key and an inbound
+packet, with memory intact. Stage D5 lets CPU0's idle path enter them.
+
+Register a cpuidle driver for CPU0 only, with WFI and SODI. SODI starts
+disabled (state1/disable in sysfs). Each entry falls back to WFI, and
+counts why, unless CPU0 is alone, the backlight is off, no suspend or
+SODI test is in progress, the next local timer is at least 2 ms away,
+I2C6 is free, and AP DMA, USB, MSDC and the audio DMA are idle. The PCM
+timer ends the period 1 ms before that timer, capped at 2 s, and the
+local timer is masked for the wait. No PMIC write is made: SODI keeps
+26 MHz up and, with VCORE DVS off, issues no wrapper command.
+
+In every SODI period, SYS_CIRQ now records and the GIC masks the
+interrupts before the SPM changes, and the period is refused if an
+enabled interrupt is already pending, which SYS_CIRQ would miss. From
+cpuidle the SPM's GIC enable is set for the wait only, and RCU idle
+covers the wait. Level recording becomes the default, as D4b and D4c
+showed it works.
+
+/sys/kernel/debug/sodi_idle counts entries, refusals, wake reasons,
+the SYS_CIRQ lines that ended periods, and the time spent entering,
+sleeping and leaving.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 369 +++++++++++++++++++++++-
+ 1 file changed, 356 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index e915d46e3..32da1b716 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -18,7 +18,9 @@
+ #include <clocksource/arm_arch_timer.h>
+ #include <crypto/sha2.h>
+ #include <linux/bitops.h>
++#include <linux/backlight.h>
+ #include <linux/bits.h>
++#include <linux/cpuidle.h>
+ #include <linux/debugfs.h>
+ #include <linux/delay.h>
+ #include <linux/firmware.h>
+@@ -35,6 +37,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/regmap.h>
++#include <linux/seq_file.h>
+ #include <linux/smp.h>
+ #include <linux/suspend.h>
+ #include <linux/unaligned.h>
+@@ -72,6 +75,7 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define GICD_TYPER		0x0004
+ #define GICD_ISENABLER		0x0100
+ #define GICD_ICENABLER		0x0180
++#define GICD_ISPENDR		0x0200
+ #define GICD_ICFGR		0x0c00
+ #define GIC_MAX_REGS		32
+ /* The SPM's interrupt, SPI 180, is GIC INTID 212 (sysirq only inverts it). */
+@@ -276,6 +280,7 @@ struct spm_scen {
+ 	u32 wake_src;
+ 	bool slots;		/* load the PMIC wrapper's suspend phase */
+ 	bool cirq;		/* clone edge interrupts into SYS_CIRQ */
++	bool idle;		/* from cpuidle: own the SPM's GIC enable, RCU idle */
+ 	bool ready;
+ };
+ 
+@@ -283,6 +288,7 @@ struct spm_wake {
+ 	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
+ 	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
+ 	u32 wfi_loops;
++	u64 cnt_kick, cnt_return;	/* arch counter around the wait */
+ 	u32 cg_before[3], cg_after[3], clk_cfg0_before, clk_cfg0_after;
+ 	bool returned;
+ };
+@@ -309,6 +315,10 @@ static struct {
+ 	unsigned int cirq_lines;
+ 	struct spm_scen sleep;
+ 	struct spm_scen sodi;
++	struct spm_scen idle;
++	struct backlight_device *bl;
++	struct i2c_adapter *i2c6;
++	bool idle_registered;
+ 	u32 flags;
+ 	bool hwcid_5140;
+ 	int irq;
+@@ -354,9 +364,10 @@ MODULE_PARM_DESC(sodi_wake_src, "SODI wake sources, within 0x0f57c5f5 (the timer
+ /*
+  * Also record level SPIs in SYS_CIRQ (not edge-only mode). In D4 the WLAN
+  * HIF interrupt (SPI 283, level) did not end a period and CONSYS never
+- * raised CONN2AP, so a packet waited for the PCM timer.
++ * raised CONN2AP, so a packet waited for the PCM timer. D4b and D4c showed
++ * that level lines are recorded and end a period, so it is on by default.
+  */
+-static bool sodi_cirq_level;
++static bool sodi_cirq_level = true;
+ module_param(sodi_cirq_level, bool, 0644);
+ MODULE_PARM_DESC(sodi_cirq_level, "SODI: record level SPIs in SYS_CIRQ too, not only edge SPIs");
+ 
+@@ -629,6 +640,28 @@ static void spm_gic_restore(void)
+ 	s.gic_masked = false;
+ }
+ 
++/*
++ * Whether an enabled interrupt (before the mask) is already pending at the
++ * GIC, the SPM's own excepted: SYS_CIRQ did not see it, so it would not end
++ * the period. Word 0 holds CPU0's SGIs and PPIs; the timers are masked.
++ */
++static bool spm_gic_pending(void)
++{
++	unsigned int i;
++	u32 en, pend;
++
++	for (i = 0; i < s.gic_regs; i++) {
++		en = s.gic_masked && i ? s.gic_saved[i] :
++			readl(s.gicd + GICD_ISENABLER + 4 * i);
++		pend = readl(s.gicd + GICD_ISPENDR + 4 * i) & en;
++		if (i == SPM_GIC_INTID / 32)
++			pend &= ~BIT(SPM_GIC_INTID % 32);
++		if (pend)
++			return true;
++	}
++	return false;
++}
++
+ /* Whether the GIC delivers an SPI as low or falling (sysirq inverts it) */
+ static bool spm_spi_inverted(unsigned int spi)
+ {
+@@ -724,6 +757,22 @@ static int spm_run(const struct spm_scen *sc)
+ 	if (!spm_off(MD1_PWR_CON) || !spm_off(C2K_PWR_CON))
+ 		return -EBUSY;
+ 
++	/*
++	 * SODI: record the device interrupts in SYS_CIRQ and mask them at the
++	 * GIC before the SPM changes, then refuse the period if one is already
++	 * pending. From here on, an interrupt is recorded and ends the period.
++	 */
++	if (sc->cirq) {
++		spm_cirq_enable();
++		if (gic_mask)
++			spm_gic_mask();
++		if (spm_gic_pending()) {
++			spm_cirq_disable();
++			spm_gic_restore();
++			return -EAGAIN;
++		}
++	}
++
+ 	/* C1 first: if MCUCFG ignores the writes, stop before the SPM changes */
+ 	axi[0] = readl(s.mcucfg + MP0_AXI_CONFIG);
+ 	axi[1] = readl(s.mcucfg + MP1_AXI_CONFIG);
+@@ -833,12 +882,17 @@ static int spm_run(const struct spm_scen *sc)
+ 	 * powered, and without this a wake interrupt can take it out of WFI at
+ 	 * the GIC while the program goes on sleeping.
+ 	 */
+-	if (sc->cirq)
+-		spm_cirq_enable();
+-	if (gic_mask)
++	if (!sc->cirq && gic_mask)
+ 		spm_gic_mask();
++	/* From cpuidle the SPM's interrupt is not enabled in Linux: enable it here */
++	if (sc->idle)
++		writel(BIT(SPM_GIC_INTID % 32),
++		       s.gicd + GICD_ISENABLER + 4 * (SPM_GIC_INTID / 32));
+ 
+ 	/* C2: CPU0 waits; the PCM-return interrupt ends the sleep */
++	s.wake.cnt_kick = __arch_counter_get_cntvct();
++	if (sc->idle)
++		ct_cpuidle_enter();
+ 	for (i = 0; i < 1000000; i++) {
+ 		/* Complete every register write before the SPM sees CPU0 in WFI */
+ 		dsb(sy);
+@@ -848,6 +902,9 @@ static int spm_run(const struct spm_scen *sc)
+ 			break;
+ 		}
+ 	}
++	if (sc->idle)
++		ct_cpuidle_exit();
++	s.wake.cnt_return = __arch_counter_get_cntvct();
+ 	s.wake.wfi_loops = i;
+ 	if (sc->cirq)
+ 		spm_cirq_disable();
+@@ -873,6 +930,9 @@ static int spm_run(const struct spm_scen *sc)
+ 	spm_wr(SPM_IRQ_MASK, spm_rd(SPM_IRQ_MASK) | ISRM_RET_IRQ_AUX);
+ 	spm_wr(SPM_IRQ_STA, ISRS_PCM_RETURN);
+ 	spm_wr(SPM_SW_INT_CLEAR, 0x3ff);
++	if (sc->idle)
++		writel(BIT(SPM_GIC_INTID % 32),
++		       s.gicd + GICD_ICENABLER + 4 * (SPM_GIC_INTID / 32));
+ 
+ 	/* X3, X4 (wrapper slots): back to the state before entry */
+ 	spm_restore();
+@@ -978,26 +1038,41 @@ static struct i2c_adapter *spm_i2c6(void)
+  * CPU0 can start one before the period. Mainline's AFE keeps its clocks on
+  * while bound, so its enable word can be read then.
+  */
+-static const char *sodi_busy(void)
++enum sodi_no {
++	SODI_GO, NO_AP_DMA, NO_USB, NO_MSDC, NO_AUDIO,
++	NO_BROKEN, NO_CPUS, NO_LIT, NO_SUSPEND, NO_SHORT, NO_I2C, NO_SPM,
++	NO_PENDING, NO_COUNT
++};
++
++static const char * const sodi_no_name[NO_COUNT] = {
++	[NO_AP_DMA] = "AP DMA", [NO_USB] = "USB", [NO_MSDC] = "MSDC",
++	[NO_AUDIO] = "audio DMA", [NO_BROKEN] = "stopped",
++	[NO_CPUS] = "CPUs online", [NO_LIT] = "screen lit",
++	[NO_SUSPEND] = "suspend or test", [NO_SHORT] = "timer due",
++	[NO_I2C] = "I2C6 busy", [NO_SPM] = "PCM or modem busy",
++	[NO_PENDING] = "interrupt pending",
++};
++
++static enum sodi_no sodi_busy(void)
+ {
+ 	struct device *afe = s.afe_dev;
+ 
+ 	if (!(readl(s.infra + INFRA_CG1_STA) & CG1_AP_DMA))
+-		return "AP DMA";
++		return NO_AP_DMA;
+ 	if (~readl(s.infra + INFRA_CG2_STA) & CG2_SSUSB)
+-		return "USB";
++		return NO_USB;
+ 	if (~readl(s.infra + INFRA_CG1_STA) & CG1_MSDC)
+-		return "MSDC";
++		return NO_MSDC;
+ 	if (afe && READ_ONCE(afe->driver) && pm_runtime_active(afe) &&
+ 	    (readl(s.afe + AFE_DAC_CON0) & AFE_MEMIF_ON))
+-		return "audio DMA";
+-	return NULL;
++		return NO_AUDIO;
++	return SODI_GO;
+ }
+ 
+ static int sodi_once(u64 ms)
+ {
+ 	struct i2c_adapter *i2c6;
+-	const char *busy;
++	enum sodi_no busy;
+ 	u64 cntv, cntp;
+ 	int ret;
+ 
+@@ -1036,7 +1111,10 @@ static int sodi_once(u64 ms)
+ 	busy = sodi_busy();
+ 	ret = busy ? -EBUSY : spm_run(&s.sodi);
+ 	if (busy)
+-		dev_info(&s.pdev->dev, "sodi: %s running, refused\n", busy);
++		dev_info(&s.pdev->dev, "sodi: %s running, refused\n",
++			 sodi_no_name[busy]);
++	else if (ret == -EAGAIN)
++		dev_info(&s.pdev->dev, "sodi: an interrupt was pending, refused\n");
+ 	else if (ret && !s.entered)
+ 		dev_info(&s.pdev->dev, "sodi: not entered (%d): CPU1-9 online, PCM busy, or modem or C2K on\n",
+ 			 ret);
+@@ -1067,6 +1145,269 @@ static int sodi_set(void *data, u64 ms)
+ }
+ DEFINE_DEBUGFS_ATTRIBUTE(sodi_fops, NULL, sodi_set, "%llu\n");
+ 
++/*
++ * D5: SODI as CPU0's idle state. The driver covers CPU0 only, with WFI and
++ * SODI; SODI starts disabled (state1/disable in sysfs). Each entry checks
++ * the conditions and falls back to WFI, counting why. The PCM timer ends
++ * the period one exit latency before the next local timer event, so the
++ * local timer is masked for the wait as in sodi_once. No PMIC write is made:
++ * SODI keeps 26 MHz up and, with VCORE DVS off, issues no wrapper command.
++ */
++#define SODI_IDLE_EXIT_US	1000
++#define SODI_IDLE_MIN_US	2000
++
++static unsigned int sodi_idle_max_ms = 2000;
++module_param(sodi_idle_max_ms, uint, 0644);
++MODULE_PARM_DESC(sodi_idle_max_ms, "SODI idle: longest period in ms (1-2000)");
++
++static const u8 sodi_wake_bit[] = { 0, 2, 5, 6, 22 };
++static const char * const sodi_wake_name[] = {
++	"timer", "keypad", "conn2ap", "eint", "cirq",
++};
++
++static struct {
++	u64 tried, entered, refused[NO_COUNT];
++	u64 wake[ARRAY_SIZE(sodi_wake_bit)], wake_other;
++	u64 cnt_entry, cnt_sleep, cnt_exit, cnt_sleep_max;
++	u32 cirq_hits[CIRQ_LINES];
++	int err;
++	bool broken;
++} st;
++
++static struct dentry *sodi_idle_debugfs;
++
++static __always_inline void sodi_wfi(void)
++{
++	dsb(sy);
++	wfi();
++}
++
++static int sodi_idle_wfi(struct cpuidle_device *dev,
++			 struct cpuidle_driver *drv, int index)
++{
++	sodi_wfi();
++	return index;
++}
++
++/* Count the reason and wait in WFI; the SODI state handles RCU itself */
++static int sodi_idle_refuse(enum sodi_no why)
++{
++	st.refused[why]++;
++	ct_cpuidle_enter();
++	sodi_wfi();
++	ct_cpuidle_exit();
++	return 0;
++}
++
++/* Counter ticks to the earliest armed local timer, or U64_MAX if none */
++static u64 sodi_timer_left(void)
++{
++	u64 left = U64_MAX, now, cval;
++	u32 ctl;
++
++	isb();
++	ctl = read_sysreg(cntv_ctl_el0);
++	if ((ctl & ARCH_TIMER_CTRL_ENABLE) && !(ctl & ARCH_TIMER_CTRL_IT_MASK)) {
++		now = read_sysreg(cntvct_el0);
++		cval = read_sysreg(cntv_cval_el0);
++		left = min(left, cval > now ? cval - now : 0);
++	}
++	ctl = read_sysreg(cntp_ctl_el0);
++	if ((ctl & ARCH_TIMER_CTRL_ENABLE) && !(ctl & ARCH_TIMER_CTRL_IT_MASK)) {
++		now = read_sysreg(cntpct_el0);
++		cval = read_sysreg(cntp_cval_el0);
++		left = min(left, cval > now ? cval - now : 0);
++	}
++	return left;
++}
++
++static void sodi_idle_count(u64 t0)
++{
++	u64 sleep = s.wake.cnt_return - s.wake.cnt_kick;
++	unsigned int i, w;
++	u32 r12 = s.wake.r12, hit = 0;
++
++	st.entered++;
++	st.cnt_entry += s.wake.cnt_kick - t0;
++	st.cnt_sleep += sleep;
++	st.cnt_sleep_max = max(st.cnt_sleep_max, sleep);
++	st.cnt_exit += __arch_counter_get_cntvct() - s.wake.cnt_return;
++	for (i = 0; i < ARRAY_SIZE(sodi_wake_bit); i++) {
++		if (r12 & BIT(sodi_wake_bit[i])) {
++			st.wake[i]++;
++			hit |= BIT(sodi_wake_bit[i]);
++		}
++	}
++	if (r12 & ~hit)
++		st.wake_other++;
++	for (w = 0; w < CIRQ_WORDS; w++)
++		for (i = 0; i < 32 && 32 * w + i < CIRQ_LINES; i++)
++			if (s.cirq_sta[w] & BIT(i))
++				st.cirq_hits[32 * w + i]++;
++}
++
++static int sodi_idle_enter(struct cpuidle_device *dev,
++			   struct cpuidle_driver *drv, int index)
++{
++	u64 t0 = __arch_counter_get_cntvct(), left, us, cntv, cntp;
++	enum sodi_no busy;
++	int ret;
++
++	st.tried++;
++	if (st.broken)
++		return sodi_idle_refuse(NO_BROKEN);
++	if (num_online_cpus() != 1)
++		return sodi_idle_refuse(NO_CPUS);
++	if (!backlight_is_blank(s.bl))
++		return sodi_idle_refuse(NO_LIT);
++	if (READ_ONCE(s.pmic_done))
++		return sodi_idle_refuse(NO_SUSPEND);
++	left = sodi_timer_left();
++	us = left == U64_MAX ? U64_MAX :
++		mul_u64_u64_div_u64(left, USEC_PER_SEC, arch_timer_get_cntfrq());
++	if (us < SODI_IDLE_MIN_US)
++		return sodi_idle_refuse(NO_SHORT);
++	if (!i2c_trylock_bus(s.i2c6, I2C_LOCK_ROOT_ADAPTER))
++		return sodi_idle_refuse(NO_I2C);
++	busy = sodi_busy();
++	if (busy) {
++		i2c_unlock_bus(s.i2c6, I2C_LOCK_ROOT_ADAPTER);
++		return sodi_idle_refuse(busy);
++	}
++
++	us = min_t(u64, us - SODI_IDLE_EXIT_US,
++		   (u64)clamp(READ_ONCE(sodi_idle_max_ms), 1U, 2000U) * 1000);
++	s.idle.ticks = max_t(u64, div_u64(us * 32768, USEC_PER_SEC), 1);
++	s.idle.wake_src = (READ_ONCE(sodi_wake_src) & SODI_WAKE_SRC) | BIT(0);
++
++	cntv = read_sysreg(cntv_ctl_el0);
++	cntp = read_sysreg(cntp_ctl_el0);
++	write_sysreg(cntv | ARCH_TIMER_CTRL_IT_MASK, cntv_ctl_el0);
++	write_sysreg(cntp | ARCH_TIMER_CTRL_IT_MASK, cntp_ctl_el0);
++	isb();
++	ret = spm_run(&s.idle);
++	write_sysreg(cntv, cntv_ctl_el0);
++	write_sysreg(cntp, cntp_ctl_el0);
++	isb();
++	i2c_unlock_bus(s.i2c6, I2C_LOCK_ROOT_ADAPTER);
++
++	if (ret == -EAGAIN)
++		return sodi_idle_refuse(NO_PENDING);
++	if (ret == -EBUSY && !s.entered)
++		return sodi_idle_refuse(NO_SPM);
++	if (ret) {
++		/* No return from the program, or no PCM reset: stop for good */
++		st.err = ret;
++		st.broken = true;
++		return sodi_idle_refuse(NO_BROKEN);
++	}
++	sodi_idle_count(t0);
++	return index;
++}
++
++static struct cpuidle_driver sodi_idle_driver = {
++	.name = "mt6797_sodi",
++	.owner = THIS_MODULE,
++	.states = {
++		{
++			.enter = sodi_idle_wfi,
++			.exit_latency = 1,
++			.target_residency = 1,
++			.name = "WFI",
++			.desc = "ARM WFI",
++		},
++		{
++			.enter = sodi_idle_enter,
++			.exit_latency = SODI_IDLE_EXIT_US,
++			.target_residency = SODI_IDLE_MIN_US,
++			.flags = CPUIDLE_FLAG_RCU_IDLE | CPUIDLE_FLAG_OFF,
++			.name = "SODI",
++			.desc = "SPM SODI, CPU0 alone, dark",
++		},
++	},
++	.state_count = 2,
++	.safe_state_index = 0,
++};
++
++static u64 sodi_idle_us(u64 cnt)
++{
++	return mul_u64_u64_div_u64(cnt, USEC_PER_SEC, arch_timer_get_cntfrq());
++}
++
++static int sodi_idle_show(struct seq_file *m, void *v)
++{
++	unsigned int i;
++
++	seq_printf(m, "tried %llu\nentered %llu\nstopped %d\nerror %d\n",
++		   st.tried, st.entered, st.broken, st.err);
++	for (i = 1; i < NO_COUNT; i++)
++		seq_printf(m, "refused %s: %llu\n", sodi_no_name[i], st.refused[i]);
++	for (i = 0; i < ARRAY_SIZE(sodi_wake_bit); i++)
++		seq_printf(m, "wake %s: %llu\n", sodi_wake_name[i], st.wake[i]);
++	seq_printf(m, "wake other: %llu\n", st.wake_other);
++	seq_printf(m, "entry_us %llu\nsleep_us %llu\nexit_us %llu\nsleep_max_us %llu\n",
++		   sodi_idle_us(st.cnt_entry), sodi_idle_us(st.cnt_sleep),
++		   sodi_idle_us(st.cnt_exit), sodi_idle_us(st.cnt_sleep_max));
++	for (i = 0; i < CIRQ_LINES; i++)
++		if (st.cirq_hits[i])
++			seq_printf(m, "cirq spi %u: %u\n", CIRQ_SPI_FIRST + i,
++				   st.cirq_hits[i]);
++	return 0;
++}
++DEFINE_SHOW_ATTRIBUTE(sodi_idle);
++
++static void sodi_idle_put(void)
++{
++	if (s.bl)
++		put_device(&s.bl->dev);
++	if (s.i2c6)
++		put_device(&s.i2c6->dev);
++	s.bl = NULL;
++	s.i2c6 = NULL;
++}
++
++static void sodi_idle_register(void)
++{
++	struct device_node *np;
++	int ret;
++
++	if (!IS_ENABLED(CONFIG_CPU_IDLE) || !s.sodi.ready)
++		return;
++	np = of_find_compatible_node(NULL, NULL, "pwm-backlight");
++	s.bl = np ? of_find_backlight_by_node(np) : NULL;
++	of_node_put(np);
++	s.i2c6 = spm_i2c6();
++	if (!s.bl || !s.i2c6) {
++		dev_info(&s.pdev->dev, "no backlight or I2C6, no SODI idle state\n");
++		sodi_idle_put();
++		return;
++	}
++	s.idle = s.sodi;
++	s.idle.idle = true;
++	s.idle.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
++	sodi_idle_driver.cpumask = (struct cpumask *)cpumask_of(0);
++	ret = cpuidle_register(&sodi_idle_driver, NULL);
++	if (ret) {
++		dev_info(&s.pdev->dev, "cpuidle registration failed (%d)\n", ret);
++		sodi_idle_put();
++		return;
++	}
++	s.idle_registered = true;
++	sodi_idle_debugfs = debugfs_create_file("sodi_idle", 0400, NULL, NULL,
++						&sodi_idle_fops);
++	dev_info(&s.pdev->dev, "SODI idle state for CPU0 registered, disabled until enabled in sysfs\n");
++}
++
++static void sodi_idle_unregister(void)
++{
++	if (!s.idle_registered)
++		return;
++	debugfs_remove(sodi_idle_debugfs);
++	cpuidle_unregister(&sodi_idle_driver);
++	sodi_idle_put();
++	s.idle_registered = false;
++}
++
+ static const struct platform_suspend_ops spm_suspend_ops = {
+ 	.valid = spm_valid,
+ 	.prepare = spm_prepare,
+@@ -1296,6 +1637,7 @@ static int __init spm_sleep_init(void)
+ 		goto err;
+ 
+ 	suspend_set_ops(&spm_suspend_ops);
++	sodi_idle_register();
+ 	dev_info(&s.pdev->dev, "mem suspend ready: flags %08x, HWCID %04x, timer %u s\n",
+ 		 s.flags, hwcid, timer_sec);
+ 	return 0;
+@@ -1306,6 +1648,7 @@ static int __init spm_sleep_init(void)
+ 
+ static void __exit spm_sleep_exit(void)
+ {
++	sodi_idle_unregister();
+ 	debugfs_remove(s.debugfs);
+ 	suspend_set_ops(NULL);
+ 	free_irq(s.irq, NULL);
+-- 
+2.43.0
+

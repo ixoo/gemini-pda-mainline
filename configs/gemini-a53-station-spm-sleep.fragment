@@ -5,3 +5,11 @@ CONFIG_MT6797_SPM_SLEEP=m
 # Gates the infra clocks nothing on the station uses, when loaded by hand
 # (the same record, "D0 result"). Unloading ungates exactly what it gated.
 CONFIG_MT6797_GATE_UNUSED=m
+# The cpuidle core and the menu governor for SODI as CPU0's idle state
+# (stage D5). With no driver registered, idle is the plain WFI it was; the
+# PSCI driver stays out, since the firmware has no usable state below WFI.
+CONFIG_CPU_IDLE=y
+CONFIG_CPU_IDLE_GOV_MENU=y
+# CONFIG_CPU_IDLE_GOV_LADDER is not set
+# CONFIG_CPU_IDLE_GOV_TEO is not set
+# CONFIG_ARM_PSCI_CPUIDLE is not set
