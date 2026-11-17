@@ -3527,6 +3527,18 @@ state does. It is compile-checked with `W=1`, with and without
 | Pass, timer rarely due soon | The cap was not exercised; the governor's effect is elsewhere. Next: repeat without the cap but with the timer log, to see the entry state before a reset |
 | Reset or hang | The timer expiring inside a period is not the hazard. The log lines before the reset show the timer state at entry; look at other governor effects |
 
+**D5f attempt 1 did not run (custodian, 2026-11-17).** `d4.sh` stopped at
+setup with "the running SPM module did not unload". No period ran and the
+device was unaffected. The 0820 module from D5e still had its cpuidle
+driver registered, and the cpuidle core holds a reference on the
+driver's owner, so `rmmod` refuses. `lsmod` showed a use count of 1.
+D5a and D5b followed resets, and D5c-D5e started with no driver
+registered, so this had not shown before. From 0816 on, a module that
+registered the driver needs a fresh boot before the next run. `d4.sh` and
+`d5.sh` now check the use count before changing anything. Making the
+module unloadable again is for later, outside this bisection, so that
+D5f's candidate stays unchanged.
+
 ### What it should save
 
 | State | Today | Expected |

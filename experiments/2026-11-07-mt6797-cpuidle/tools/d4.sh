@@ -205,6 +205,12 @@ for ps in /sys/class/power_supply/*; do
 	[ "$(cat "$ps/online" 2>/dev/null)" = 1 ] && stop "external power on $(basename "$ps"): pull the cable"
 done
 [ -d /sys/module/mt6797_gate_unused ] || modprobe mt6797-gate-unused || stop "mt6797-gate-unused did not load"
+# A module whose cpuidle driver is registered (0816 on) holds itself and
+# cannot be unloaded: it needs a fresh boot before the next run.
+if [ -d /sys/module/mt6797_spm_sleep ] &&
+	[ "$(cat /sys/module/mt6797_spm_sleep/refcnt)" != 0 ]; then
+	stop "the running SPM module is in use (its cpuidle driver); boot fresh first"
+fi
 log "battery $(cat /sys/class/power_supply/*/capacity 2>/dev/null | head -n 1) %"
 
 log "waiting 30 s for the SSH session to end"
