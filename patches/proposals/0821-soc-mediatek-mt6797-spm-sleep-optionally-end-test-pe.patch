@@ -1,0 +1,96 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 17 Nov 2026 18:01:06 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally end test periods
+ before the tick
+
+With two idle states registered, SODI test periods stopped returning
+under inbound pings (stages D5a, D5b). With no driver, or with the WFI
+state alone, they returned (D5c-D5e). With two states the menu governor
+keeps the tick through short idles, so CPU0's local timer is usually
+due within a tick when a period starts and expires, masked, during it.
+
+Log the time to the next local timer event with each test period, and
+add sodi_timer_cap (default off): the period then ends 1 ms before that
+event, and is refused if the event is under 2 ms away, as the idle
+state does (D5f).
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 31 ++++++++++++++++++++++---
+ 1 file changed, 28 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index dfd2eca33..dfb93fdfb 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -1066,11 +1066,24 @@ static enum sodi_no sodi_busy(void)
+ 	return SODI_GO;
+ }
+ 
++/*
++ * End a test period 1 ms before CPU0's next local timer event, and refuse it
++ * if that is under 2 ms away, as the idle state does (D5f). Off by default.
++ */
++static bool sodi_timer_cap;
++module_param(sodi_timer_cap, bool, 0644);
++MODULE_PARM_DESC(sodi_timer_cap, "SODI test: end the period before the next local timer event");
++
++static u64 sodi_timer_left(void);
++
++#define SODI_IDLE_EXIT_US	1000
++#define SODI_IDLE_MIN_US	2000
++
+ static int sodi_once(u64 ms)
+ {
+ 	struct i2c_adapter *i2c6;
+ 	enum sodi_no busy;
+-	u64 cntv, cntp;
++	u64 cntv, cntp, left_us;
+ 	int ret;
+ 
+ 	if (!s.sodi.ready)
+@@ -1100,12 +1113,23 @@ static int sodi_once(u64 ms)
+ 	enable_irq(s.irq);
+ 	preempt_disable();
+ 	local_irq_disable();
++	left_us = sodi_timer_left();
++	if (left_us != U64_MAX)
++		left_us = mul_u64_u64_div_u64(left_us, USEC_PER_SEC,
++					      arch_timer_get_cntfrq());
+ 	cntv = read_sysreg(cntv_ctl_el0);
+ 	cntp = read_sysreg(cntp_ctl_el0);
+ 	write_sysreg(cntv | ARCH_TIMER_CTRL_IT_MASK, cntv_ctl_el0);
+ 	write_sysreg(cntp | ARCH_TIMER_CTRL_IT_MASK, cntp_ctl_el0);
+ 	isb();
+ 	busy = sodi_busy();
++	if (!busy && sodi_timer_cap && left_us < ms * 1000) {
++		if (left_us < SODI_IDLE_MIN_US)
++			busy = NO_SHORT;
++		else
++			s.sodi.ticks = div_u64((left_us - SODI_IDLE_EXIT_US) * 32768,
++					       USEC_PER_SEC);
++	}
+ 	ret = busy ? -EBUSY : spm_run(&s.sodi);
+ 	if (busy)
+ 		dev_info(&s.pdev->dev, "sodi: %s running, refused\n",
+@@ -1123,6 +1147,9 @@ static int sodi_once(u64 ms)
+ 	disable_irq(s.irq);
+ 	i2c_unlock_bus(i2c6, I2C_LOCK_ROOT_ADAPTER);
+ 	spm_log_wake(sodi_pdn ? "sodi pdn" : "sodi cg");
++	if (s.entered)
++		dev_info(&s.pdev->dev, "sodi timer: next local event %lld us after entry, period %u ticks\n",
++			 left_us == U64_MAX ? -1LL : (s64)left_us, s.sodi.ticks);
+ 	if (s.entered)
+ 		dev_info(&s.pdev->dev,
+ 			 "sodi cirq: %u lines cloned=%08x %08x %08x %08x %08x %08x %08x sta=%08x %08x %08x %08x %08x %08x %08x\n",
+@@ -1150,8 +1177,6 @@ DEFINE_DEBUGFS_ATTRIBUTE(sodi_fops, NULL, sodi_set, "%llu\n");
+  * local timer is masked for the wait as in sodi_once. No PMIC write is made:
+  * SODI keeps 26 MHz up and, with VCORE DVS off, issues no wrapper command.
+  */
+-#define SODI_IDLE_EXIT_US	1000
+-#define SODI_IDLE_MIN_US	2000
+ 
+ static unsigned int sodi_idle_max_ms = 2000;
+ module_param(sodi_idle_max_ms, uint, 0644);
+-- 
+2.43.0
+

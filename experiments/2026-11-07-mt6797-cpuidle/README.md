@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); resets follow the registered cpuidle driver (D5a-D5d); D5e proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); resets follow the two-state cpuidle driver (D5a-D5e); D5f proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3427,7 +3427,7 @@ CPU0 idles between periods**. The resets came in window C, under pings,
 and C runs first. So the runs do not show whether the driver also fails
 on a quiet link.
 
-### Request D5e (proposed): the WFI state alone
+### Request D5e (approved 2026-11-17): the WFI state alone
 
 [`0820`](../../patches/proposals/0820-soc-mediatek-mt6797-spm-sleep-optionally-register-th.patch)
 (module only) adds `sodi_idle_states` (default 2). Loaded with
@@ -3453,6 +3453,79 @@ change.
 | --- | --- |
 | Windows A-C pass | The governor's choices, most likely the retained tick, cause the resets. Next: find how a tick running between periods breaks the next period, starting with the local timer's state at entry |
 | Reset or hang | The cpuidle entry path or the held references cause it. Next: compare the driver's WFI with the kernel's `cpu_do_idle`, and drop the references |
+
+### D5e: the driver with the WFI state alone passes (custodian, 2026-11-17)
+
+**Approved** by the owner ("Approve D5e").
+
+**Setup.** Image 137 (boot2 0653d4a3), boot b8d5a469. Module 24960448
+(0820, Buildbox `a5e43fde`, `Image.gz` 397820cd). `d4.sh` 88f66438 with
+`D4_CIRQ_LEVEL=1 D4_STATES=1`. Wi-Fi power save on, cable out, battery
+39 %, hands off. 180 of 180 pings were answered, averaging 94 ms.
+`current_driver` read `none` before the load. At 17:48:12, after the load
+and before C, it read `mt6797_sodi` with the menu governor, `cpu0/cpuidle`
+had `state0` (WFI) alone, and `sodi_idle_states` was 1.
+
+**Observed.**
+
+| Window | Periods | Median sleep (ms) | p90 (ms) |
+| --- | --- | --- | --- |
+| C, pings | 60, all ended by a packet | 156 (mean 187) | 402 |
+| A, quiet | 20 | 151 | — |
+| B, quiet | 292 | 103 | 402 |
+
+Every period was ended by CONN2AP through SYS_CIRQ. All 313 hash checks
+were equal. There were 0 refusals, taint stayed 0, and the run ended at
+17:56:35.
+
+**Result.** On image 137 under pings:
+
+| CPU0 cpuidle driver | Outcome |
+| --- | --- |
+| WFI and SODI, SODI disabled (D5a, D5b) | reset at periods 22 and 15 |
+| none (D5c, D5d) | passed |
+| WFI alone (D5e) | passed, 372 periods |
+
+The cpuidle core's entry path and the held backlight and I2C6 references
+are cleared. What remains is the two-state idle, where `cpuidle_idle_call()`
+asks the menu governor. *Inference, not measured:* the governor keeps the
+tick through short idles under pings. CPU0's local timer would then
+usually be due within a tick (10 ms at `HZ=100`) when a period starts, and
+would expire, masked, during it. With the tick stopped that is rarer.
+
+D5 run 1 fits this only in part. The idle state already ends its periods
+1 ms before the next local timer event. That run also differs in the
+missing P1-P3 and in SODI entered from idle.
+
+### Request D5f (proposed): two states, test periods end before the tick
+
+[`0821`](../../patches/proposals/0821-soc-mediatek-mt6797-spm-sleep-optionally-end-test-pe.patch)
+(module only) adds a line to each test period's log: the time from entry
+to CPU0's next local timer event, and the period's length. It also adds
+`sodi_timer_cap` (default off). With it on, a test period ends 1 ms before
+that event and is refused if the event is under 2 ms away, as the idle
+state does. It is compile-checked with `W=1`, with and without
+`CONFIG_CPU_IDLE`, and checkpatch `--strict` is quiet. Only `PCM_TIMER_VAL`
+(S15) changes, and it stays inside the approved 1-2000 ms.
+
+- **Candidate:** image 137, unchanged, and `mt6797-spm-sleep.ko` from a
+  Buildbox build of the commit recording this stage. No boot2 write.
+- **Run:** [`tools/d4.sh`](tools/d4.sh) with `D4_CIRQ_LEVEL=1
+  D4_TIMER_CAP=1` and two states, as in D5a and D5b, otherwise as in D5e.
+  The periods are short when the tick is kept. Expect some "timer due"
+  refusals.
+- *Hypothesis:* a local timer that expires inside a period breaks it; with
+  the cap, two states pass.
+- *Unique observation:* the time to the next local timer at each entry
+  with two states under pings, which shows whether the tick is kept, and
+  whether two states pass with the cap.
+- **Stops:** as in D4. A reset is recovered as in D5a.
+
+| Outcome | Decision |
+| --- | --- |
+| Pass, timer mostly due within 10 ms | A timer expiring inside a period is the hazard, and the idle state's cap avoids it. D5 again, with P1-P3's absence as the first suspect for run 1 |
+| Pass, timer rarely due soon | The cap was not exercised; the governor's effect is elsewhere. Next: repeat without the cap but with the timer log, to see the entry state before a reset |
+| Reset or hang | The timer expiring inside a period is not the hazard. The log lines before the reset show the timer state at entry; look at other governor effects |
 
 ### What it should save
 

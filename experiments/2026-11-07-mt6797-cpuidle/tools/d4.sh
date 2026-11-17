@@ -13,6 +13,8 @@
 # D4_IDLE=0 loads the module with sodi_idle=0, so its cpuidle driver is not
 # registered (0819, stage D5d). D4_STATES=1 loads it with sodi_idle_states=1,
 # the WFI state alone (0820, stage D5e).
+# D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
+# local timer event (0821, stage D5f).
 # No period starts while the screen is lit: SODI with the display scanning
 # out is not part of D4.
 #
@@ -222,6 +224,7 @@ level=""
 [ "${D4_CIRQ_LEVEL:-0}" = 1 ] && level=sodi_cirq_level=1
 [ "${D4_IDLE:-1}" = 0 ] && level="$level sodi_idle=0"
 [ "${D4_STATES:-2}" = 1 ] && level="$level sodi_idle_states=1"
+[ "${D4_TIMER_CAP:-0}" = 1 ] && level="$level sodi_timer_cap=1"
 # shellcheck disable=SC2086 # empty parameters must vanish
 insmod "$KO" ${D4_WAKE:+sodi_wake_src=$D4_WAKE} $level || stop "insmod failed"
 [ -n "$level" ] && log "sodi_cirq_level $(cat /sys/module/mt6797_spm_sleep/parameters/sodi_cirq_level)"
