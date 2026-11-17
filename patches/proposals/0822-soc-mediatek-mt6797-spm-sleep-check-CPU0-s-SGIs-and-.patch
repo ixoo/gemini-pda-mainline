@@ -1,0 +1,131 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 17 Nov 2026 18:54:04 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: check CPU0's SGIs and PPIs
+ before a period
+
+The GIC here is a GICv3. CPU0's SGIs and PPIs live in its redistributor;
+GICD word 0 reads as zero, so the pending check never saw them and the
+mask leaves them enabled. One pending at entry, such as an IPI CPU0
+raised for itself with interrupts off, takes CPU0 out of WFI while the
+program sleeps. The wait then reads SPM registers in the middle of the
+period.
+
+With two idle states registered, SODI test periods stopped returning
+(stages D5a, D5b, D5f), including periods that ended before the next
+local timer event.
+
+Refuse a period when an enabled SGI or PPI is pending in CPU0's
+redistributor, or ISR_EL1 shows an IRQ pending. Log both with each
+period. Do not print the previous period's wake lines after a refusal.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 43 ++++++++++++++++++++++---
+ 1 file changed, 39 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index dfb93fdfb..9086ff288 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -69,6 +69,12 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define TOPCKGEN_PHYS		0x10000000
+ #define CHIPID_PHYS		0x08000000
+ #define GICD_PHYS		0x19000000
++/* CPU0's redistributor: the RD frame, then the SGI frame (SGIs and PPIs) */
++#define GICR_PHYS		0x19200000
++#define GICR_RD_TYPER		0x0008
++#define GICR_SGI_FRAME		0x10000
++#define GICR_SGI_ISENABLER0	0x0100
++#define GICR_SGI_ISPENDR0	0x0200
+ 
+ #define GICD_CTLR		0x0000
+ #define GICD_CTLR_RWP		BIT(31)
+@@ -288,6 +294,8 @@ struct spm_wake {
+ 	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
+ 	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
+ 	u32 wfi_loops;
++	u32 rd_en, rd_pend;	/* CPU0's SGIs and PPIs at entry */
++	u64 isr_el1;		/* at entry */
+ 	u64 cnt_kick, cnt_return;	/* arch counter around the wait */
+ 	u32 cg_before[3], cg_after[3], clk_cfg0_before, clk_cfg0_after;
+ 	bool returned;
+@@ -302,6 +310,7 @@ static struct {
+ 	void __iomem *mcucfg;
+ 	void __iomem *carve;
+ 	void __iomem *gicd;
++	void __iomem *gicr;
+ 	unsigned int gic_regs;
+ 	u32 gic_saved[GIC_MAX_REGS];
+ 	bool gic_masked;
+@@ -659,7 +668,19 @@ static bool spm_gic_pending(void)
+ 		if (pend)
+ 			return true;
+ 	}
+-	return false;
++	/*
++	 * GICv3 keeps CPU0's SGIs and PPIs in the redistributor (GICD word 0
++	 * reads as zero), and the mask leaves them enabled: one pending now
++	 * would take CPU0 out of WFI while the program sleeps.
++	 */
++	s.wake.isr_el1 = read_sysreg(isr_el1);
++	if (s.gicr) {
++		s.wake.rd_en = readl(s.gicr + GICR_SGI_FRAME + GICR_SGI_ISENABLER0);
++		s.wake.rd_pend = readl(s.gicr + GICR_SGI_FRAME + GICR_SGI_ISPENDR0);
++		if (s.wake.rd_pend & s.wake.rd_en)
++			return true;
++	}
++	return s.wake.isr_el1 & BIT(7);	/* ISR_EL1.I: an IRQ pending at CPU0 */
+ }
+ 
+ /* Whether the GIC delivers an SPI as low or falling (sysirq inverts it) */
+@@ -1092,6 +1113,8 @@ static int sodi_once(u64 ms)
+ 		dev_info(&s.pdev->dev, "sodi: %llu ms is outside 1-2000, refused\n", ms);
+ 		return -EINVAL;
+ 	}
++	/* A refused period must not print the previous period's wake lines */
++	s.entered = false;
+ 	i2c6 = spm_i2c6();
+ 	if (!i2c6) {
+ 		dev_info(&s.pdev->dev, "sodi: no I2C6 adapter, refused\n");
+@@ -1146,10 +1169,12 @@ static int sodi_once(u64 ms)
+ 	preempt_enable();
+ 	disable_irq(s.irq);
+ 	i2c_unlock_bus(i2c6, I2C_LOCK_ROOT_ADAPTER);
+-	spm_log_wake(sodi_pdn ? "sodi pdn" : "sodi cg");
+ 	if (s.entered)
+-		dev_info(&s.pdev->dev, "sodi timer: next local event %lld us after entry, period %u ticks\n",
+-			 left_us == U64_MAX ? -1LL : (s64)left_us, s.sodi.ticks);
++		spm_log_wake(sodi_pdn ? "sodi pdn" : "sodi cg");
++	if (!busy)
++		dev_info(&s.pdev->dev, "sodi timer: next local event %lld us after entry, period %u ticks, rd pend %08x en %08x, isr_el1 %llx\n",
++			 left_us == U64_MAX ? -1LL : (s64)left_us, s.sodi.ticks,
++			 s.wake.rd_pend, s.wake.rd_en, s.wake.isr_el1);
+ 	if (s.entered)
+ 		dev_info(&s.pdev->dev,
+ 			 "sodi cirq: %u lines cloned=%08x %08x %08x %08x %08x %08x %08x sta=%08x %08x %08x %08x %08x %08x %08x\n",
+@@ -1562,6 +1587,8 @@ static void spm_unmap(void)
+ 		iounmap(s.carve);
+ 	if (s.gicd)
+ 		iounmap(s.gicd);
++	if (s.gicr)
++		iounmap(s.gicr);
+ 	if (s.cirq)
+ 		iounmap(s.cirq);
+ 	if (s.afe)
+@@ -1633,6 +1660,14 @@ static int __init spm_sleep_init(void)
+ 	}
+ 	s.gic_regs = min_t(unsigned int,
+ 			   (readl(s.gicd + GICD_TYPER) & 0x1f) + 1, GIC_MAX_REGS);
++	/* The first redistributor must be CPU0's (affinity 0) */
++	s.gicr = ioremap(GICR_PHYS, 2 * GICR_SGI_FRAME);
++	if (s.gicr && readq(s.gicr + GICR_RD_TYPER) >> 32) {
++		iounmap(s.gicr);
++		s.gicr = NULL;
++	}
++	if (!s.gicr)
++		dev_info(&s.pdev->dev, "no CPU0 redistributor: SGI and PPI check off\n");
+ 	s.flags = S1_FLAGS;
+ 	if (readl(chip + 8) == 0xca01)
+ 		s.flags |= FLAG_EN_SEGMENT2;
+-- 
+2.43.0
+

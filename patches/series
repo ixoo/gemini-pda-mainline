@@ -1391,3 +1391,4 @@ proposals/0817-soc-mediatek-mt6797-spm-sleep-program-SYS_CIRQ-after.patch
 proposals/0819-soc-mediatek-mt6797-spm-sleep-optionally-skip-the-SO.patch
 proposals/0820-soc-mediatek-mt6797-spm-sleep-optionally-register-th.patch
 proposals/0821-soc-mediatek-mt6797-spm-sleep-optionally-end-test-pe.patch
+proposals/0822-soc-mediatek-mt6797-spm-sleep-check-CPU0-s-SGIs-and-.patch
