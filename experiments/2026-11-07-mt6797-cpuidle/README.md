@@ -3106,6 +3106,29 @@ the host wakes. Whether it changes how often CONN2AP ends a SODI period is
 not measured yet. D5 should run with power save on, the realistic case,
 and the custodian should note its setting in the log.
 
+**SODI periods with power save on and off (custodian, 2026-11-16).** These
+are D4 windows A, B and C under `d4.sh` with `D4_CIRQ_LEVEL=1`, not D5. The
+run used boot 2d4dcc57 (image 136), cable out, 59 % battery and hands off.
+It ran with power save on (`power_save=2`), then off. In both runs every
+period was ended by CONN2AP through SYS_CIRQ. Memory hashes were equal at
+every check, taint stayed 0 and nothing stopped. Sleep per period in ms
+(median / mean / p90):
+
+| Window | Power save on | Power save off |
+| --- | --- | --- |
+| C, inbound ping | 47 / 98 / 243 (n 60) | 256 / 280 / 432 (n 60) |
+| A, quiet | 186 / 226 / 482 | 57 / 225 / 511 |
+| B, quiet 300 s | 144 / 225 / 460 (n 280) | 250 / 291 / 824 (n 239) |
+
+Refusals were 0 with power save on, and 3 with it off (1 AP DMA, 2 MSDC).
+The average ping round trip was 89 ms on and 28 ms off, with no loss either
+way. *Inference:* with power save on, the firmware's sleep and wake notices
+on the WLAN line end SODI periods at least as often. This matches the rise
+in handled interrupts from 3.8 to 5.6 per second. So power save saves about
+57 mA in the radio but does not lengthen SODI periods. A WLAN-line filter or
+a wake-reason check is follow-up work after D5. D5 still runs with power
+save on, the realistic case.
+
 ### What it should save
 
 | State | Today | Expected |
