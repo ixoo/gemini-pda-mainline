@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 17 Nov 2026 16:07:45 -0500
+Subject: [PATCH] wifi: mt6797: offer fast power save by default
+
+On battery with the screen off, fast power save took a quiet link from about
+143 mA to 86-93 mA, with every profile change accepted and a reconnect re-sent
+cleanly. Offer it by default; mac80211 then turns it on at each join, and
+iw's power_save setting or power_save=0 turns it off. Ping round trips rise
+to about 100 ms while it is on.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 5da0799..5a1007a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -10,10 +10,10 @@
+ 
+ static bool wlan_irq = true;
+ 
+-/* Off by default: CONFIG_CFG80211_DEFAULT_PS would turn power save on at every
+- * join once the hardware offers it.
++/* Fast power save by default: with CONFIG_CFG80211_DEFAULT_PS it is on at every
++ * join, and it took about 57 mA off a quiet link. 0 offers none.
+  */
+-static uint power_save;
++static uint power_save = 2;
+ module_param(power_save, uint, 0444);
+ MODULE_PARM_DESC(power_save, "802.11 power save offered to mac80211: 0 none, 1 maximum, 2 fast");
+ module_param(wlan_irq, bool, 0444);
+-- 
+2.43.0
+

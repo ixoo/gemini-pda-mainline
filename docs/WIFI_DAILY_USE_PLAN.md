@@ -292,7 +292,8 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   link. Every toggle sent its profile with status 0, an iwctl reconnect re-sent it about 6 s after the join,
   and nothing restarted. With power save on, WLAN interrupts rose to about 5.6 a second, from 3.8, for the same
   received frames. Cable-in checks: 180 pings, no loss, median 97 ms; a download at 4.69 MB/s. Each power-save
-  log line appears twice, not yet explained. One boot. It stays off by default until the owner decides.
+  log line appears twice, not yet explained. One boot. The owner chose it on by default ("Yes, on by default"):
+  `0818` sets `power_save=2` as the default. Compiled only; it reaches the device with the next image.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
