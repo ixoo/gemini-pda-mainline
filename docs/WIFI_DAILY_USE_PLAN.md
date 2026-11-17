@@ -284,7 +284,15 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   pings at 1 s lost none, at 39.9/95.4/206.4 ms against 3.4/29.5/266.7 with power save off, and a 60 s download
   ran at 4.69 MB/s. After `ip link down` and `up`, which restarts the WLAN by design (0670), the resend came back
   `-ETIMEDOUT`, having lost its credit to the mask-control submission, and a page stayed owed. 0815 holds the
-  profile until the data phase settles. Battery current and SODI windows have not run yet.
+  profile until the data phase settles.
+
+  With 0815 (`mac` e989cbc1), as the custodian reports on the same boot, on battery with the screen off, three
+  10 min phases toggled with `iw`: fast power save drew 86.3 mA, then 142.7 mA with it off, then 92.6 mA
+  (median 83.4; about 160 mA for the first 50 s after switching it back on). That is about 57 mA less on a quiet
+  link. Every toggle sent its profile with status 0, an iwctl reconnect re-sent it about 6 s after the join,
+  and nothing restarted. With power save on, WLAN interrupts rose to about 5.6 a second, from 3.8, for the same
+  received frames. Cable-in checks: 180 pings, no loss, median 97 ms; a download at 4.69 MB/s. Each power-save
+  log line appears twice, not yet explained. One boot. It stays off by default until the owner decides.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
