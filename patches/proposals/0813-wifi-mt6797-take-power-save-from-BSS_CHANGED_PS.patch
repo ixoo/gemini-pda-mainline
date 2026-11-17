@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 16 Nov 2026 18:59:08 -0500
+Subject: [PATCH] wifi: mt6797: take power save from BSS_CHANGED_PS
+
+0812 listened for IEEE80211_CONF_PS in config, but with SUPPORTS_DYNAMIC_PS
+mac80211 never sets it: it reports power save per interface through
+bss_info_changed with BSS_CHANGED_PS and vif->cfg.ps, once the station is
+authorized. On the device no power-save command was ever sent. Take it from
+there, log each request, and log why a request is held.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 26 ++++++++++++++++-----
+ 1 file changed, 20 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index c78c77b77..90f20660b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1304,10 +1304,6 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 	    (hw->conf.flags & IEEE80211_CONF_MONITOR) ||
+ 	    ((hw->conf.flags & IEEE80211_CONF_PS) && !mac->ps_profile))
+ 		ret = -EOPNOTSUPP;
+-	if (!ret && (changed & IEEE80211_CONF_CHANGE_PS)) {
+-		mac->ps_wanted = hw->conf.flags & IEEE80211_CONF_PS;
+-		mt6797_mac_join_send_ps(mac);
+-	}
+ 	{
+ 		const struct cfg80211_chan_def *def = &hw->conf.chandef;
+ 		const struct ieee80211_channel *channel = def->chan;
+@@ -1374,6 +1370,17 @@ static void mt6797_mac_bss_info_changed(struct ieee80211_hw *hw,
+ {
+ 	struct mt6797_mac *mac = hw->priv;
+ 
++	/* With SUPPORTS_DYNAMIC_PS, mac80211 reports power save per interface
++	 * here, once the station is authorized, not through config's CONF_PS.
++	 */
++	if (changed & BSS_CHANGED_PS) {
++		mutex_lock(&mac->mutex);
++		mac->ps_wanted = vif->cfg.ps;
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot WLAN power save requested: on=%u\n", mac->ps_wanted);
++		mt6797_mac_join_send_ps(mac);
++		mutex_unlock(&mac->mutex);
++	}
+ 	if (changed & BSS_CHANGED_CQM) {
+ 		mutex_lock(&mac->mutex);
+ 		mac->cqm_thold = info->cqm_rssi_thold;
+@@ -1593,9 +1600,16 @@ void mt6797_mac_join_send_ps(struct mt6797_mac *mac)
+ 	unsigned int profile = mac->ps_wanted ? mac->ps_profile : 0;
+ 	int ret;
+ 
+-	if (!mac->ps_profile || !mac->join_data_phase || mac->join_data_ended ||
+-	    mac->ps_sent == (int)profile || mac->closing || mac->first_error)
++	if (!mac->ps_profile)
+ 		return;
++	if (!mac->join_data_phase || mac->join_data_ended ||
++	    mac->ps_sent == (int)profile || mac->closing || mac->first_error) {
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN power save held: profile=%u sent=%d data=%u ended=%u closing=%u first=%d\n",
++			 profile, mac->ps_sent, mac->join_data_phase, mac->join_data_ended,
++			 mac->closing, mac->first_error);
++		return;
++	}
+ 	if (mac->join_inflight || mac->data_slots.count || mac->join_page_debt) {
+ 		ret = mt6797_mac_join_wait_management(mac);
+ 		if (ret)
+-- 
+2.43.0
+
