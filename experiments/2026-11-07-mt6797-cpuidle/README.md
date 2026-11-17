@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); run 1 reset in the first SODI window, D5a proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); run 1 and D5a reset; 0817 and D5b proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3171,7 +3171,7 @@ logs, synced every 10 s:
 
 A rerun dates a reset to within 10 s and gives the entries before it.
 
-### Request D5a (proposed): 0816's shared path under D4
+### Request D5a (approved 2026-11-17): 0816's shared path under D4
 
 D5a splits the suspects with no new write. Image 137 and module b24a657e
 run [`tools/d4.sh`](tools/d4.sh) with `D4_CIRQ_LEVEL=1`, Wi-Fi power save
@@ -3190,6 +3190,74 @@ within the approved D4b and D5 lists.
 | --- | --- |
 | D4 windows pass, hashes equal | The cause is in the idle path: P1-P3, the entry rate, G5/G6 or the RCU idle wait. Next: D5 again with the per-10 s log and `sodi_idle_max_ms` lowered, to count entries before the reset |
 | Reset or hang | The moved programming is the cause. Restore 0806's order (mask after the kick) and keep only the pending check |
+
+### D5a: 0816's test periods reset the device (custodian, 2026-11-17)
+
+**Approved** by the owner ("Approve D5a").
+
+**Setup.** Image 137 (`735859f0`, boot2 0653d4a3), boot e40ab1c4, module
+b24a657e (0816), `d4.sh` 97ae6706 with `D4_CIRQ_LEVEL=1`. Wi-Fi power save
+on (`power_save=2`), cable out, battery 49 %, hands off. The laptop pinged
+during window C.
+
+**Observed.**
+- Window C started at 15:50:11. Pings arrived from 15:50:20.
+- 21 periods returned, all reading "r12 00400020, wake: conn2ap cirq, 23
+  lines" with SYS_CIRQ status bit 19 of word 6 (SPI 283, WLAN). They slept
+  0-504 ms, including 0, 1 and 5 ms periods, and each logged
+  `returned=1 loops=0`.
+- The journal's last lines, at 15:50:30.022-.024, are period 21's return
+  and its `sodi cirq` line. The driver prints that line after the period's
+  return line, so it belongs to period 21, not 22.
+- Period 22 logged nothing. Pings stopped answering after `icmp_seq` 10,
+  at about 15:50:30. The device then reset into Gemian.
+- pstore was empty, with no warning or Oops before the reset. The next
+  boot, ea40fba9, was clean (taint 0) and boot2 was still 0653d4a3.
+
+**Result.** The same `d4.sh` windows passed on image 136 with module
+9cf7b397 (0806) earlier the same day: 360 and 319 periods, hashes equal.
+On image 137 with 0816 a test period never returned, and the reset
+followed. These test periods are not cpuidle entries and still apply
+P1-P3. So D5 run 1's reset does not need the idle path or the missing
+P1-P3 to explain it.
+
+Two things differ from the passing run:
+- 0816's SYS_CIRQ and GIC programming, moved before the PCM reset, and
+  the pending check;
+- the cpuidle core and the registered `mt6797_sodi` driver, with the
+  SODI state disabled.
+
+The decision table points at the first. *Inference, not tested:* with
+level recording, an interrupt that arrives while the program loads leaves
+the SYS_CIRQ wake asserted before the kick. The program may not see a wake
+asserted before it starts, and with the GIC masked nothing else takes CPU0
+out of WFI. That the PCM timer did not end the period either is not
+explained.
+
+### Request D5b (proposed): the order up to 0806, on image 137
+
+[`0817`](../../patches/proposals/0817-soc-mediatek-mt6797-spm-sleep-program-SYS_CIRQ-after.patch)
+(module only) programs SYS_CIRQ and masks the GIC after the kick again, as
+up to 0806. It keeps the pending check, now before the PCM reset with the
+GIC unmasked. It is compile-checked with `W=1`, with and without
+`CONFIG_CPU_IDLE`, and checkpatch `--strict` is quiet. Its writes are the
+D4b list in D4b's order.
+
+- **Candidate:** image 137, unchanged, and `mt6797-spm-sleep.ko` from a
+  Buildbox build of the commit recording this stage. Only the module
+  changes, so no boot2 write.
+- **Run:** [`tools/d4.sh`](tools/d4.sh) with `D4_CIRQ_LEVEL=1`, Wi-Fi power
+  save on, cable out and hands off, with pings in window C as in D5a.
+- *Hypothesis:* with the order up to 0806, the test periods return on
+  image 137 as they did on image 136.
+- *Unique observation:* whether the cpuidle core and 0816's other changes
+  pass D4's windows when the moved programming is gone.
+- **Stops:** as in D4. A reset is recovered as in D5a.
+
+| Outcome | Decision |
+| --- | --- |
+| Windows A-C pass, hashes equal | The moved programming caused the D5a reset, and the image is cleared. Next: D5 again with the 0817 module and the per-10 s log (owner's yes) |
+| Reset or hang | The cause is elsewhere in 0816 or in the cpuidle image. Next: the 0806 module built for image 137, to split the two |
 
 ### What it should save
 

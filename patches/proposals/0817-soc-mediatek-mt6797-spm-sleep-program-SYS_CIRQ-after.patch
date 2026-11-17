@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 17 Nov 2026 16:06:39 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: program SYS_CIRQ after the
+ kick again
+
+0816 moved the SYS_CIRQ programming and the GIC mask to before the PCM
+reset, so an interrupt arriving while the program loads would be
+recorded. With that order a SODI test period stopped returning after
+21 good ones, with an inbound ping (stage D5a), and the device reset.
+The same test passed hundreds of periods with the order up to 0806.
+
+Program SYS_CIRQ and mask the GIC after the kick again. Keep the check
+for an enabled interrupt already pending, now before the PCM reset with
+the GIC unmasked, so such a period is still refused.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 25 +++++++++++--------------
+ 1 file changed, 11 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 32da1b716..9599a3c0d 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -758,20 +758,11 @@ static int spm_run(const struct spm_scen *sc)
+ 		return -EBUSY;
+ 
+ 	/*
+-	 * SODI: record the device interrupts in SYS_CIRQ and mask them at the
+-	 * GIC before the SPM changes, then refuse the period if one is already
+-	 * pending. From here on, an interrupt is recorded and ends the period.
++	 * SODI: refuse the period if an enabled interrupt is already pending,
++	 * since SYS_CIRQ, programmed only after the kick, would not see it.
+ 	 */
+-	if (sc->cirq) {
+-		spm_cirq_enable();
+-		if (gic_mask)
+-			spm_gic_mask();
+-		if (spm_gic_pending()) {
+-			spm_cirq_disable();
+-			spm_gic_restore();
+-			return -EAGAIN;
+-		}
+-	}
++	if (sc->cirq && spm_gic_pending())
++		return -EAGAIN;
+ 
+ 	/* C1 first: if MCUCFG ignores the writes, stop before the SPM changes */
+ 	axi[0] = readl(s.mcucfg + MP0_AXI_CONFIG);
+@@ -881,8 +872,14 @@ static int spm_run(const struct spm_scen *sc)
+ 	 * (mt_irq_mask_all), so only the program wakes the CPU. Here CPU0 stays
+ 	 * powered, and without this a wake interrupt can take it out of WFI at
+ 	 * the GIC while the program goes on sleeping.
++	 *
++	 * SYS_CIRQ is programmed after the kick, as up to 0806: with it
++	 * programmed before the PCM reset, test periods stopped returning
++	 * (D5a).
+ 	 */
+-	if (!sc->cirq && gic_mask)
++	if (sc->cirq)
++		spm_cirq_enable();
++	if (gic_mask)
+ 		spm_gic_mask();
+ 	/* From cpuidle the SPM's interrupt is not enabled in Linux: enable it here */
+ 	if (sc->idle)
+-- 
+2.43.0
+
