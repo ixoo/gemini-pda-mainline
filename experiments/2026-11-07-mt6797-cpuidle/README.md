@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); prepared |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); approved, needs a new image |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -2325,7 +2325,7 @@ Where each way of saving CPU and SoC power stands on this unit:
 | s2idle | Kernel | Works | 73 mA | — |
 | `mem` suspend (Route A, S1) | `mt6797-spm-sleep` + vendor `pcm_suspend.bin`, CPU kept powered | Works on the station; lid close, charger wake (0688/0689) | 42 mA | Soak K1; loading at boot |
 | Unused infra gates | `mt6797-gate-unused` (0768, 0770, 0789) | Works, 26 gates (+ ICUSB with 0789) | about 3 mA | — |
-| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | Periods on demand return, CG and PDN (D3); a key and an inbound packet wake them (D4, D4c); cpuidle (D5) prepared, needs a new image | — | — |
+| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | Periods on demand return, CG and PDN (D3); a key and an inbound packet wake them (D4, D4c); cpuidle (D5) approved, needs a new image | — | — |
 | Deep idle | Vendor `pcm_deepidle.bin` | Deferred | — | SODI first; then DISP_PWM (0788) and the display domain |
 | Lazy RCU | Config | Folded into the station fragments | tick restarts −7 % | — |
 | HZ 100 | Config | T2 pending | — | — |
@@ -3059,7 +3059,11 @@ these differences, on SODI periods only:
 T1 (CPU0's timer masks) is as in D3. Outside the SPM, the run writes the
 state's sysfs `disable` file and takes CPU1-9 offline, as D4 did.
 
-### Request D5 (proposed)
+**Approved** by the owner on 2026-11-17 ("Approve D5"), for the list above,
+with no PMIC write from idle, and the 0816 module from the same Buildbox
+build as an image with `CONFIG_CPU_IDLE`.
+
+### Request D5 (approved 2026-11-17)
 
 - **Candidate:** an image with `CONFIG_CPU_IDLE=y` and the menu governor,
   built on Buildbox from a commit at or after the one recording this stage,
