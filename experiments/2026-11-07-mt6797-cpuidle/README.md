@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); run 1 and D5a reset; 0817 and D5b proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); D5, D5a and D5b reset on image 137; D5c proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3234,7 +3234,7 @@ asserted before it starts, and with the GIC masked nothing else takes CPU0
 out of WFI. That the PCM timer did not end the period either is not
 explained.
 
-### Request D5b (proposed): the order up to 0806, on image 137
+### Request D5b (approved 2026-11-17): the order up to 0806, on image 137
 
 [`0817`](../../patches/proposals/0817-soc-mediatek-mt6797-spm-sleep-program-SYS_CIRQ-after.patch)
 (module only) programs SYS_CIRQ and masks the GIC after the kick again, as
@@ -3258,6 +3258,67 @@ D4b list in D4b's order.
 | --- | --- |
 | Windows A-C pass, hashes equal | The moved programming caused the D5a reset, and the image is cleared. Next: D5 again with the 0817 module and the per-10 s log (owner's yes) |
 | Reset or hang | The cause is elsewhere in 0816 or in the cpuidle image. Next: the 0806 module built for image 137, to split the two |
+
+### D5b: 0817's test periods reset the device too (custodian, 2026-11-17)
+
+**Approved** by the owner ("Approve D5b").
+
+**Setup.** Image 137, unchanged (boot2 0653d4a3, `Image.gz` 397820cd), on
+boot ea40fba9. Module 3f0d96d6 (0817) came from Buildbox `d3092b37`, whose
+`Image.gz` is also 397820cd. `d4.sh` 97ae6706 with `D4_CIRQ_LEVEL=1`, Wi-Fi
+power save on, cable out, battery 46 %, hands off, pings in window C.
+
+**Observed.**
+- Window C started at 16:24:41. Pings arrived from 16:24:50.
+- 14 periods returned, all ended by CONN2AP through SYS_CIRQ, with
+  `returned=1 loops=0`.
+- The last journal lines, at 16:24:56.62, are a period's return and its
+  `sodi cirq` line. Period 15 logged nothing.
+- 8 of 180 pings were answered. The device reset into Gemian (the owner
+  confirmed).
+- pstore was empty, with no warning or Oops. The next boot, b8d5a469, was
+  clean (taint 0) and boot2 was still 0653d4a3.
+
+**Result.** Putting SYS_CIRQ and the GIC mask back after the kick did not
+help. Image 137 has now reset three times:
+- D5: a cpuidle SODI window, within 180 s;
+- D5a: the 0816 module, period 22, about 10 s after the pings began;
+- D5b: the 0817 module, period 15, about 6 s after the pings began.
+
+On image 136 the 0806 module (9cf7b397) passed the same windows twice that
+day. The moved programming is cleared as the cause.
+
+Three differences remain:
+- **image 137:** it adds `CONFIG_CPU_IDLE` and the menu governor. The other
+  additions between the two images' series are Wi-Fi and CONSYS modules
+  (0809-0815), which run only if loaded;
+- **the cpuidle driver registration:** in D5a and D5b, CPU0's ordinary idle
+  went through `mt6797_sodi`'s WFI state;
+- **0816's other shared changes,** such as the pending check.
+
+### Request D5c (proposed): the 0806 module on image 137
+
+The station config has `# CONFIG_MODVERSIONS is not set`, and images 136
+and 137 share a release string. So module 9cf7b397, the 0806 build that
+passed on image 136, loads on image 137 unchanged. This needs no new code,
+no build and no boot2 write. Its writes are the D4b list. *Inference:* the
+0806 module uses no cpuidle interface, and `CONFIG_CPU_IDLE` changes no
+structure it uses. The run should still check that it loads cleanly.
+
+- **Run:** [`tools/d4.sh`](tools/d4.sh) with module 9cf7b397 and
+  `D4_CIRQ_LEVEL=1`, exactly as on image 136: Wi-Fi power save on, cable
+  out, hands off, pings in window C. Log the hashes of the loaded Wi-Fi and
+  CONSYS modules and compare them with the image-136 runs.
+- *Hypothesis:* the resets come from 0816's module changes, mainly the
+  cpuidle driver registration, not from image 137.
+- *Unique observation:* whether image 137 resets with the module that
+  passed on image 136.
+- **Stops:** as in D4. A reset is recovered as in D5a.
+
+| Outcome | Decision |
+| --- | --- |
+| Windows A-C pass, hashes equal | The cause is in 0816's module. Next: an 0817 module that skips the cpuidle registration (a parameter), to split the registration from the rest |
+| Reset or hang | The cause is image 137 or the Wi-Fi module set, not 0816. Compare the Wi-Fi and CONSYS module hashes with the image-136 runs; if they differ, rerun with the image-136 set |
 
 ### What it should save
 
