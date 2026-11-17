@@ -277,6 +277,14 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   received frames a second, 1.4 of them dropped, and nothing sent. With all CPUs online and no SODI, the radio's
   share of that may be small, so stage 2 compares power save on and off on one boot in the same state, plus
   SODI windows.
+
+  Stage 2, as the custodian reports (boot `2d4dcc57`, `power_save=2`): 0812 never sent the command (mac80211
+  reports power save through `BSS_CHANGED_PS`, fixed in 0813), and 0813's was refused locally (the encoder did
+  not admit command 0x05, fixed in 0814). With 0814 the first join sent fast power save with status 0; 180
+  pings at 1 s lost none, at 39.9/95.4/206.4 ms against 3.4/29.5/266.7 with power save off, and a 60 s download
+  ran at 4.69 MB/s. After `ip link down` and `up`, which restarts the WLAN by design (0670), the resend came back
+  `-ETIMEDOUT`, having lost its credit to the mask-control submission, and a page stayed owed. 0815 holds the
+  profile until the data phase settles. Battery current and SODI windows have not run yet.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the

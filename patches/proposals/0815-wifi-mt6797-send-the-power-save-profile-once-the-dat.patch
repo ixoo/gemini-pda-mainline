@@ -1,0 +1,145 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 16 Nov 2026 19:24:08 -0500
+Subject: [PATCH] wifi: mt6797: send the power-save profile once the data phase
+ settles
+
+On a rejoin the power-save command, sent as the data phase opened, came back
+-ETIMEDOUT: the mask-control submission went out in the same worker pass that
+returned its credit and took the one pending credit, and a page stayed owed
+afterwards. Hold the profile until the monitor mask is submitted and the
+channel grant released, and send it then from its own work item, which can
+wait for its credit while the worker runs. A command that fails other than by
+being busy is not retried this lifetime.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   |  6 ++++
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  5 +++-
+ drivers/net/wireless/mediatek/mt6797/main.c   | 30 +++++++++++++++++--
+ 3 files changed, 38 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 574eb82c8..91fa2bf41 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -582,6 +582,7 @@ static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
+ 	mac->ccmp_gtk_deferred = NULL;
+ 	/* The firmware starts each lifetime constantly awake (assumed). */
+ 	mac->ps_sent = 0;
++	mac->ps_failed = false;
+ 	mac->ccmp_last_checked_rx = 0;
+ 	mac->ccmp_timeout_ignored = 0;
+ 	reinit_completion(&mac->ccmp_dtim_done);
+@@ -2957,6 +2958,11 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 		mac->join_rearm_pending = true;
+ 		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
+ 	}
++	/* A power-save profile held until the data phase settled goes now. */
++	if (mac->ps_profile && !mac->ps_failed &&
++	    mac->ps_sent != (int)(mac->ps_wanted ? mac->ps_profile : 0) &&
++	    mt6797_mac_join_ps_ready(mac))
++		schedule_work(&mac->ps_work);
+ 	/* Once a link is up, the WLAN interrupt serves receive. */
+ 	if (mac->irq > 0 && !mac->irq_armed && !mac->irq_gave_up &&
+ 	    mac->join_data_phase && !mac->join_data_ended) {
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 6d6bd7844..c1823a4cc 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -495,7 +495,7 @@ struct mt6797_mac {
+ 	 * wants it on, and the profile last sent this lifetime.
+ 	 */
+ 	unsigned int ps_profile;
+-	bool ps_wanted;
++	bool ps_wanted, ps_failed;
+ 	int ps_sent;
+ 	bool irq_armed, irq_gave_up, join_pass_read, join_pass_found;
+ 	unsigned int irq_empty;
+@@ -636,6 +636,8 @@ struct mt6797_mac {
+ 	/* The supplicant removed the keys: wait for mac80211's own disconnect. */
+ 	bool ccmp_loss_deferred;
+ 	struct delayed_work ccmp_loss_work;
++	/* Sends a held power-save profile once the data phase is settled. */
++	struct work_struct ps_work;
+ 	unsigned int ccmp_deauth_timeouts, ccmp_deauth_late;
+ 	u8 ccmp_deauth_retired_pid;
+ 	unsigned int ccmp_cleanup_retained_pages, ccmp_cleanup_credit_floor;
+@@ -835,6 +837,7 @@ void mt6797_mac_join_read_bss(struct mt6797_mac *mac, struct ieee80211_vif *vif,
+ 			      const struct ieee80211_bss_conf *info);
+ void mt6797_mac_join_await(struct mt6797_mac *mac, bool teardown);
+ void mt6797_mac_join_send_ps(struct mt6797_mac *mac);
++bool mt6797_mac_join_ps_ready(const struct mt6797_mac *mac);
+ bool mt6797_mac_join_retire_idle_scan(struct mt6797_mac *mac);
+ int mt6797_mac_send(struct mt6797_mac *mac,
+ 		    enum mt6797_normal_config_kind kind,
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 656f9b61f..5da0799fd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1595,6 +1595,29 @@ static int mt6797_ccmp_disable_key(struct mt6797_mac *mac)
+  * Called with the mutex held. A failure is logged and leaves the profile as
+  * the firmware has it; a refused command ends nothing.
+  */
++/* The data phase's own commands are done: the monitor mask submitted and
++ * the join's channel grant released. Until then they share the one credit
++ * wait with this command, and a power-save command sent at the data phase's
++ * start lost its credit to the mask-control submission.
++ */
++bool mt6797_mac_join_ps_ready(const struct mt6797_mac *mac)
++{
++	return mac->join_data_phase && !mac->join_data_ended &&
++	       mac->join_channel_released &&
++	       (mac->native_diag_state == MT6797_ND_ACTIVE ||
++		mac->native_diag_state == MT6797_ND_CLOSED) &&
++	       !mac->closing && !mac->first_error;
++}
++
++static void mt6797_mac_ps_work(struct work_struct *work)
++{
++	struct mt6797_mac *mac = container_of(work, struct mt6797_mac, ps_work);
++
++	mutex_lock(&mac->mutex);
++	mt6797_mac_join_send_ps(mac);
++	mutex_unlock(&mac->mutex);
++}
++
+ void mt6797_mac_join_send_ps(struct mt6797_mac *mac)
+ {
+ 	unsigned int profile = mac->ps_wanted ? mac->ps_profile : 0;
+@@ -1602,8 +1625,7 @@ void mt6797_mac_join_send_ps(struct mt6797_mac *mac)
+ 
+ 	if (!mac->ps_profile || mac->ps_sent == (int)profile)
+ 		return;
+-	if (!mac->join_data_phase || mac->join_data_ended ||
+-	    mac->closing || mac->first_error) {
++	if (!mt6797_mac_join_ps_ready(mac)) {
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN power save held: profile=%u sent=%d data=%u ended=%u closing=%u first=%d\n",
+ 			 profile, mac->ps_sent, mac->join_data_phase, mac->join_data_ended,
+@@ -1631,6 +1653,8 @@ void mt6797_mac_join_send_ps(struct mt6797_mac *mac)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+ 	if (!ret)
+ 		mac->ps_sent = profile;
++	else if (ret != -EBUSY)
++		mac->ps_failed = true;	/* not retried by the worker this lifetime */
+ out:
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN power save: profile=%u status=%d\n", profile, ret);
+@@ -2445,6 +2469,7 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	skb_queue_head_init(&mac->credit_retired_queue);
+ 	INIT_DELAYED_WORK(&mac->join_work, mt6797_mac_join_work);
+ 	INIT_DELAYED_WORK(&mac->ccmp_loss_work, mt6797_mac_loss_work);
++	INIT_WORK(&mac->ps_work, mt6797_mac_ps_work);
+ 	mac->join_next_pid = 1;
+ 	mac->ccmp_pid_pool.next = 1;
+ 	init_completion(&mac->join_channel_done);
+@@ -2601,6 +2626,7 @@ static void mt6797_mac_unregister(struct ieee80211_hw *hw)
+ 	if (mac->irq > 0)
+ 		disable_irq(mac->irq);
+ 	cancel_delayed_work_sync(&mac->ccmp_loss_work);
++	cancel_work_sync(&mac->ps_work);
+ 	cancel_delayed_work_sync(&mac->scan_work);
+ 	cancel_delayed_work_sync(&mac->join_work);
+ 	if (mac->irq > 0)
+-- 
+2.43.0
+
