@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); 0816/0817 reset image 137, 0806 passes (D5c); D5d proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); resets follow the registered cpuidle driver (D5a-D5d); D5e proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3356,7 +3356,7 @@ ways:
 Level recording is set by `d4.sh` in every run. The rest of 0816 is only
 reached from the SODI state.
 
-### Request D5d (proposed): 0817 without the cpuidle driver
+### Request D5d (approved 2026-11-17): 0817 without the cpuidle driver
 
 [`0819`](../../patches/proposals/0819-soc-mediatek-mt6797-spm-sleep-optionally-skip-the-SO.patch)
 (module only) adds `sodi_idle` (default on). Loaded with `sodi_idle=0`, the
@@ -3380,6 +3380,79 @@ checkpatch `--strict` is quiet. There is no write change.
 | --- | --- |
 | Windows A-C pass | The registered cpuidle driver causes the resets, even with SODI disabled. Next: find how CPU0's idle under cpuidle differs from the default idle (the WFI state, the governor's tick handling), before any SODI idle |
 | Reset or hang | The pending check, or another 0816 change, is the cause. Next: 0817 without the pending check |
+
+### D5d: 0817 without the cpuidle driver passes (custodian, 2026-11-17)
+
+**Approved** by the owner ("Approve D5d").
+
+**Setup.** Image 137 (boot2 0653d4a3), boot b8d5a469. Module 6db2a032
+(0819, Buildbox `ef11657d`, whose `Image.gz` 397820cd is image 137's).
+`d4.sh` 18a4f9ec with `D4_CIRQ_LEVEL=1 D4_IDLE=0`. Wi-Fi power save on,
+cable out, battery 41 %, hands off. 180 of 180 pings were answered,
+averaging 93 ms. `current_driver` read `none` before the run, and again
+during window C at 17:13:47 (with `sodi_idle` N).
+
+**Observed.**
+
+| Window | Periods | Median sleep (ms) | p90 (ms) |
+| --- | --- | --- | --- |
+| C, pings | 60, all ended by a packet | 142 (mean 161) | 304 |
+| A, quiet | 20 | 287 | — |
+| B, quiet | 297 | 231 | 541 |
+
+Every period was ended by CONN2AP through SYS_CIRQ. All 318 hash checks
+were equal. There was 1 refusal (MSDC), taint stayed 0, and the run
+ended at 17:22:11.
+
+**Result.** On image 137, under pings:
+
+| Module | CPU0 cpuidle driver | Outcome |
+| --- | --- | --- |
+| 0816 (D5a) | registered | reset at period 22 of C |
+| 0817 (D5b) | registered | reset at period 15 of C |
+| 0806 (D5c) | none | passed, 427 periods |
+| 0819, `sodi_idle=0` (D5d) | none | passed, 377 periods |
+
+The pending check is cleared. The cause is in `sodi_idle_register()`, which
+D5d skipped as a whole. Its parts are references to the backlight and
+I2C6 devices, and the cpuidle registration. *Inference:* the registration
+is the active part. With it, CPU0's ordinary idle runs through the cpuidle
+core and the driver's WFI state between periods, with SODI disabled.
+
+With two states, `cpuidle_idle_call()` asks the menu governor, which keeps
+the tick when it predicts an idle shorter than a tick. Pings make that
+the usual case. With no driver, the idle loop stops the tick as usual. So
+under pings, the registered driver mainly means **the tick runs while
+CPU0 idles between periods**. The resets came in window C, under pings,
+and C runs first. So the runs do not show whether the driver also fails
+on a quiet link.
+
+### Request D5e (proposed): the WFI state alone
+
+[`0820`](../../patches/proposals/0820-soc-mediatek-mt6797-spm-sleep-optionally-register-th.patch)
+(module only) adds `sodi_idle_states` (default 2). Loaded with
+`sodi_idle_states=1`, the module registers the cpuidle driver with the WFI
+state alone. The idle loop then skips the governor and stops the tick as
+with no driver, but still enters through the cpuidle core and the
+driver's WFI. It is compile-checked with `W=1`, with and without
+`CONFIG_CPU_IDLE`, and checkpatch `--strict` is quiet. There is no write
+change.
+
+- **Candidate:** image 137, unchanged, and `mt6797-spm-sleep.ko` from a
+  Buildbox build of the commit recording this stage. No boot2 write.
+- **Run:** [`tools/d4.sh`](tools/d4.sh) with `D4_CIRQ_LEVEL=1 D4_STATES=1`,
+  as in D5d. Check that `current_driver` reads `mt6797_sodi` and that
+  `cpu0/cpuidle` has no `state1`.
+- *Hypothesis:* the governor's retained tick is what makes the registered
+  driver fail; with one state the run passes.
+- *Unique observation:* whether the cpuidle core's entry path, without the
+  governor, separates the resets from the passes.
+- **Stops:** as in D4. A reset is recovered as in D5a.
+
+| Outcome | Decision |
+| --- | --- |
+| Windows A-C pass | The governor's choices, most likely the retained tick, cause the resets. Next: find how a tick running between periods breaks the next period, starting with the local timer's state at entry |
+| Reset or hang | The cpuidle entry path or the held references cause it. Next: compare the driver's WFI with the kernel's `cpu_do_idle`, and drop the references |
 
 ### What it should save
 

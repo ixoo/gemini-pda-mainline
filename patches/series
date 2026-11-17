@@ -1389,3 +1389,4 @@ proposals/0806-soc-mediatek-mt6797-spm-sleep-optionally-record-leve.patch
 proposals/0816-soc-mediatek-mt6797-spm-sleep-SODI-as-CPU0-s-idle-st.patch
 proposals/0817-soc-mediatek-mt6797-spm-sleep-program-SYS_CIRQ-after.patch
 proposals/0819-soc-mediatek-mt6797-spm-sleep-optionally-skip-the-SO.patch
+proposals/0820-soc-mediatek-mt6797-spm-sleep-optionally-register-th.patch

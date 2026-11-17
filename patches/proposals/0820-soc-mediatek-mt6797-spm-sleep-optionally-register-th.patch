@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 17 Nov 2026 17:27:44 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally register the WFI
+ state alone
+
+With the CPU0 cpuidle driver registered, SODI test periods stopped
+returning under inbound pings and the device reset (stages D5a, D5b).
+Without it the same test passed (D5d). With two states, CPU0's idle
+goes through the menu governor, which keeps the tick when it predicts
+a short idle. With one state it skips the governor and stops the tick
+as with no driver, but still enters through the cpuidle core.
+
+Add sodi_idle_states (1 or 2, default 2) to split the two (D5e).
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 549f37466..dfd2eca33 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -1162,6 +1162,14 @@ static bool sodi_idle = true;
+ module_param(sodi_idle, bool, 0444);
+ MODULE_PARM_DESC(sodi_idle, "SODI idle: register the CPU0 cpuidle driver");
+ 
++/*
++ * States to register: 2 (WFI and SODI) or 1 (WFI alone). With one state the
++ * idle loop skips the governor and stops the tick as with no driver (D5e).
++ */
++static unsigned int sodi_idle_states = 2;
++module_param(sodi_idle_states, uint, 0444);
++MODULE_PARM_DESC(sodi_idle_states, "SODI idle: states to register, 1 (WFI) or 2 (WFI, SODI)");
++
+ static const u8 sodi_wake_bit[] = { 0, 2, 5, 6, 22 };
+ static const char * const sodi_wake_name[] = {
+ 	"timer", "keypad", "conn2ap", "eint", "cirq",
+@@ -1388,6 +1396,7 @@ static void sodi_idle_register(void)
+ 	s.idle.idle = true;
+ 	s.idle.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
+ 	sodi_idle_driver.cpumask = (struct cpumask *)cpumask_of(0);
++	sodi_idle_driver.state_count = clamp(sodi_idle_states, 1U, 2U);
+ 	ret = cpuidle_register(&sodi_idle_driver, NULL);
+ 	if (ret) {
+ 		dev_info(&s.pdev->dev, "cpuidle registration failed (%d)\n", ret);
+-- 
+2.43.0
+
