@@ -117,6 +117,7 @@ window() {
 	u0=$(cat "$STATE/usage")
 	r0=$(cat "$STATE/time")
 	i0=$(awk '/^ *[0-9]+:/ { s += $2 } END { print s }' /proc/interrupts)
+	log "$name start, SODI usage $u0"
 	t=0
 	while [ "$t" -lt "$WINDOW" ]; do
 		sleep 10
@@ -124,6 +125,11 @@ window() {
 		blank || stop "the screen lit in window $name"
 		[ "$(cat "$CPUS/online")" = 0 ] || stop "CPUs came back in window $name"
 		stopped && stop "a SODI period did not return in window $name"
+		# In SODI windows, a synced line every 10 s dates a reset to 10 s.
+		if [ "$2" = 0 ]; then
+			log "    $name +$t s: SODI usage $(cat "$STATE/usage"), time $(cat "$STATE/time") us," \
+				"$(grep -E '^(tried|entered|stopped|error) ' "$STATS" | tr '\n' ' ')"
+		fi
 	done
 	c1=$(cat "$GAUGE/charge_counter")
 	t1=$(date +%s)
