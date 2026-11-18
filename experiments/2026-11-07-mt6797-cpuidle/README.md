@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, inside the period, cause unknown (D5a-D5h) |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, CPU0 cannot resume (D5a-D5i); D5j proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3790,6 +3790,61 @@ SPM, GIC or PMIC write; CNTP is CPU0's own timer.
 | A `backstop=1` line, then a reset | The program stalls, and the state it leaves (gated clocks) breaks the station after the wait. The logged state still names the step |
 | Reset with no `backstop=1` line | CPU0 does not resume from WFI, or the bus hangs on the first SPM read. The program has stopped CPU0 itself, so look at what the two-state idle changes in CPU0's power or clock control |
 | Passes | An armed, unmasked CNTP during the period changes the outcome. That points at the timer masking; compare with D5g's masked runs |
+
+### D5i: no backstop, CPU0 does not resume (custodian, 2026-11-18)
+
+**Setup.** Boot 09980766 of image 137, taint 0, with no SODI module loaded
+before. Cable out at 90 %, Wi-Fi power save on. `d4.sh` 787dbcf3. Module
+97add2b2 (0824, built from `148b46b8`; that build's image 905f4d8f differs
+only by the built-in 0823 and was not booted). `D4_CIRQ_LEVEL=1`, two
+states, no cap.
+
+**Observed.**
+- Window C: 14 periods returned between 17:00:32 and 17:00:52. All were
+  ended by CONN2AP through SYS_CIRQ and slept 15-557 ms. Every one logged
+  `backstop=0 fsm=02048490 debug=00000000 pc=00000000`.
+- The last `d4.log` line is `start` at 17:00:52. The journal ends with
+  period 14's lines, the last at 17:00:52.278.
+- No `returned=` line followed, and no `backstop=1` line appeared. The
+  device reset into Gemian with an empty pstore. The owner recovered to
+  boot2 (boot 6c447b07).
+
+**Result.** CPU0's own timer, armed to fire 100 ms after the period
+should have ended, did not get CPU0 to run again. The wait did not just
+go on for ever. CPU0 could not resume at all, or hung on its first SPM
+read. *Inference:* in SODI the program controls CPU0's cluster clock and
+the path that delivers its interrupts. A program that never completes its
+wake sequence leaves CPU0 unable to see even its own timer. So the
+backstop cannot tell a stalled program from a dead CPU, and CPU0 cannot
+observe the failure from inside.
+
+**What reset the device is not recorded.** The station runs `mtk_wdt`
+with a 31 s timeout. So a CPU hang alone would be reset by the watchdog
+about 31 s later. A power event, such as a rail collapsing, would reset
+it sooner and by another path. LK passes the preloader's reason to Gemian
+as `boot_reason`: 0 power key, 3 watchdog, 4 watchdog reboot, 6 two-second
+reboot ([LK](../../docs/hardware/lk.md)). Gemian booted after every D5
+reset, so its kernel log for those boots holds the reason, if Gemian
+keeps it.
+
+### Request D5j (proposed): read why the device reset
+
+This is a read-only inspection of Gemian's logs, with no SODI run and no
+writes. From the station, mount Gemian's root read-only without journal
+replay (`ro,noload`). Then read the kernel command line and boot time of
+each Gemian boot that followed a D5 reset: D5 run 1, D5a, D5b, D5f, D5g,
+D5h and D5i.
+
+- *Unique observation:* the reset reason, and the time from the last
+  mainline journal line to Gemian's start.
+- From now on, after any reset into Gemian, the custodian reads
+  `/proc/cmdline` there before powering off.
+
+| Outcome | Decision |
+| --- | --- |
+| `boot_reason=3` or 4, about 31 s after the last line | The watchdog reset a hung CPU. The program stalls with CPU0 clocked off. Next: observe the SPM from outside CPU0, for example a second CPU kept online and polling the PCM registers, which SODI normally forbids, so this needs its own review |
+| Another reason, or seconds after the last line | A power or hardware reset, not a hang. P1-P3 and the rails come first, even for test periods |
+| No log kept | Record the reason on the next reset, then decide |
 
 ### What it should save
 
