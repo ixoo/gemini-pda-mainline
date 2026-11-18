@@ -3963,7 +3963,7 @@ the session group's shared notes. The public findings:
   firmware switch SPARK retention off first. Here CPU0 waits in WFI with
   SPARK retention as left, while its clock and PLL are cut.
 - **The SPM latches `PCM_WDT_LATCH_0`-`4` and `DRAMC_DBG_LATCH`**
-  (`0x10006190`-`0x1006619c`, `0x100061c4`, `0x100061c8`) across a reset.
+  (`0x10006190`-`0x1000619c`, `0x100061c4`, `0x100061c8`) across a reset.
   The vendor prints them at boot.
 
 Its leading windows are:
@@ -3991,7 +3991,7 @@ recorded. `d4.sh` (now c1b58630) logs CPU0's `scaling_cur_freq` on each
 and the owner has powered off before boot2, which probably clears the
 latches. To read them, the owner catches the bootloader after a reset and
 selects boot2 without powering off. The custodian then reads
-`0x10006190`-`0x1006619c`, `0x100061c4`, `0x100061c8` and the TOPRGU
+`0x10006190`-`0x1000619c`, `0x100061c4`, `0x100061c8` and the TOPRGU
 status read-only, before anything loads the SPM module.
 
 ### What it should save
