@@ -3698,9 +3698,11 @@ on "ten refusals in a row" and restored, with taint 0. No period entered
 SODI, so the run did not place the hang.
 
 The synced `start` line wrote to the card just before each attempt, so
-the MSDC clock was still on. `d4.sh` (now 5039cd51) logs `start` once per
+the MSDC clock was still on. `d4.sh` logs `start` once per
 period, then waits 1 s before the first attempt; retries do not log
-again. The placement reading is unchanged. The module stayed registered
+again. A refusal's own synced line could refuse the next try in the same
+way, so retries also wait 1 s (`d4.sh` 787dbcf3). `mtk-sd`'s autosuspend
+delay is 50 ms. The placement reading is unchanged. The module stayed registered
 (`state1` usage 0), so the rerun needs a fresh boot.
 
 ### What it should save

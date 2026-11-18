@@ -113,7 +113,8 @@ in_echos() {
 }
 
 # One 2000 ms period. A refusal (a gate briefly running) is retried after
-# 0.5 s, ten at most in a row. Sets R12 and SLEPT for the caller.
+# 1 s (past the synced refusal line), ten at most in a row. Sets R12 and
+# SLEPT for the caller.
 period() {
 	tries=0
 	# Synced once before the period's attempts: a reset after this line and
@@ -130,7 +131,7 @@ period() {
 			REFUSED=$((REFUSED + 1))
 			log "    $(dmesg | tail -n +"$((n0 + 1))" | grep -o 'sodi: .*refused' | tail -n 1)"
 			[ "$tries" -ge 10 ] && stop "ten refusals in a row"
-			sleep 0.5
+			sleep 1
 			continue
 		fi
 		dmesg | tail -n +"$((n0 + 1))"
