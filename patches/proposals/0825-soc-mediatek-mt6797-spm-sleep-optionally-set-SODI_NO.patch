@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 18 Nov 2026 17:43:11 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally set SODI_NO_EVENT
+ in test periods
+
+The SPM program trace reads the latches left by a hung period as
+possibly a copy of r13 with the EMI clock-off acknowledged: DRAM in
+self-refresh through the CG-mode APSRC handler, which no returned period
+has ever reached. With SPM_SW_FLAG bit 13 (SODI_NO_EVENT) the program
+arms no resource event, so that path cannot run.
+
+Add sodi_no_event (default off) to set bit 13 in sodi_once periods
+(stage D5n).
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 9e5efabc0..ae110f20b 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -217,6 +217,12 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+  */
+ #define SODI_FLAGS		((S1_FLAGS & ~BIT(7)) | BIT(3) | BIT(12))
+ #define SODI_FLAG_CG_MODE	BIT(12)
++/* The program arms no resource event: APSRC and DRAM never sleep (D5n) */
++#define SODI_FLAG_NO_EVENT	BIT(13)
++
++static bool sodi_no_event;
++module_param(sodi_no_event, bool, 0644);
++MODULE_PARM_DESC(sodi_no_event, "SODI: set SODI_NO_EVENT, so no resource handler runs");
+ 
+ /* The I2C controller the programs reset (I2C6: the CPU bucks) */
+ #define I2C6_PHYS		0x1100e000
+@@ -1158,6 +1164,8 @@ static int sodi_once(u64 ms)
+ 	s.sodi.ticks = div_u64(ms * 32768, 1000);
+ 	s.sodi.wake_src = (READ_ONCE(sodi_wake_src) & SODI_WAKE_SRC) | BIT(0);
+ 	s.sodi.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
++	if (READ_ONCE(sodi_no_event))
++		s.sodi.flags |= SODI_FLAG_NO_EVENT;
+ 	if (sodi_pdn)
+ 		s.sodi.flags &= ~SODI_FLAG_CG_MODE;
+ 
+-- 
+2.43.0
+

@@ -2,22 +2,22 @@
 # SPDX-License-Identifier: MIT
 #
 # Stage D5m of experiments/2026-11-07-mt6797-cpuidle ("Request D5m"): a
-# deliberate watchdog reset while the SODI program sits in its main wait, to
-# learn what the SPM's reset latches hold for that known position. Run as
-# root, detached, on a fresh boot with no SODI module loaded:
+# deliberate watchdog reset with the SODI program idle after returned
+# periods, to learn what the SPM's reset latches hold when the PCM's FSM
+# state and r13 are known. Run as root, detached, on a fresh boot with no SODI
+# module loaded:
 #
 #   setsid nohup sh d5m.sh /path/to/mt6797-spm-sleep.ko </dev/null >/dev/null 2>&1 &
 #
 # The module is loaded without its cpuidle driver (sodi_idle=0) and with the
 # PCM timer as the only wake source, the configuration that has never hung.
-# Once the screen blanks and CPU1-9 are offline, the script opens
-# /dev/watchdog0 and never pings it, so the kernel stops pinging too and the
-# hardware watchdog resets the chip about 31 s later. Meanwhile it runs
-# 2000 ms SODI periods back to back, so the reset almost surely lands in a
-# period's main wait. The owner catches the bootloader and selects boot2
-# without powering off; the latches are then read before any module loads.
-# The log is /var/tmp/d5m.log; nothing is synced after the watchdog opens,
-# since a card write would refuse the periods.
+# Once the screen blanks and CPU1-9 are offline, it runs three periods, logs
+# the FSM state and r13 each left (the module reads them after the return),
+# then opens /dev/watchdog0 and never pings it. The kernel stops pinging too,
+# so the hardware watchdog resets the chip about 31 s later, with no period
+# in flight. The owner catches the bootloader and selects boot2 without
+# powering off; the latches are then read before any module loads. The log
+# is /var/tmp/d5m.log.
 set -u
 
 KO=${1:-}
@@ -81,15 +81,21 @@ for cpu in 9 8 7 6 5 4 3 2 1; do
 done
 log "online: $(cat "$CPUS/online")"
 
-# One trial period first: it must return, or this is not the passing setup.
-sleep 1
-echo 2000 >"$SODI" || stop "the trial period did not run"
-dmesg | grep -q 'sodi cg: returned=1' || stop "the trial period did not return"
-log "trial period returned; opening the watchdog, reset expected in about 31 s"
-
-# From here the watchdog is ours and never pinged. Periods run back to back
-# until the reset; a refused period is retried after the MSDC idle delay.
-exec 3>/dev/watchdog0
-while :; do
-	echo 2000 >"$SODI" 2>/dev/null || sleep 0.1
+# Three periods; each must return, or this is not the passing setup.
+n=0
+tries=0
+while [ "$n" -lt 3 ]; do
+	sleep 1
+	tries=$((tries + 1))
+	[ "$tries" -gt 20 ] && stop "fewer than three periods in 20 tries"
+	echo 200 >"$SODI" 2>/dev/null || continue
+	n=$((n + 1))
 done
+dmesg | grep 'sodi cg: returned' | sed 's/.*\(returned=[0-9]*\).*\(fsm=[0-9a-f]*\).* \(r13=[0-9a-f]*\).*/    \1 \2 \3/'
+[ "$(dmesg | grep -c 'sodi cg: returned=1')" -ge 3 ] || stop "a period did not return"
+log "three periods returned; opening the watchdog, reset expected in about 31 s"
+
+# From here the watchdog is ours and never pinged, and no period runs.
+exec 3>/dev/watchdog0
+sleep 120
+log "no reset within 120 s"

@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m and D5n proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4132,37 +4132,71 @@ D5l hang they were not zero. So they hold state from the hang, and can be
 compared across hangs as long as the owner catches the bootloader. The
 TOPRGU status read 0 every time, so it says nothing.
 
-### Request D5m (proposed): the latches for a known position
+### Two readings of the hang latch (SPM program session)
 
-The latches are undocumented, so one hang's values cannot be placed. D5m
-makes a reset happen at a known position of the program: the main wait of
-an ordinary period, in the configuration that has never hung.
+The field layout of `LATCH_0` (`0x04248000`) is undocumented, which leaves
+two readings:
+- **A:** it uses `PCM_FSM_STA`'s layout: the PCM was kicked and not
+  idle, short of the exit, stage unknown.
+- **B:** it is a copy of `r13`. Bits 15 (`CONN_APSRC_REQ`), 18
+  (`EMI_IDLE`), 21 (`EMI_CLK_OFF_ACK`) and 26 (`INFRA_AUX_IDLE`) are set,
+  and `MM_STATE` is clear. The CG-mode APSRC handler would then have run
+  its EMI clock-off handshake: DRAM in self-refresh with the EMI clock
+  off, for the first time on mainline, while CONN asked for DRAM.
 
-[`tools/d5m.sh`](tools/d5m.sh) loads the module as follows:
+Under B, CPU0's read of `SPM_IRQ_STA` after WFI, or any DRAM access,
+would stall even after the backstop woke it, which fits D5i. Why the
+APSRC wake handler or the exit never ran would stay open. `LATCH_3` and
+`LATCH_4` fit neither `r7` nor `r0`.
+
+### Request D5m (proposed): calibrate the latch, A or B
+
+[`tools/d5m.sh`](tools/d5m.sh) (df07a768) loads the module as follows:
 - no cpuidle driver (`sodi_idle=0`);
-- the PCM timer as the only wake source (`sodi_wake_src=0`, so the
-  module's bit 0).
+- the PCM timer as the only wake source (`sodi_wake_src=0`).
 
-It then waits for the blank and takes CPU1-9 offline, and checks that one
-2000 ms period returns. Then it opens `/dev/watchdog0` and never pings
-it. The kernel stops its own pings once the device is open, so the
-hardware watchdog resets the chip after its 31 s. Meanwhile the script
-runs 2000 ms periods back to back, so the reset almost surely lands in a
-period's main wait. No SPM, GIC or PMIC write is new. The watchdog is
-used as configured, but the reset is deliberate.
+That is the configuration that has never hung. The script then waits for
+the blank, takes CPU1-9 offline and runs three 200 ms periods, logging
+the `fsm` and `r13` each left. Then it opens `/dev/watchdog0` and never
+pings it, with no period in flight. The kernel stops its own pings once
+the device is open, so the hardware watchdog resets the chip after its
+31 s. No SPM, GIC or PMIC write is new, but the reset is deliberate.
 
 - **Candidate:** image 137 on a fresh boot, with no SODI module loaded.
   Module 97add2b2 (0824). No boot2 write.
 - **After the reset:** the owner catches the bootloader and selects boot2
   without powering off. The custodian reads the six latches read-only
-  before any module loads, as after D5l.
-- *Unique observation:* the latch values for the main wait.
+  before any module loads.
 
 | Outcome | Decision |
 | --- | --- |
-| `LATCH_0` and `LATCH_4` equal D5l's | A hung period sits in the main wait. The program never ends it, not even on its own PCM timer. Next: why the main wait stops seeing its wake sources under two states |
-| They differ | A hung period stops elsewhere: the entry wait, the clock cut or the exit. The SPM program session compares the two sets |
-| No reset within 60 s | The watchdog did not take over from the kernel's pings. Record and stop |
+| `LATCH_0` close to the logged `fsm` (about `0x02048490`) | Reading A. The hang latch says only "kicked, not idle" |
+| `LATCH_0` close to the logged `r13` (about `0x0006e410`) | Reading B. The hung period reached DRAM self-refresh with the EMI clock off |
+| No reset within 120 s | The watchdog did not take over from the kernel's pings. Record and stop |
+
+### Request D5n (proposed): two states with no resource events
+
+[`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
+(module only) adds `sodi_no_event` (default off). With it on, test
+periods set `SPM_SW_FLAG` bit 13 (`SODI_NO_EVENT`). The program then arms
+no resource event, so the APSRC handler, and DRAM self-refresh, cannot
+run. This is a new value for one approved register write, S-step
+`SPM_SW_FLAG`. It is compile-checked with `W=1`, with and without
+`CONFIG_CPU_IDLE`, and checkpatch `--strict` is quiet. `d4.sh` (04633082)
+takes `D4_NO_EVENT=1`.
+
+- **Candidate:** image 137 on a fresh boot, with `mt6797-spm-sleep.ko`
+  from a Buildbox build of the commit recording this stage. No boot2
+  write.
+- **Run:** `d4.sh` 04633082 with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1`, two
+  states, no cap, Wi-Fi power save on, pings in C, cable out, hands off.
+  This is the configuration that reset in D5a-D5l.
+- **After a reset:** the latches as after D5l.
+
+| Outcome | Decision |
+| --- | --- |
+| Windows A-C pass | The DRAM self-refresh path is implicated, whatever the latch means. Next: why it hangs under two states, against the vendor's APSRC handling |
+| Reset | Not the resource path. Compare the latches with D5l's |
 
 ### What it should save
 
