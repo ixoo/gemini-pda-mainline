@@ -121,7 +121,7 @@ period() {
 	# before the period's result came inside the period, not between periods
 	# (D5h). The second lets the card's MSDC clock gate off again after the
 	# sync; synced right before the attempt, every attempt was refused.
-	log "    start"
+	log "    start, cpu0 $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo -) kHz"
 	sleep 1
 	while :; do
 		n0=$(dmesg | wc -l)

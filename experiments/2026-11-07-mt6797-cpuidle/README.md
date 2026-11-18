@@ -3938,6 +3938,62 @@ until then. For any future reset, the owner reads
 for a test would leave a hang in place to probe. It changes a safety
 mechanism, so it would need its own review.
 
+### The SODI program's trace (SPM program session, 2026-11-18)
+
+The SPM program session traced `pcm_sodi.bin` instruction by instruction
+with this stage's flags (`0x00091239`, CG mode). Its private notes are in
+the session group's shared notes. The public findings:
+- **No CPU or MCUSYS power-down.** With these flags the program never
+  powers CPU0 or MCUSYS down.
+- **Right after the kick,** gated only by one `r14` wait (`0xd00f0000`,
+  condition not decoded), it:
+  - pauses the bus masters (`TOP_MAS_PAU_REQ`, held until exit);
+  - cuts the ARM clock and every ARMPLL/ARMBPLL stage.
+- **No check of CPU0's state** was found before the cut.
+- **Returned periods** all show `debug=0`, `PASR_DPD_0=0` and
+  `event_reg=0x90100000` (the main-wait value). No resource handler, and
+  no DRAM self-refresh, has run on mainline.
+- **Vendor steps this module lacks:**
+  - the GIC mask before the PCM reset;
+  - SMI async DCM;
+  - the PMIC power-good force bits;
+  - the UART sleep request.
+
+  The shipped flow also enters through PSCI CPU_SUSPEND, which has the
+  firmware switch SPARK retention off first. Here CPU0 waits in WFI with
+  SPARK retention as left, while its clock and PLL are cut.
+- **The SPM latches `PCM_WDT_LATCH_0`-`4` and `DRAMC_DBG_LATCH`**
+  (`0x10006190`-`0x1006619c`, `0x100061c4`, `0x100061c8`) across a reset.
+  The vendor prints them at boot.
+
+Its leading windows are:
+- **W1:** CPU0 still runs module code after the kick when its clock goes,
+  or holds a bus transaction across the pause;
+- **W2:** CPU0 wakes during the period and reads `SPM_IRQ_STA` through the
+  paused bus.
+
+**Against this stage's runs.** W1 alone does not fit D5a. With 0816, a
+test period did nothing after the kick but read the counter and enter the
+wait, since SYS_CIRQ and the GIC mask came before the PCM reset. It still
+hung at period 22. In 1,900 passing periods, `loops` was always 0, so a
+returned period never saw a wake before the PCM return (W2). The open
+discriminator is still why two states, and not one, make the period hang.
+
+**A candidate link, not tested: CPU0's frequency.** The program cuts and
+restores the ARM PLLs. With two states, the governor keeps the tick, which
+changes how often schedutil re-evaluates CPU0's cluster, if A53 cpufreq
+is loaded. The OPP at entry would then differ between the
+configurations. Whether cpufreq was loaded in the D5 runs is not
+recorded. `d4.sh` (now c1b58630) logs CPU0's `scaling_cur_freq` on each
+`start` line.
+
+**Reading the latches after a reset.** Every reset has landed in Gemian,
+and the owner has powered off before boot2, which probably clears the
+latches. To read them, the owner catches the bootloader after a reset and
+selects boot2 without powering off. The custodian then reads
+`0x10006190`-`0x1006619c`, `0x100061c4`, `0x100061c8` and the TOPRGU
+status read-only, before anything loads the SPM module.
+
 ### What it should save
 
 | State | Today | Expected |
