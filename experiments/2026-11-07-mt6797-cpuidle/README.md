@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, CPU0 cannot resume, the reset follows fast (D5a-D5j); D5k proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, CPU0 stops, the watchdog resets (D5a-D5k); waiting for the SPM trace |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3872,10 +3872,11 @@ measured. If it is 25-35 s, the reset follows the hang within seconds, or
 about 15 s at most. That is quicker than a 31 s watchdog plus a boot.
 *Inference, not established:* the reset is not the watchdog catching a
 hung CPU. It may be a hardware or power reset that the period itself
-triggers. Landing in Gemian shows the bootloader took its default path,
+triggers. D5k later showed this inference wrong, since Gemian's boot is
+longer than assumed. Landing in Gemian shows the bootloader took its default path,
 as after a reset rather than a power-key start.
 
-### Request D5k (proposed): bound the reset
+### Request D5k (approved 2026-11-18): bound the reset
 
 Read-only, with no SODI run:
 1. **The station's watchdog.** Read `/sys/class/watchdog/watchdog0`
@@ -3893,6 +3894,49 @@ Read-only, with no SODI run:
 | Watchdog not armed, or the bound well under its timeout | A hardware or power reset. Check rails and P1-P3 first; ask the SPM trace session which step can reset the SoC (PCM watchdog, power-down) |
 | Watchdog armed, bound near 31 s | A hung CPU, as D5i suggests. Wait for the SPM trace before the next run |
 | `expdb` holds a reset record | It decides between the two |
+
+### D5k: a hang, then the hardware watchdog (custodian, 2026-11-18)
+
+**Approved** by the owner ("Approve D5k"). All three parts were
+read-only.
+
+**The watchdog.** Linux shows `watchdog0` (`mtk_wdt`) as inactive, with a
+31 s timeout, and systemd's `RuntimeWatchdogUSec` is 0. The live TOPRGU
+registers, read through `/dev/mem` at `0x10007000`, show the hardware
+watchdog running anyway: MODE `0x15` (enabled, external reset,
+auto-start) and LENGTH 31 s. The bootloader leaves it running, and
+`mtk_wdt` marks it running in hardware. So the watchdog core pings it
+from a kernel worker about every 15.5 s. "Inactive" only means that no
+userspace program has it open.
+
+**`expdb` (p3).** It holds only the newest boot's preloader and LK log,
+which was a power-key start (`boot_reason=0`, RGU status 0). The reset
+boots' records were overwritten by the boots that followed.
+
+**Timing, without a new boot.** Each Gemian boot logs its systemd startup
+time. Kernel start is that line's time less the total, and the reset is
+about 4.6 s (preloader and LK) before the kernel starts. From the last
+mainline line to the estimated reset, each within 1-2 s:
+
+| Run | D5 run 1 | D5a | D5b | D5f | D5g | D5h | D5i |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Delay | 20 s | 25 s | 18 s | 24 s | 25 s | 32 s | 27 s |
+
+**Result.** The delays of about 18-32 s fit a 31 s watchdog pinged every
+15.5 s. Its last ping comes 0-15.5 s before the hang, so it fires 15.5-31 s
+later. *Inference:* a SODI period stops CPU0, or the SoC, silently, and the
+hardware watchdog resets the chip later. The SPM does not reset it
+quickly. A reset reason was never recorded, so this rests on the timing.
+
+**Next.** Per D5j's table: wait for the instruction-level trace of
+`pcm_sodi.bin` from the SPM program session. It covers the CPU and MCUSYS
+power-down call, ARM PLL off and restore, the CONN2AP wake path and the
+entry handshake, set against D5h and D5i. No device run is proposed
+until then. For any future reset, the owner reads
+`androidboot.bootreason` on Gemian's screen before powering off, since
+`expdb` is overwritten at the next boot. Disabling the hardware watchdog
+for a test would leave a hang in place to probe. It changes a safety
+mechanism, so it would need its own review.
 
 ### What it should save
 
