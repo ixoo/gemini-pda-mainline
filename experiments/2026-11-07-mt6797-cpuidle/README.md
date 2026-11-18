@@ -4109,6 +4109,18 @@ ran before the read and may have used the SPM.
 period still hung. Like D5h, this is a first-period hang. The latches are
 with the SPM program session for decoding.
 
+**The latches do not place the PCM yet (SPM program session).** Their
+field layout is not documented. Three values match what Gemian printed
+on earlier, unrelated boots, so they may be generic or stale:
+`LATCH_1` 0, `LATCH_2` `ffffffff`, and the `0x2X00005Y` pattern. `LATCH_0`
+`0x04248000` reads as "kicked, not idle", only if it shares
+`PCM_FSM_STA`'s layout, which is unverified. That would fit a PCM that
+never reached its exit block. `LATCH_3`'s low bits do not fit a
+`pcm_sodi` PC on this path. The session asked the custodian for three
+read-only calibration reads: the latches now (live or latched?), after a
+clean reboot without the module, and after a cold power-on. The pinned
+221 MHz hang also makes a slow PLL restore at high OPPs unlikely.
+
 ### What it should save
 
 | State | Today | Expected |
