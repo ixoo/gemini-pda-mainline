@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); latches being decoded |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4124,6 +4124,45 @@ names follow the vendor's MT6797 map: `0x19c` is `DRAMC_DBG_LATCH`,
 read-only calibration reads: the latches now (live or latched?), after a
 clean reboot without the module, and after a cold power-on. The pinned
 221 MHz hang also makes a slow PLL restore at high OPPs unlikely.
+
+**Latch calibration (custodian, 2026-11-18).** The owner approved both
+reads ("Yes, do both"). All six latches read zero after a clean reboot
+(86ddc17d, bootloader caught) and after a cold start (2f6b40ad). After the
+D5l hang they were not zero. So they hold state from the hang, and can be
+compared across hangs as long as the owner catches the bootloader. The
+TOPRGU status read 0 every time, so it says nothing.
+
+### Request D5m (proposed): the latches for a known position
+
+The latches are undocumented, so one hang's values cannot be placed. D5m
+makes a reset happen at a known position of the program: the main wait of
+an ordinary period, in the configuration that has never hung.
+
+[`tools/d5m.sh`](tools/d5m.sh) loads the module as follows:
+- no cpuidle driver (`sodi_idle=0`);
+- the PCM timer as the only wake source (`sodi_wake_src=0`, so the
+  module's bit 0).
+
+It then waits for the blank and takes CPU1-9 offline, and checks that one
+2000 ms period returns. Then it opens `/dev/watchdog0` and never pings
+it. The kernel stops its own pings once the device is open, so the
+hardware watchdog resets the chip after its 31 s. Meanwhile the script
+runs 2000 ms periods back to back, so the reset almost surely lands in a
+period's main wait. No SPM, GIC or PMIC write is new. The watchdog is
+used as configured, but the reset is deliberate.
+
+- **Candidate:** image 137 on a fresh boot, with no SODI module loaded.
+  Module 97add2b2 (0824). No boot2 write.
+- **After the reset:** the owner catches the bootloader and selects boot2
+  without powering off. The custodian reads the six latches read-only
+  before any module loads, as after D5l.
+- *Unique observation:* the latch values for the main wait.
+
+| Outcome | Decision |
+| --- | --- |
+| `LATCH_0` and `LATCH_4` equal D5l's | A hung period sits in the main wait. The program never ends it, not even on its own PCM timer. Next: why the main wait stops seeing its wake sources under two states |
+| They differ | A hung period stops elsewhere: the entry wait, the clock cut or the exit. The SPM program session compares the two sets |
+| No reset within 60 s | The watchdog did not take over from the kernel's pings. Record and stop |
 
 ### What it should save
 
