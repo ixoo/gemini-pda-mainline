@@ -1215,6 +1215,17 @@ counts the start-up OCV as a rested reading for learning R.
 The record's references to the vendor's sources were reworded without the tree name or file
 paths, as the project's public text requires.
 
+**Learned capacity set to the calibration estimate (owner request, 2026-11-17):**
+- **Value:** the owner chose to stop waiting on quarter steps and use the first pair's own
+  estimate: 1963017 µAh × 100 ÷ 51 = 3849052 µAh.
+- **How:** the custodian wrote it to `learned_full_uah` on image 137 (boot `2bea635f…`), and
+  gemini-base saved `full 3849052 4268000` and `resistance 400000 165000`.
+- **After:** `charge_full` 3579618, which is 0.93 × Q, against `charge_full_design` 3969240.
+  UPower health reads 90.18 %.
+- The capacity moved by a point, because the anchor rescales with Q and the counted charge
+  since it does not.
+- Learning continues from 3.85 Ah. The previous file is backed up privately.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
