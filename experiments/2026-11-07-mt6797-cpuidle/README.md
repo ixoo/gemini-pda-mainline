@@ -3987,6 +3987,23 @@ configurations. Whether cpufreq was loaded in the D5 runs is not
 recorded. `d4.sh` (now c1b58630) logs CPU0's `scaling_cur_freq` on each
 `start` line.
 
+**The trace session's follow-up.** The program cannot tell one cpuidle
+state from two: same flags, same masks, same path. Bit 18 (segment 2) is
+not tested, so `0x00091239` and `0x000d1239` behave alike. No step leaves
+CPU0 or MCUSYS unpowered or unclocked without a way back. The entry-time
+clock and PLL cut is undone in the exit block before `PCM_RETURN`, and no
+unbounded poll remains. So a CPU0 that cannot take its CNTP backstop
+means one of two things:
+- the PCM stopped before or inside that exit, most plausibly on a blocked
+  bus transaction;
+- CPU0 was not in WFI when the pause and cut came. The program checks
+  CPU0 only through the undecoded `0xd00f0000` wait.
+
+The two-state difference is therefore on the CPU side. Suggested next:
+- a two-state run with cpufreq pinned;
+- logging the A53 OPP and MCU clock mux at entry, and CPU0's idle status
+  at return.
+
 **Reading the latches after a reset.** Every reset has landed in Gemian,
 and the owner has powered off before boot2, which probably clears the
 latches. To read them, the owner catches the bootloader after a reset and
