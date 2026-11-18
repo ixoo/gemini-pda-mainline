@@ -402,20 +402,10 @@ measured refresh under mainline at those settings is 54.00 Hz.
 - [Input and backlight recovery](../../experiments/2026-07-12-input-backlight-recovery/README.md)
 - [Display H2](../../experiments/2026-10-06-gemini-display-h2/README.md)
 - [Vendor kernel ABI](vendor-kernel-abi.md) and [vendor userspace](vendor-userspace.md)
-- Pinned Planet LK `f4988d74bb70a0a15d7f362f412afba7e7fcda46`:
-  `lk/project/k97v1_64_bsp.mk`, `lk/platform/mt6797/atags.c`,
-  `lk/platform/mt6797/mt_disp_drv.c`, and the `aeon_nt36672`/`aeon_ssd2092`
-  LCM directories.
-- Pinned Gemian kernel `d388d350cb2dda8f23b99be6fa5db9628896e87f`:
-  `drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/`,
-  `drivers/misc/mediatek/gpio/lp3101.c`,
-  `drivers/misc/mediatek/video/common/mtkfb.c`,
-  `drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c`,
-  `drivers/misc/mediatek/video/mt6797/dispsys/ddp_ovl.c`,
-  `drivers/misc/mediatek/video/mt6797/videox/disp_lcm.c`,
-  `drivers/misc/mediatek/video/common/aal20/ddp_pwm.c`,
-  `drivers/misc/mediatek/leds/mt6797/leds.c`,
-  `drivers/gpu/arm/mali` and `drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/`.
+- The vendor's LK: its Gemini target configuration, ATAG and display code,
+  and the NT36672 and SSD2092 panel drivers.
+- The vendor's kernel: its NT36672 panel driver, LP3101 bias driver, frame
+  buffer, DSI, overlay, LCM, PWM and LED code, and its Mali driver.
 - Gemian userspace `xf86-video-hwcomposer` `163cd71436416f4303a99c292aab85354f1f67f8`,
   `libhybris` `9cbda6a9250530d73680cddbfbda29f267619b35`,
   `glamor-hybris` `6d369b94e8cc858587eb510af7bc97f6a3c1a453`,

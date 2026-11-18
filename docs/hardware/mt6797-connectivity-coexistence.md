@@ -211,7 +211,7 @@ concurrent mainline operation.
 
 ## Evidence
 
-- Vendor source at `59e00a9144d782e148332009a835b99c43382467`:
+- The vendor's kernel:
   `wmt_ic_soc.c` (coex tables, antenna mode, selected LTE table),
   `wmt_conf.c` (`WMT_SOC.cfg` keys), `wmt_core.c` (`0x10`/IDC path),
   `wmt_idc.c`/`wmt_idc.h` (message ids, task 8), `stp_exp.h`

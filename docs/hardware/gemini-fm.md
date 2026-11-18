@@ -17,9 +17,8 @@ fair stereo indicator. The
 chronology, the observations and the first device test are in the
 [FM record](../../experiments/2026-11-05-gemini-fm-radio/README.md).
 
-Source: [`gemian/gemini-linux-kernel-3.18`](https://github.com/gemian/gemini-linux-kernel-3.18)
-at `8cfe6596`, `drivers/misc/mediatek/connectivity/fmradio/` (`core/`,
-`inc/`, `mt6631/`) and `sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_fm_i2s*.c`.
+Source: the vendor's kernel, its FM radio driver (core and MT6631 parts) and
+its FM-I2S audio PCM code.
 It is read as evidence; no code is reused.
 
 ## Ownership and transport

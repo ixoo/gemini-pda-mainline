@@ -18,12 +18,10 @@ phandle decoder are committed in the hardware-inventory experiment.
 
 Three public GPL source trees provide provenance and register semantics:
 
-- the exact Gemian 3.18 source at commit
-  [`d388d350cb2dda8f23b99be6fa5db9628896e87f`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/d388d350cb2dda8f23b99be6fa5db9628896e87f),
+- the vendor's 3.18 kernel matching the running Gemian,
   including the running DT's CMDQ, display-mutex, and display-path contracts;
-- Planet/Gemini 3.18 source at commit
-  [`c5b0be85017ad0c599725e8273842efdbecdd88a`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/tree/c5b0be85017ad0c599725e8273842efdbecdd88a),
-  including `aeon6797_6m_n.dts`, the MT6797 MSDC driver, and M4U port data;
+- another copy of the vendor's 3.18 kernel,
+  including the board device tree, the MT6797 MSDC driver, and M4U port data;
 - the partial Gemini 4.9 port at commit
   [`c65b8b5592a462041dce0d3058dc4e5f831704ce`](https://github.com/NotKit/kernel-4.9-geminipda/tree/c65b8b5592a462041dce0d3058dc4e5f831704ce),
   which describes UART0, MSDC0, PMIC wrap, MT6351 rails, and experimental M4U
@@ -356,7 +354,7 @@ and [boot-policy audit](../../experiments/2026-07-12-mt6797-watchdog-recovery/re
 The current config also sets `CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y`, which
 keeps a firmware-running timer pinged before userspace takes over.
 
-At exact public Planet LK revision `f4988d74bb70a0a15d7f362f412afba7e7fcda46`,
+In the vendor's LK source,
 the MT6797 watchdog has a raw `WDT_STATUS` reader for offset `0x0c`, but that
 reader has no caller and LK initialization does not write the status register.
 Exact Linux 7.1.3 maps TOPRGU before `mtk_wdt_init()`, providing a read-only
@@ -1273,8 +1271,8 @@ probe message was present.
 
 The Planet DTS includes `sil9024a.dtsi` under the `sii9022` wrapper. Its
 source-derived board states use reset GPIO57, HPD/EINT GPIO62/EINT1, a 1.2 V
-enable GPIO247, DPI GPIO39–54, and an `mhl_12v` supply. The pinned vendor tree
-also contains the matching `drivers/misc/mediatek/hdmi/sil9024/` source. Its
+enable GPIO247, DPI GPIO39–54, and an `mhl_12v` supply. The vendor's kernel
+also contains the matching SiI9024 source. Its
 source/ELF audit checks indexed ID `0x9022` and TPI ID byte `0xb0` at register
 `0x1b`, matching Linux `sii902x`; exact board population and connector remain
 unresolved. See the [bounded ELF validation](../../experiments/2026-07-13-external-display-recovery/results/sil9022-vendor-elf-validation.txt).
@@ -1562,7 +1560,7 @@ MMU IRQ, so do not add an `iommus` property by analogy.
 
 The pinned Gemian source snapshot contains generic Arm Mali Midgard/Kbase
 `mali-r12p0` sources and the configured `mali-r12p1` tree. The exact MT6797
-platform sources are present under `platform/mt6797/`: `mtk_config_platform.c`
+platform sources are present: `mtk_config_platform.c`
 maps five compatible nodes and requests ten clocks, `mtk_kbase_spm.c` owns the
 optional DVFS GPU PCM path, and `mali_kbase_core_linux.c` calls
 `mtk_platform_init()` during probe. The bound vendor ELF correlates with those

@@ -17,8 +17,8 @@ in the [roadmap](../ROADMAP.md).
 | --- | --- |
 | Device | Named Gemini PDA development unit (MT6797X) |
 | Last verified | 2026-10-31 |
-| Vendor baseline | Gemian Linux `3.18.41+`; public source equivalent [`59e00a91`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467) |
-| Loader baseline | Planet LK `f4988d74`; retained preloader/LK/TEE/SCP partition code |
+| Vendor baseline | Gemian Linux `3.18.41+`; the vendor's kernel source |
+| Loader baseline | Planet LK, the vendor's LK source; retained preloader/LK/TEE/SCP partition code |
 | Mainline baseline | Linux 7.1.3 plus the repository patch series |
 | Decisive topology evidence | [4+4+2 topology/RAM result](../../experiments/2026-09-02-mainline-mt6797-cpu-map/results/runtime-attempt-2-topology-ram-pass-20260902.txt) |
 | Decisive A72 register evidence | [Complete CPU8/CPU9 target capture](../../experiments/2026-08-28-a72-pmsg-witness/results/runtime-attempt-1-complete-pass-20260829.txt) |
@@ -68,7 +68,7 @@ the descriptive `clock-frequency` values 1.391 GHz (LL), 1.95 GHz (L), and
 2.288 GHz (B). Those properties are loader inputs, not an OPP or voltage
 contract. The current mainline board DT gained its own `cpu-map` only with
 canonical patch `0482`. See
-[`arch/arm64/boot/dts/mt6797.dtsi`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/arch/arm64/boot/dts/mt6797.dtsi)
+the vendor's SoC device tree
 and the [topology experiment](../../experiments/2026-09-02-mainline-mt6797-cpu-map/README.md).
 
 ## 2. Which stage configures which part
@@ -98,7 +98,7 @@ with a valid PLL, DRAM, and rails before Linux.
 ### 2.2 Planet LK prunes and clamps the CPU tree
 
 LK is not a passive DT appender. `target_fdt_cpus()` in
-[`lk/platform/mt6797/atags.c`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/atags.c)
+the vendor's LK
 does three CPU-relevant things:
 
 1. It decodes efuse index 3 into per-cluster core counts and efuse index 8
@@ -852,25 +852,12 @@ from modules loaded by hand
 
 ## 9. Evidence index
 
-- Vendor source equivalent: [Gemian Linux 3.18 `59e00a91`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467),
-  especially
-  [`mt6797.dtsi`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/arch/arm64/boot/dts/mt6797.dtsi),
-  [`mt_cpufreq.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c),
-  [`mt_idvfs.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/mt6797/mt_idvfs.c),
-  [`mt_cpufreq_hybrid.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid.c),
-  [`mt_cpufreq_hybrid_fw.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/mt6797/mt_cpufreq_hybrid_fw.h),
-  [`mt_dcm.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/mt6797/mt_dcm.c),
-  [`mt_eem.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/mt6797/mt_eem.c),
-  [`mt_idle_mt6797.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/spm_v2/mt_idle_mt6797.c),
-  [`mt_hotplug_strategy_main.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_main.c),
-  and [`psci.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/arch/arm64/kernel/psci.c).
-- Planet LK [`atags.c`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/atags.c).
-- Planet device tree `planet-community/android_device_planetcom_geminipda`
-  commit `8f7cd432`: `rootdir/init.mt6797.rc`, `rootdir/meta_init.project.rc`,
-  `rootdir/factory_init.project.rc`, `configs/.tp/thermal.conf`.
-- Planet vendor tree `planet-community/android_vendor_planetcom_geminipda`
-  branch `cm-14.1`: `vendor/etc/perfservscntbl.txt` and
-  `vendor/etc/perfservapplist.txt`.
+- The vendor's kernel: its SoC device tree, cpufreq, iDVFS, hybrid DVFS and its
+  firmware header, DCM, EEM, idle, hotplug strategy and PSCI code.
+- The vendor's LK: its CPU-tree fixup.
+- The vendor's Android device configuration: its init scripts and thermal
+  configuration.
+- The vendor's Android userspace: its performance-service tables.
 - [Gemian CPU and scheduler policy](../../experiments/2026-07-21-gemian-cpu-scheduler-policy/README.md)
   and its private capture summary.
 - [Vendor CPU policy and PCM/iDVFS offline reconstruction](../../experiments/2026-10-31-mt6797-vendor-cpu-policy-re/README.md).

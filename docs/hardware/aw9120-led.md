@@ -22,7 +22,7 @@ live identity is in the
 | Current | 8 codes: `001` = 3.5 mA through `111` = 24.5 mA; `000` = off |
 
 The public tree declares only the platform/pinctrl node
-(`arch/arm64/boot/dts/mt6797.dtsi:4045`, `aeon6797_6m_n.dts:641-666`). The
+in its SoC and board device trees. The
 shipped Gemian DTS adds `aw9120_led@2c` under `&i2c3`, which is why the live
 kernel binds `3-002c` to `aw9120_led`. I2C3 also carries the sub-camera
 (`0x36`), sub-camera AF (`0x0c`), and unbound HDMI/EDID clients (`0x39`,
@@ -30,7 +30,7 @@ kernel binds `3-002c` to `aw9120_led`. I2C3 also carries the sub-camera
 
 ## 2. Vendor kernel driver
 
-`drivers/misc/mediatek/aw9120/aw9120_led.c` registers a platform driver and an
+The vendor's AW9120 driver registers a platform driver and an
 I2C driver under the same `mediatek,aw9120_led` compatible:
 
 - the platform probe resolves the PDN pinctrl states and registers the I2C
@@ -223,8 +223,7 @@ The MT6351 pair needs its own work: upstream's `leds-mt6323` doesn't cover the M
 
 ## 9. Evidence index
 
-- Vendor kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
-  `drivers/misc/mediatek/aw9120/`, `drivers/misc/mediatek/leds/`, and the board
+- The vendor's kernel: its AW9120 and LED drivers, and the board
   DTS touch/LED/pinctrl nodes.
 - Public `gemian/gemian-leds` `02e05085e680d8be51722351a462bf3081e6aa03`.
 - [AW9120 V1.4 data sheet](https://static.chipdip.ru/lib/858/DOC014858495.pdf).

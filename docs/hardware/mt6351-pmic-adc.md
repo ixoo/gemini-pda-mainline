@@ -23,14 +23,14 @@ the wrapper's modem side). A conversion is a three-step transaction:
 3. read the channel's data bits.
 
 The vendor immediate-mode helper is `PMIC_IMM_GetOneChannelValue()`
-(`drivers/misc/mediatek/power/mt6797/pmic_auxadc.c:235`); it takes a mutex,
+(the vendor's driver); it takes a mutex,
 forces the ADC clock on, issues the request, polls with a bounded timeout and
 scales the result.
 
 ## 2. Register window
 
-PMIC register offsets, all 16-bit unless noted (`upmu_hw.h` definitions in
-`drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/`):
+PMIC register offsets, all 16-bit unless noted (the vendor's
+MT6797 register header):
 
 | Range | Registers | Purpose |
 | --- | --- | --- |
@@ -53,8 +53,8 @@ The MT6797 wrapper side is documented at `0x1000D1DC`-`0x1000D278`
 (register-table part 1, page 608): `ADC_CMD_ADDR` `0x1DC`, `PWRAP_ADC_CMD`
 `0x1E0`, `ADC_RDATA_ADDR` `0x1E4`, `MD_ADC_RDATA_ADDR_LATEST` `0x1F4`,
 `MD_ADC_RDATA_ADDR_WP` `0x1F8`, then the 32 `MD_ADC_RDATA_ADDRn` entries from
-`0x1FC`. The vendor header agrees (`pmic_wrap/mt6797/pwrap_hal.h:308-318`); a
-second header (`pwrap_hal_d2.h`) carries different offsets and is not the one
+`0x1FC`. The vendor header agrees (the vendor's driver); a
+second header (the vendor's driver) carries different offsets and is not the one
 this build includes.
 
 ## 3. Channels and scaling
@@ -62,7 +62,7 @@ this build includes.
 The vendor helper applies one of three integer scalings with a 1800 mV
 reference: 15-bit channels divide by 32768, 12-bit channels by 4096, and channel
 0 and 1 additionally multiply by 3 for their external divider
-(`pmic_auxadc.c:64-68`, `:487-560`).
+(the vendor's driver).
 
 | Channel | Name | Vendor scaling | Full scale |
 | --- | --- | --- | --- |
@@ -79,10 +79,9 @@ reference: 15-bit channels divide by 32768, 12-bit channels by 4096, and channel
 | 11 | VBIF28 pad | raw × 2 × 1800 / 4096 | 3.6 V, 12-bit |
 | 10, 12-16 | - | raw × 1800 / 4096 | 12-bit |
 
-The ×2 on channels 3 and 11 is easy to miss: the non-built MT6353 copy under
-`drivers/misc/mediatek/pmic/mt6353/` has it commented out
+The ×2 on channels 3 and 11 is easy to miss: the vendor's non-built MT6353 copy has it commented out
 (`/*r_val_temp = 2;*/ r_val_temp = 1; /*--VTREF--*/`) while the built MT6797
-path (`power/mt6797/pmic_auxadc.c:499-506`, `:541-560`) sets
+path (the vendor's driver) sets
 `r_val_temp = 2`. Read the built file for the product contract.
 
 The datasheet application table gives the characterised input windows:
@@ -95,24 +94,24 @@ connector), and the board divider sets the range: the device tree gives
 `r_charger_1 = 330` and `r_charger_2 = 39` (kΩ) in `mt6797.dtsi:1042-1043`, a
 9.46:1 ratio, and the battery meter restores the pack voltage by multiplying
 the channel reading by `(r_charger_1 + r_charger_2) / r_charger_2`
-(`battery_meter_hal.c:1175-1180`). The vendor comment "4-14 V" describes that
+(the vendor's driver). The vendor comment "4-14 V" describes that
 post-divider range.
 
 Channel 4 is time-multiplexed: a control bit selects the PMIC die temperature or
 the 26 MHz crystal temperature for DCXO compensation
-(`pmic_auxadc.c:277-280`). The thermal driver reads the die-temperature
+(the vendor's driver). The thermal driver reads the die-temperature
 selection and converts it with PMIC OTP constants (see
 [thermal management](mt6797-thermal-management.md)).
 
 ### 3.1 Battery NTC conversion (vendor fuel-gauge path)
 
 The built path (`CONFIG_MTK_HAFG_20=y`) converts the `BATON` voltage in
-`BattVoltToTemp()` (`drivers/power/mediatek/battery_meter_fg_20.c:1659-1690`):
+`BattVoltToTemp()` (the vendor's driver):
 - **The NTC:** a 10 kΩ part (`BAT_NTC_10`) behind a 24 kΩ pull-up
-  (`RBAT_PULL_UP_R` for a non-MT6353 PMIC, `mt_battery_meter_table.h:21-36`),
+  (`RBAT_PULL_UP_R` for a non-MT6353 PMIC, the vendor's driver),
   with no pull-down defined.
 - **The pull-up voltage:** `RBAT_PULL_UP_VOLT_BY_BIF` is defined
-  (`upmu_sw.h:21`), so it is the VBIF28 rail as measured by
+  (the vendor's driver), so it is the VBIF28 rail as measured by
   `pmic_get_vbif28_volt()` through channel 11, not a constant:
   `R_ntc = 24000 × V_baton / (V_bif28 − V_baton)`. `V_baton` is the channel-3
   result after the ×2 in §3 — the NTC node voltage, not the raw ADC pin
@@ -131,7 +130,7 @@ The built path (`CONFIG_MTK_HAFG_20=y`) converts the `BATON` voltage in
 
 The immediate helper forces the ADC clocks on before a request
 (`RG_AUXADC_CK_PDN`, `RG_AUXADC_SMPS_CK_PDN` and its hardware-enable,
-`pmic_auxadc.c:171-174`, `:270-273`). A mainline driver must do the same,
+the vendor's driver). A mainline driver must do the same,
 and in the same order, before its first request.
 
 **Observed under mainline** (station 10, boot `e7139954…`): the bootloader
@@ -152,7 +151,7 @@ boot that does not pass through LK would still need them.
 ### 3.3 Channel 11 is not a passive measurement
 
 Reading channel 11 switches the VBIF28 pad onto the ADC input and then puts it
-back (`pmic_auxadc.c:441-460`, `:541-560`):
+back (the vendor's driver):
 
 - before the conversion (only while `g_pmic_pad_vbif28_vol == 1`, the
   "not measured" sentinel): `BATON_TDET_EN = 0`, `CKPDN_CON2_CLR = 0x70`,
@@ -167,7 +166,7 @@ is also why the vendor validates the result: outside 2700-2912 mV it logs
 
 The measured value has exactly one consumer: `BattVoltToTemp()` divides the
 battery NTC by `pmic_get_vbif28_volt() - V_baton`
-(`drivers/power/mediatek/battery_meter_fg_20.c:1670`). The battery NTC divider
+(the vendor's driver). The battery NTC divider
 is therefore fed from VBIF28, and the temperature conversion is wrong if that
 rail is off or if the substitute differs materially from the real rail.
 `pmic_read_vbif28_volt()` keeps the sentinel-1 semantics of "not measured".
@@ -189,11 +188,11 @@ which convert the channel-4 Vbe reading to degrees.
 
 | Consumer | Channels | Evidence |
 | --- | --- | --- |
-| Battery meter voltage/current/temperature | `BATSNS`, `ISENSE`, `BATON`, `VCDT` | `power/mt6797/battery_meter_hal.c:1140-1180` |
-| Charger/OCV-ZCV power accounting | `BATSNS`, `ISENSE` | `power/mt6797/pmic.c:3068-3078`, `:3376-3378` |
-| PMIC die temperature | channel 4 | `thermal/mt6797/src/mtk_pmic_efuse.c:154` |
-| VBIF28 rail check (MT6351 workaround) | channel 11 | `pmic_auxadc.c:441-460`, `:520-560` |
-| DCXO crystal | channel 4 via mux | `pmic_auxadc.c:277-280` |
+| Battery meter voltage/current/temperature | `BATSNS`, `ISENSE`, `BATON`, `VCDT` | the vendor's driver |
+| Charger/OCV-ZCV power accounting | `BATSNS`, `ISENSE` | the vendor's driver |
+| PMIC die temperature | channel 4 | the vendor's driver |
+| VBIF28 rail check (MT6351 workaround) | channel 11 | the vendor's driver |
+| DCXO crystal | channel 4 via mux | the vendor's driver |
 | Audio | channel 9 raw | channel table comment in `pmic_auxadc.c` |
 | Accessory / headset | `ACCDET` | defined in the channel enum; no open AP consumer found |
 
@@ -203,14 +202,13 @@ separates the two measurement engines: a dedicated fuel-gauge ADC measures
 battery current, while the auxiliary ADC measures battery voltage and
 temperature. The vendor stack follows that split.
 
-Note that the MT6353-family sources under `drivers/misc/mediatek/pmic/mt6353/`
-are not built here (`CONFIG_MTK_PMIC_CHIP_MT6353` is unset); the built MT6797
-PMIC path is `drivers/misc/mediatek/power/mt6797/`.
+Note that the vendor's MT6353-family sources are not built here
+(`CONFIG_MTK_PMIC_CHIP_MT6353` is unset); its built PMIC path is the MT6797 one.
 
 ## 6. Sharing the ADC with the modem
 
 At wrapper init the vendor driver programs the modem share
-(`pmic_wrap/mt6797/pwrap_hal.c:820-855`, called from `:1181`):
+(the vendor's driver):
 
 - `ADC_CMD_ADDR` points at `AUXADC_RQST1_SET`, with `PWRAP_ADC_CMD = 0x0100`;
 - `ADC_RDATA_ADDR` points at `AUXADC_ADC16`;
@@ -222,7 +220,7 @@ The PMIC therefore fills a 32-entry ring of conversions that the modem reads
 through the wrapper, with the newest value also available directly. The AP never
 reads this ring in the open vendor code; it only configures the pointers. The
 CCCI RPC layer exposes modem ADC values to userspace
-(`FEATURE_GET_MD_ADC_NUM`/`_VAL`, `eccci/port_rpc.c:71-102`).
+(`FEATURE_GET_MD_ADC_NUM`/`_VAL`, the vendor's driver).
 
 The retained modem image carries its own calibration table for these samples
 (`l1cal_temperatureADC_T`, size-checked at load) and the AT commands
@@ -230,7 +228,7 @@ The retained modem image carries its own calibration table for these samples
 decoding of the table was not attempted.
 
 What the modem samples is now resolved. The PMIC driver's modem helper
-`PMIC_IMM_GetOneChannelValueMD()` (`pmic_auxadc.c:599`) documents the
+`PMIC_IMM_GetOneChannelValueMD()` (the vendor's driver) documents the
 `RQST1` channel map and shows that it is the same bit-per-channel layout as
 `RQST0`:
 
@@ -274,7 +272,7 @@ writes only the pointers, and no built file configures `MDBG_DET_EN`,
 
 Upstream Linux 7.1.3 does **not** provide an MT6351 ADC driver. The MT6351 is
 only an MFD child with regulator, RTC, keys and sound cells
-(`drivers/mfd/mt6397-core.c:223`, binding
+(the vendor's driver, binding
 `Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml`), plus
 `drivers/regulator/mt6351-regulator.c`.
 
@@ -313,10 +311,7 @@ channel-2 range is set by the 330/39 kΩ board divider.
 
 ## Evidence index
 
-- Vendor kernel `planet-community/android_kernel_planetcom_mt6797`, commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`; built MT6797 PMIC path under
-  `drivers/misc/mediatek/power/mt6797/` and wrapper under
-  `drivers/misc/mediatek/pmic_wrap/mt6797/`.
+- The vendor's kernel: its built MT6797 PMIC and PMIC-wrapper drivers.
 - MT6351 PMIC datasheet v12, section 3.2.9 and register summary; MT6797
   register-table part 1, page 608.
 - Retained private preloader, SCP, TEE and modem images (see

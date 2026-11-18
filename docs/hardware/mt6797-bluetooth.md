@@ -104,7 +104,7 @@ differ.
 | 5 | Set Sleep timeout | `0xFC7A` | `03 40 1F 40 1F 00 04` |
 | 6 | HCI Reset | `0x0C03` | none |
 
-Gemian's in-kernel driver (`drivers/misc/mediatek/connectivity/drv_bt/`) has two
+Gemian's in-kernel driver, the vendor's, has two
 scripts compiled in. The active one is the six-command table above; a 23-command
 table with link-key type, unit key, encryption, PCM codec, OSC/LPO, PTA,
 de-sense and sleep-register writes is compiled out. The `Set Voice` (`0x0C26`)
@@ -380,11 +380,8 @@ ear on one run ([T9](../../experiments/2026-11-02-gemini-bluetooth/README.md#t9-
 
 ## Evidence
 
-- Vendor and Gemian kernel 3.18 source at commit
-  `59e00a9144d782e148332009a835b99c43382467`: `drv_bt/`,
-  `sound/soc/mediatek/common/mt_soc_pcm_btcvsd*`,
-  `sound/soc/mediatek/mt_soc_audio_6797/mt_soc_machine.c`,
-  `arch/arm64/boot/dts/mt6797.dtsi`, `aeon6797_6m_n_hybris_defconfig`.
+- The vendor's kernel: its Bluetooth driver, BT CVSD PCM and audio machine
+  code, SoC device tree and Gemian kernel config.
 - Android vendor binaries from the retained 2026-07-12 extraction:
   `libbluetooth_mtk.so`, `libbluetooth_mtk_pure.so`, `libbluetoothem_mtk.so`,
   `libbluetooth_relayer.so`, `libbluetooth_hw_test.so`,

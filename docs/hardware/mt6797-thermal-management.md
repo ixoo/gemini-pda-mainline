@@ -27,18 +27,16 @@ bank selection rather than simultaneous conversion.
 | 4 | CPU-LL | `MCU2` |
 | 5 | MCUCCI | `MCU2` |
 
-Vendor source: `drivers/misc/mediatek/thermal/mt6797/src/mtk_tc.c`
-(`planet-community/android_kernel_planetcom_mt6797` commit `8cfe6596`) lines
-70-102, 600-640, 1084-1122. Sampling is 2-of-4 hardware filtering
+Vendor source: the vendor's MT6797 thermal driver. Sampling is 2-of-4 hardware filtering
 (`TEMPMSRCTL0 = 0x492`), about 18 ms sensor interval, with a different interval
 for bank 0.
 
 Freshness: the driver reads `TEMPMSR0..3 & 0xfff` with no status bit. Its
 only validity mechanism is a first-valid gate. `tscpu_thermal_fast_init`
 seeds every bank with the sentinel `0xDA1` (`THERMAL_INIT_VALUE`,
-`tscpu_settings.h:106`; `mtk_tc.c:990-1080`), and `check_all_temp_valid`
+the vendor's driver), and `check_all_temp_valid`
 treats temperatures as valid once no reading still equals it
-(`mtk_ts_cpu.c:2170-2184`). This proves one conversion per sensor since
+(the vendor's driver). This proves one conversion per sensor since
 setup, and is the same read-before-arm order the 117 °C trip needs. It gives
 no per-read age. The mainline variant has no such gate yet.
 
@@ -54,12 +52,12 @@ map above is therefore vendor-source evidence, not datasheet evidence.
 
 The driver does not read the efuse controller. It calls
 `get_devinfo_with_index()` on a RAM array populated from the flat device tree
-property `/chosen/atag,devinfo` (`devinfo/v1/devinfo.c:275-295`), which LK
+property `/chosen/atag,devinfo` (the vendor's driver), which LK
 writes as 100 words read from the efuse data registers
-(`lk/platform/mt6797/atags.c:196-206`, LK commit `f4988d74`). The three words
+(the vendor's LK). The three words
 used by the thermal driver are indices 31, 32 and 33, corresponding to the
 efuse registers `0x10206180`, `0x10206184` and `0x10206188`
-(`tscpu_settings.h:122-124`).
+(the vendor's driver).
 
 | Field | Word | Bits | Default | Accepted range |
 | --- | --- | --- | --- | --- |
@@ -77,9 +75,9 @@ efuse registers `0x10206180`, `0x10206184` and `0x10206188`
 | `ID` | 32 | 9 | 0 | 0 = TSMC sample |
 
 When `ADC_CALI_EN_T` is 0 the driver warns "not Thermal calibrated" and uses the
-defaults (`mtk_tc.c:465-480`). The same words feed EEM voltage calibration
+defaults (the vendor's driver). The same words feed EEM voltage calibration
 (devinfo 50-66); an all-zero devinfo disables EEM entirely
-(`base/power/mt6797/mt_eem.c:4964-4972`). Mainline exposes only the ordered
+(the vendor's driver). Mainline exposes only the ordered
 12-byte thermal cell (`0057a-nvmem-mediatek-add-MT6797-LK-calibration-provider.patch`)
 and requires it to be valid before conversion (`0512-thermal-mediatek-require-valid-MT6797-calibration.patch`).
 
@@ -87,7 +85,7 @@ and requires it to be valid before conversion (`0512-thermal-mediatek-require-va
 
 ### 3.1 SoC diodes (authoritative formula)
 
-The vendor formula (`raw_to_temperature_roomt()`, `mtk_tc.c:553-590`) and its
+The vendor formula (`raw_to_temperature_roomt()`, the vendor's driver) and its
 mainline port (`raw_to_mcelsius_v4()` in
 `0057-thermal-mediatek-add-MT6797-AUXADC-support.patch`) are:
 
@@ -108,14 +106,14 @@ signed integer with truncation at each step, so repeatability is exact but the
 result is not a floating-point conversion. `raw == 0` returns 0 °C.
 
 The same calibration produces the slope/intercept pair `ts_MTS`/`ts_BTS` that
-is programmed into EEM (`mtk_tc.c:258-338`, `mt_eem.c:2259-2261`) and into the
-SPM suspend VCORE protection (`spm_v2/mt_spm.c:1924-1981`), so the thermal
+is programmed into EEM (the vendor's driver) and into the
+SPM suspend VCORE protection (the vendor's driver), so the thermal
 calibration also defines the voltage controller's temperature scale.
 
 ### 3.2 PMIC die temperature (MT6351)
 
 A separate Vbe-based conversion uses PMIC OTP/efuse words 0 and 1
-(`thermal/mt6797/src/mtk_pmic_efuse.c:62-183`); the channel and register
+(the vendor's driver); the channel and register
 interface of the PMIC ADC itself are documented in
 [MT6351 PMIC auxiliary ADC](mt6351-pmic-adc.md):
 
@@ -141,13 +139,13 @@ the zone wrapper expects millidegrees; the arithmetic itself is unverified.
 
 | Source | Method | Evidence |
 | --- | --- | --- |
-| Board NTC (`mtktsAP`, `mtktsbtsmdpa`) | AUXADC NTC channel, 390 kΩ pull-up, `mV = raw*1500/4096`, `R = 390000*mV/(1800-mV)`, interpolated over a −40…125 °C table | `common/thermal_zones/mtk_ts_bts.c:123-130, 472-577` |
-| Battery pack | battery NTC read on PMIC ADC channel 3 (`BATON`), converted with the board NTC table | [PMIC ADC](mt6351-pmic-adc.md); `power/mt6797/battery_meter_hal.c:1140-1180` |
-| Modem RF/PA | modem-reported `RFTEMP_*` attributes; −127 °C when unavailable | `common/thermal_zones/mtk_ts_pa.c:170-218` |
+| Board NTC (`mtktsAP`, `mtktsbtsmdpa`) | AUXADC NTC channel, 390 kΩ pull-up, `mV = raw*1500/4096`, `R = 390000*mV/(1800-mV)`, interpolated over a −40…125 °C table | the vendor's driver |
+| Battery pack | battery NTC read on PMIC ADC channel 3 (`BATON`), converted with the board NTC table | [PMIC ADC](mt6351-pmic-adc.md); the vendor's driver |
+| Modem RF/PA | modem-reported `RFTEMP_*` attributes; −127 °C when unavailable | the vendor's driver |
 | Modem ADC | baseband NVRAM table (`l1cal_temperatureADC_T`), exposed over the PMIC-wrapper modem ADC path | retained modem image strings; register table part 1 p.608, 662 (`MD_ADC_STA0[31:16]`) |
-| Wi-Fi/BT combo | WMT command (`WMT_THERM_READ_CMD`) returning a raw value; observed live as `[Thermal] current_temp = 0x12/0x15` | vendor `mtk_ts_wmt.c`; retained Gemian log |
-| DDR | JEDEC derating index 0-7, not a temperature | `mtk_ts_dram.c:71-92` |
-| Camera | values pushed by the camera stack, invalid sentinel −275000 | `mtk_ts_imgsensor.c:62-79` |
+| Wi-Fi/BT combo | WMT command (`WMT_THERM_READ_CMD`) returning a raw value; observed live as `[Thermal] current_temp = 0x12/0x15` | the vendor's driver; retained Gemian log |
+| DDR | JEDEC derating index 0-7, not a temperature | the vendor's driver |
+| Camera | values pushed by the camera stack, invalid sentinel −275000 | the vendor's driver |
 
 The datasheets contain **no** conversion equation, reference temperature or
 calibration procedure for the on-die sensors, and the register tables contain
@@ -158,18 +156,18 @@ vendor driver, not from the documents.
 
 | Domain | Threshold | Action | Evidence |
 | --- | --- | --- | --- |
-| CPU hotspot | 117 °C | Hardware: `TEMPPROTTC` + `TEMPMONINT[31]` (SPM state2), TOPRGU "thermal direct reset" armed | `mtk_tc.c:899-923, 1207-1259` |
-| CPU hotspot | 117 °C | Software: `mtktscpu-sysrst` writes to address 0 (data abort/reset) | `mtk_cooler_sysrst.c:71` |
-| CPU hotspot | 120 °C | Thermal-zone critical trip | `tscpu_settings.h:179` |
-| CPU | 95 °C / 85 °C | Static CPU power clamp (`cpu00` / `cpu03`) | `tzcpu_initcfg.h:24-28` |
-| CPU | 65 °C | Adaptive power-budget loop starts (target Tj 75 °C, exit 55 °C) | `tzcpu_initcfg.h:30-31`, `clatm_initcfg.h:19-28` |
-| CPU (EEM) | ≤33 °C | +62.5 mV voltage bump | `mt_eem.c:3519-3523` |
-| Battery / board NTC | 60 °C | Zone critical, no bound cooler in kernel | `mtk_ts_battery.c:83`, `mtk_ts_bts.c:87` |
-| Modem/PA | 85 °C | Zone critical and software reset | `mtk_ts_pa.c:49,59,80` |
-| PMIC (MT6351) | 150 °C | Zone critical and software reset; hardware shutdown 150 °C, release 110 °C | `mtk_ts_pmic.c:421`, PMIC datasheet p.18 |
+| CPU hotspot | 117 °C | Hardware: `TEMPPROTTC` + `TEMPMONINT[31]` (SPM state2), TOPRGU "thermal direct reset" armed | the vendor's driver |
+| CPU hotspot | 117 °C | Software: `mtktscpu-sysrst` writes to address 0 (data abort/reset) | the vendor's driver |
+| CPU hotspot | 120 °C | Thermal-zone critical trip | the vendor's driver |
+| CPU | 95 °C / 85 °C | Static CPU power clamp (`cpu00` / `cpu03`) | the vendor's driver |
+| CPU | 65 °C | Adaptive power-budget loop starts (target Tj 75 °C, exit 55 °C) | the vendor's driver |
+| CPU (EEM) | ≤33 °C | +62.5 mV voltage bump | the vendor's driver |
+| Battery / board NTC | 60 °C | Zone critical, no bound cooler in kernel | the vendor's driver |
+| Modem/PA | 85 °C | Zone critical and software reset | the vendor's driver |
+| PMIC (MT6351) | 150 °C | Zone critical and software reset; hardware shutdown 150 °C, release 110 °C | the vendor's driver, PMIC datasheet p.18 |
 | PMIC regulation | ≈125 °C / 110 °C | `THR_H`/`THR_L` interrupt pair (adjustable, 50 ms debounce) | PMIC datasheet p.59-60 |
-| DDR | 125 °C / 110 °C | Reset / `cpu01` clamp | `mtk_ts_dram.c:52-53` |
-| Camera | 125 °C | `cpu03` clamp | `mtk_ts_imgsensor.c:46` |
+| DDR | 125 °C / 110 °C | Reset / `cpu01` clamp | the vendor's driver |
+| Camera | 125 °C | `cpu03` clamp | the vendor's driver |
 
 TOPRGU carries the reset request: `0x1000700c` bit 18 reports an asserted
 thermal reset, `0x10007030` bit 18 enables it, and `0x10007034` bit 18 converts
@@ -209,7 +207,7 @@ thermal zone → cooler (ATM/DTM) → ap_thermal_limit MIN arbitration
   exists.
 - PPM v1 is AP-side and table-driven; in this tree it runs inline in the
   caller's context (the PPM kthread is compiled out), so a thermal transition
-  executes on the polling path (`ppm_v1/src/mt_ppm_main.c:516-532`).
+  executes on the polling path (the vendor's driver).
 - Further coolers exist but are unbound by default: charging current
   (`bcct`), frame rate (`fps`), modem TX/UL (`mutt`/`amutt`, requires
   `CONFIG_MTK_THERMAL_PA_VIA_ATCMD`), backlight, camera flag, shutdown,
@@ -226,7 +224,7 @@ thermal zone → cooler (ATM/DTM) → ap_thermal_limit MIN arbitration
 | Firmware | Thermal role | Evidence |
 | --- | --- | --- |
 | Preloader | Contains an efuse data-register table including `0x10206180/84/88`, selects CPU DVFS tables (`MT_CPU_DVFS_B/L/LL`) and sets VCORE/VSRAM from EEM calibration; no temperature polling found | retained preloader strings and efuse-register table |
-| LK | Reads 100 efuse words and passes `/chosen/atag,devinfo`; `atag,ptp` voltage tagging is disabled for MT6797 | LK source `atags.c:196-206`; retained LK strings |
+| LK | Reads 100 efuse words and passes `/chosen/atag,devinfo`; `atag,ptp` voltage tagging is disabled for MT6797 | the vendor's LK; retained LK strings |
 | ATF/TEE | AArch64 secure firmware with an ARMPLL/POSDIV "iDVFS" path; no thermal thresholds | retained TEE strings; no thermal symbols |
 | SCP (TinySys CM4) | FreeRTOS with only DMA, DVFS, IPI and SPM modules; PWRAP access and IPI OPP limits for its own clock domain; no thermal sensor or trip code found | retained SCP image strings and module list |
 | DVFSP / CSPM | PCM firmware in the SoC CSPM microcontroller; owns CPU DVFS/I2C6 on the vendor stack when active; not part of the SCP image | vendor `mt_cpufreq_hybrid.c`; project I2C6 handoff evidence |
@@ -326,10 +324,8 @@ overrides were applied.
 
 ## Evidence index
 
-- Vendor kernel tree `planet-community/android_kernel_planetcom_mt6797`,
-  commit `8cfe6596a503612e3332d9c26e292a19525a7f07`.
-- LK tree `dguidipc/gemini-lk-android8`, commit
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`.
+- The vendor's kernel.
+- The vendor's LK.
 - Retained private firmware captures and the installed Gemian vendor firmware
   set; redistribution status is recorded in the [firmware boundary](firmware.md).
 - MT6797 Functional Specification v1.0, register table parts 1 and 2, MT6351

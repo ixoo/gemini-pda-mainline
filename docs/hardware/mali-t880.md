@@ -10,7 +10,7 @@ mainline Panfrost configuration needed to bring it up safely.
 | Last verified | 2026-11-02 (first job on the station) |
 | GPU identity | Mali-T88x MP4 r1p0, product `0x0880`, four cores |
 | Mainline model | Panfrost `GPU_MODEL(t880, 0x880)` |
-| Vendor source | Gemian `8cfe6596` / `59e00a91` lineage |
+| Vendor source | The vendor's kernel |
 | Exact vendor DTB | `9e26929563f7682d1f7545d6007f0092c7e085a4edbd6e7be0ac8eaa5159b2f9` |
 | Active vmlinux | `cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162` |
 | Current status | Shaders, DVFS to 520 MHz and idle power-off, from modules on the station; cooling cap not shown under real heat; see the first job |
@@ -596,7 +596,7 @@ Not required:
 - [MT6797 Functional Specification V1.0](https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Functional_Specification_V1_0.pdf)
 - [MT6797 Register Table Part I](https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_1.pdf) — `GPULDO_CTRL_0..10`, `CLK_MISC_CFG_0`, `CLK_CFG_1`, `TOPRGUWDT_SWSYSRST`
 - [MT6797 Register Table Part II](https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_2.pdf) — `MFG_TOP`, `MFG_ASYNC_CON`, `MFG_PERF_EN`
-- Vendor `mtk_config_platform.c`, `mt_gpufreq.c`, `power/mt6797/rt5735.c`
-- LK `atags.c`, `mt_boot.c`
+- The vendor's kernel: its Mali platform, GPU frequency and RT5735 regulator code
+- The vendor's LK: its ATAG and boot code
 - Patches `0047`-`0051`, `0058`-`0059`, `0090`, `gpu/0001`
 - Panfrost `panfrost_gpu.c`, `panfrost_drv.c`, `arm,mali-midgard.yaml`

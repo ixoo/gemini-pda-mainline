@@ -183,8 +183,8 @@ pre-LK dynamic CCCI/CONSYS/SCP-share/SPM reservations but does not duplicate
 post-LK addresses observed in one live handoff. See the [LK FDT fixup
 audit](../../experiments/2026-07-13-lk-fdt-fixup-recovery/README.md).
 
-The same handoff has a strict CPU-node progress prerequisite. In pinned Planet
-LK commit `f4988d74bb70a0a15d7f362f412afba7e7fcda46`,
+The same handoff has a strict CPU-node progress prerequisite. In the vendor's
+LK source,
 `target_fdt_cpus()` runs before kernel decompression and advances its subnode
 iterator only after an active CPU supplies `clock-frequency`. A missing value
 on the first retained CPU takes a `continue` path without advancing and selects
@@ -352,8 +352,7 @@ inventory label alone:
 
 The installed Gemian daemon version matches public
 [`gemian/gemian-leds` commit `02e0508`](https://github.com/gemian/gemian-leds/commit/02e05085e680d8be51722351a462bf3081e6aa03).
-Combined with retained Planet
-[`lineage-geminipda/android_kernel_planet_mt6797` commit `c5b0be8`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/commit/c5b0be85017ad0c599725e8273842efdbecdd88a),
+Combined with the vendor's kernel,
 it maps the five visible RGB array blocks as follows:
 
 | Visible block | AW9120 outputs R/G/B |

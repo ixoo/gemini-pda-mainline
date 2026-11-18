@@ -231,11 +231,9 @@ driver would omit charge-enable policy and the BC1.1 result entirely.
 
 ## Evidence index
 
-- Vendor kernel commit `8cfe6596a503612e3332d9c26e292a19525a7f07`;
-  `switch_charging.c`, `battery_common_fg_20.c`, `mtk_pep_intf.c`,
-  `power/mt6797/{bq25890.c,charging_hw_bq25890.c,pmic_chr_type_det.c}`.
-- LK commit `f4988d74bb70a0a15d7f362f412afba7e7fcda46`;
-  `platform/mt6797/{bq25890.c,mt_battery.c}`.
+- The vendor's kernel: its switch-charging, battery, Pump Express, BQ25890 and
+  charger-type detection code.
+- The vendor's LK: its BQ25890 and battery code.
 - TI BQ25896 datasheet (SLUSC76C), MT6351 PMIC datasheet.
 - Retained private preloader and charger register captures; redistribution
   status in the [firmware boundary](firmware.md).

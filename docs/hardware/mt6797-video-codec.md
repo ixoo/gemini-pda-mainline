@@ -21,7 +21,7 @@ HEVC decode has been observed working on the named unit
 
 ## Resources
 
-Sources: Gemian kernel `8cfe6596`, the vendor `mt6797.dtsi` and drivers; the
+Sources: the vendor's kernel, its SoC device tree and drivers; the
 public MT6797 functional specification (96Boards publication, pp. 275 to 286)
 and register table (part 2, sections 4.7 and 4.8; part 1, TOPRGU).
 

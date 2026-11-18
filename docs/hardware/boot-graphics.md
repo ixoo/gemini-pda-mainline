@@ -39,9 +39,7 @@ embedded in an existing initramfs.
 - The zlib Adler-32 trailers validate all captured streams. The container has
   no observed whole-file CRC, digest, or appended signature.
 
-The exact public-source resource order is pinned to Planet Gemini Android 8 LK
-commit
-[`f4988d74bb70a0a15d7f362f412afba7e7fcda46`](https://github.com/dguidipc/gemini-lk-android8/tree/f4988d74bb70a0a15d7f362f412afba7e7fcda46),
+The exact resource order comes from the vendor's LK source,
 whose Gemini target selects the `fhd` assets and Pump Express additions.
 
 ## Complete geometry map
@@ -130,5 +128,4 @@ flash an image.
 
 - [Boot-graphics recovery experiment](../../experiments/2026-08-31-boot-graphics-recovery/README.md)
 - [Earlier offline boot-authentication surface check](../../experiments/2026-07-15-display-console-write/results/boot-authentication-check-20260715.txt)
-- [Pinned Gemini LK resource order](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/logo/rules.mk)
-- [Pinned Gemini LK target configuration](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/project/k97v1_64_bsp.mk)
+- The vendor's LK: its logo resource order and Gemini target configuration

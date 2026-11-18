@@ -345,8 +345,7 @@ Read from the patches, the kernel source and [step 6](../../experiments/2026-11-
 - [GNSS link record](../../experiments/2026-11-01-gemini-gnss-link/README.md):
   T1 link pass, the T3 firmware assert, the `MNL.bin` inference, and the host path's
   T4 and T5 results that followed the parked offload plan.
-- Vendor kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
-  `gps_emi.c`, `stp_chrdev_gps.c`, `stp_core.c`.
+- The vendor's kernel: its GPS EMI, GPS character device and STP core code.
 - Retained `ROMv3_patch_1_1_hdr.bin` and its load address; the patch
   call-through was cross-checked with Ghidra NDS32 in the private RE VM.
 - [Stock Gemini Android 8.1 base](https://github.com/Wenri/planet-pda-archive/releases/tag/firmware-2020):

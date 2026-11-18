@@ -15,10 +15,7 @@ This index points to evidence sources and related efforts. Linked content may be
 
 - [`bsg100/gemini-linux`](https://github.com/bsg100/gemini-linux) — independent MT6797X/Helio X27 Linux 6.6 bring-up, hardware inventory, and patch research. Treat its revisioned claims as comparative evidence; see the [2026-07-13 comparison audit](../experiments/2026-07-13-bsg100-gemini-linux-comparison/README.md). Coordinate before duplicating work.
 - [`Jasu/gemini-pda-buildroot`](https://github.com/Jasu/gemini-pda-buildroot) — historical mainline/Buildroot experiment that reported UART-only BusyBox boot.
-- [`gemian/gemini-linux-kernel-3.18`](https://github.com/gemian/gemini-linux-kernel-3.18) — downstream Gemini Linux 3.18 tree.
 - [`ali1234/linux-gemini`](https://github.com/ali1234/linux-gemini) — legacy Gemini kernel history.
-- [`planet-community/android_kernel_planetcom_mt6797`](https://github.com/planet-community/android_kernel_planetcom_mt6797) — community mirror of the vendor Android kernel.
-- [`lineage-geminipda/android_kernel_planet_mt6797`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797) — legacy LineageOS kernel tree.
 - [`NotKit/kernel-4.9-geminipda`](https://github.com/NotKit/kernel-4.9-geminipda) — later vendor-derived kernel work.
 - [`ixoo/gemini-flash-vagrant`](https://github.com/ixoo/gemini-flash-vagrant) — historical account-owned flashing helper; audit before reuse.
 

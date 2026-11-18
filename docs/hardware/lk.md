@@ -10,9 +10,7 @@ evidence are in the
 Each fact carries its basis:
 
 - **observed**: measured on the named unit;
-- **source**: read in the public Planet LK source,
-  [`dguidipc/gemini-lk-android8`](https://github.com/dguidipc/gemini-lk-android8/tree/f4988d74bb70a0a15d7f362f412afba7e7fcda46)
-  at `f4988d74`, under `lk/`;
+- **source**: read in the vendor's LK source;
 - **binary**: checked in the unit's own `lk` partition (`lk` and `lk2` are
   identical, SHA-256 `75ec9f0b…`);
 - **inferred**: reasoning from the above, not measured.
@@ -29,11 +27,11 @@ The order matters because LK reads the keys at several points. Paths are under
 
 | Step | What LK does | Keys read | Basis |
 | --- | --- | --- | --- |
-| 1 | Vibrates 200 ms, unless the mode is already a charging or alarm mode ([`platform.c:597`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/platform.c#L597)) | none | source |
+| 1 | Vibrates 200 ms, unless the mode is already a charging or alarm mode (the vendor's LK) | none | source |
 | 2 | Initializes the eMMC host only (MSDC0) | none | source |
-| 3 | Loads the DTB early from `boot`, `boot2` or `boot3` ([`platform.c:631`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/platform.c#L631)) | side, power | source, binary |
+| 3 | Loads the DTB early from `boot`, `boot2` or `boot3` (the vendor's LK) | side, power | source, binary |
 | 4 | Initializes the display and fills it black | none | source |
-| 5 | Selects the boot mode ([`boot_mode.c:81`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/boot_mode.c#L81)): META and similar from the preloader, the RTC and `para` recovery requests, a 50 ms key window, then the charging decision | power, side | source, binary |
+| 5 | Selects the boot mode (the vendor's LK): META and similar from the preloader, the RTC and `para` recovery requests, a 50 ms key window, then the charging decision | power, side | source, binary |
 | 6 | Reloads the DTB from `recovery` in recovery mode | none | source |
 | 7 | Loads `logo`, starts the security library, checks `logo` | none | source |
 | 8 | Battery init: low-battery handling, power key during charging mode | power | source |
@@ -50,7 +48,7 @@ is latched from power-on (source, binary).
 ## Choosing boot, boot2 or boot3
 
 At steps 3 and 10 LK applies the same rule
-([`mt_boot.c:2208`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/app/mt_boot/mt_boot.c#L2208)):
+(the vendor's LK):
 
 | Held at that moment | Partition |
 | --- | --- |
@@ -88,13 +86,13 @@ procedure holds the key through the logo, which avoids this.
 Notes:
 
 - **No charger and none of the normal-start conditions: LK powers off**
-  ([`mt_kernel_power_off_charging.c:97`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_kernel_power_off_charging.c#L97);
+  (the vendor's LK;
   source, binary). How an ordinary Esc start meets a normal-start condition
   when Esc is already released is not settled: the preloader may set the RTC
   bypass flag that `rtc_boot_check()` accepts. Open question.
 - **The 50 ms window comes first.** Read literally, Esc still held there
   without the side key selects recovery; Esc together with the side key does
-  not ([`boot_mode.c:241`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/boot_mode.c#L241);
+  not (the vendor's LK;
   source, binary). Not tried on the unit.
 - **Esc during a charging start** keeps mode 8 but passes `boot_reason=4` to
   the kernel (source). The vendor kernel presumably starts normally on it
@@ -114,7 +112,7 @@ Notes:
 ## eMMC write protection
 
 LK sets it at step 11 through `write_protect_flow()`
-([`write_protect.c:137`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/write_protect.c#L137)):
+(the vendor's LK):
 
 - **Every mode:** user-area power-on protection on `seccfg`.
 - **Normal mode only:** power-on protection on `preloader`, which is the
@@ -150,7 +148,7 @@ exactly on 458751):
 which is clear: boot area 1, `mmcblk0boot0` on Linux, the active preloader
 copy. Boot area 2 is not covered even after a normal start (inferred from the
 register layout and LK's
-[`mmc_set_boot_wp()`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mmc_core.c#L2737)).
+`mmc_set_boot_wp()`).
 
 This protection is a safeguard: a normal start keeps `nvram`, `lk` and `boot`
 safe from a bad kernel. **A charging start leaves `nvram`, `lk`, `lk2`, the
@@ -175,7 +173,7 @@ Basis: source, matching the stock image and every station image.
 - **DTB:** appended to the gzip payload, inside `kernel_sz`. LK scans the
   last 512 KiB of the kernel payload backwards for the last FDT magic, so the
   DTB must be at most 512 KiB and sit at the end
-  ([`bldr_load_dtb()`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/app/mt_boot/mt_boot.c#L608)).
+  (`bldr_load_dtb()`).
   The header `dt_size` is not used. The DTB is copied to `tags_addr`.
 - **Addresses:** `kernel_addr`, `ramdisk_addr` and `tags_addr` from the header
   are claimed from LK's memory map; LK's own image starts at `0x46000000`. The
@@ -206,7 +204,7 @@ LK edits the DTB in place before the jump (source; earlier
     `atag,two_sec_reboot`);
   - `kaslr-seed`, `tee_reserved_mem`, `non_secure_sram`, `ccci,modem_info`.
 - `/firmware/android`: `compatible`, `hardware`, `serialno` and `mode`
-  ([`atags.c:893`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/atags.c#L893)).
+  (the vendor's LK).
   `serialno` is an identifier; scrub it from published logs.
 - The model and CPU nodes are rewritten; the command line carries
   `maxcpus=5` ([all cores](../../experiments/2026-11-01-mt6797-all-cores/README.md)).
@@ -233,7 +231,7 @@ Basis: source, unless marked.
   This is the loader-retained console the station uses
   ([boot graphics](boot-graphics.md)).
 - **Storage:** only MSDC0, the eMMC, is initialized
-  ([`mmc_common_inter.c:422`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mmc_common_inter.c#L422)).
+  (the vendor's LK).
   LK has VMCH code but never starts the microSD host, so card power and card
   detect are the kernel's job
   ([microSD record](../../experiments/2026-11-05-gemini-microsd/README.md)).
@@ -246,7 +244,7 @@ Basis: source, unless marked.
 
 - **Boot image check:** `verified_boot_flow()` runs the same way for `boot`,
   `boot2` and `boot3`, under the policy entry for `boot`
-  ([`load_image.c:319`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/load_image.c#L319)).
+  (the vendor's LK).
   - Locked with verification required: a failed check falls back to a custom
     key, else red state, a five-second warning and a reset.
   - Locked without verification: green.

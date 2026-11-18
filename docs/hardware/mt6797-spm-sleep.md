@@ -15,7 +15,7 @@ None of this is mainline support. No SPM program has run on mainline.
 | Last verified | 2026-11-08 (static analysis; no device access) |
 | Secure firmware | The unit's `tee1`, TF-A `v1.0(debug):df3e3f8`, disassembled privately in the RE VM |
 | SPM programs | The unit's Gemian `system.img`, `/vendor/firmware/pcm_*.bin`, analysed privately |
-| Vendor source | Gemian Linux 3.18 [`59e00a91`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467), `drivers/misc/mediatek/base/power/` (`spm_v2/`, `include/spm_v2/`, `cpuidle_v1/`), read as evidence only |
+| Vendor source | The vendor's kernel: its SPM, sleep and cpuidle code, read as evidence only |
 | PCM decoder | The public, GPL [mt8173-pcm-tools](https://git.paulk.fr/mt8173-pcm/mt8173-pcm-tools.git) by Paul Kocialkowski; it decodes part of the instruction set |
 
 Vendor-source statements are what the vendor code does, not measurements.

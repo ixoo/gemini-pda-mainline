@@ -71,9 +71,7 @@ after a `cameraserver` restart, and its mainline T8/T11 runs read the same ID at
 `0x20`. Do not treat the generic wrapper addresses (`3-0036` and friends) as the
 sensor address; they are board control objects.
 
-Source anchors:
-[`kd_sensorlist.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c#L125-L131),
-[`sp5509mipiraw_Sensor.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.c#L49-L250),
+Source anchors: the vendor's image-sensor core and SP5509 driver,
 and the [SP5509 source contract](../../experiments/2026-07-13-camera-recovery/results/sp5509-source-contract.md).
 
 ### 2.2 Rails, pins and power sequence
@@ -96,10 +94,8 @@ range ends at 1.21 V. Upstream `hi556` has no power-down GPIO; the station
 series adds it (0546), and without that a DT description must hold PDN high
 through pinctrl.
 
-Source anchors:
-[`kd_camera_hw.c` power table](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.c#L193-L204),
-[`kd_camera_hw.c` socket selection](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.c#L812-L832),
-and [`aeon6797_6m_n.dts`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1133-L1159).
+Source anchors: the vendor's camera power table and socket selection,
+and its board device tree.
 
 ### 2.3 Lens, flash and calibration
 
@@ -163,8 +159,7 @@ The station record measured the TG2 divider at `n = 2` from a 48 MHz CAMTG,
 giving 24 MHz (T2/T7). A mainline driver must replace both halves, not just
 the CAMTG mux.
 
-Source anchors: [`kd_sensorlist.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c#L3798-L3812)
-and [`kd_imgsensor.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/inc/kd_imgsensor.h#L88-L94).
+Source anchors: the vendor's image-sensor core and its header.
 
 ## 4. Receiver and capture path
 
@@ -185,8 +180,7 @@ The kernel's `ISP_mmap()` accepts `CAM_A`, `CAM_B`, `CAMSV_0`..`CAMSV_5`,
 or an oversized request. The four windows are therefore the intended ABI, not
 a debug escape.
 
-Source: [`camera_isp.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c#L9051-L9110)
-and [`camera_isp.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h#L37-L49).
+Source: the vendor's camera ISP driver and its header.
 
 ### 4.2 SENINF and timing-generator programming
 
@@ -355,13 +349,8 @@ the display at its next blank (inferred from C3 and C4); 0563 leaves it alone.
 A bypassed port does not validate the vendor ION/M4U ring or a standard capture interface. The vendor
 descriptor/CQ format and the SP5509 port binding remain open.
 
-Source anchors: [`camera_isp.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h#L260-L330)
-(write-DMA enum), [`camera_isp.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h#L330-L443)
-(ION node and ring structures), and
-[`camera_isp.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c#L5410-L5560)
-(ring control) and
-[`camera_isp.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c#L7841-L7935)
-(ION import/free).
+Source anchors: the vendor's camera ISP driver, for the write-DMA enum,
+the ION node and ring structures, ring control and ION import/free.
 
 ## 5. Userspace stack
 
@@ -442,11 +431,8 @@ frequency meter (T7).
 - [Vendor kernel ABI](vendor-kernel-abi.md)
 - Station series `patches/proposals/0543`-`0576`; profile fragment
   `configs/gemini-a53-station-camera.fragment`.
-- Pinned Gemian kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
-  `drivers/misc/mediatek/imgsensor/src/mt6797/`,
-  `drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.c`,
-  `drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c`,
-  `drivers/misc/mediatek/lens/`, `drivers/misc/mediatek/flashlight/`.
+- The vendor's kernel: its image-sensor, camera power, camera ISP, lens and
+  flash drivers.
 - Linux 7.1.3: `drivers/media/i2c/hi556.c`, `drivers/media/i2c/dw9714.c`,
   `drivers/media/platform/mediatek/`, `drivers/iommu/mtk_iommu.c`,
   `drivers/memory/mtk-smi.c`.

@@ -110,9 +110,8 @@ one gave 104. The client's bus number has moved between kernels, so find it by a
 
 ## 6. Evidence index
 
-- Vendor kernel commit `8cfe6596a503612e3332d9c26e292a19525a7f07`:
-  `drivers/input/touchscreen/mediatek/`, `aeon_nt36xxx/`, board DTS touch and
-  pinctrl nodes.
+- The vendor's kernel: its touchscreen core and NT36xxx driver, and the board
+  DTS touch and pinctrl nodes.
 - Mainline Linux 7.1.3: `novatek-nvt-ts.c` and
   `Documentation/devicetree/bindings/input/touchscreen/novatek,nvt-ts.yaml`.
 - Retained `novatek_ts_fw.bin` (size, header words and version bytes only).

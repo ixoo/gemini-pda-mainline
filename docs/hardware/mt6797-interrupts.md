@@ -9,7 +9,7 @@ cross-checks, not a live trace.
 | --- | --- |
 | Device | Named Gemini PDA development unit (MT6797X) |
 | Last verified | 2026-10-31 |
-| Vendor baseline | Gemian Linux `3.18.41+`, source equivalent `59e00a91` |
+| Vendor baseline | Gemian Linux `3.18.41+`, the vendor's kernel source |
 | Controller | ARM GICv3 at `0x19000000`; redistributor `0x19200000` |
 | EINT controller | MediaTek EIC at `0x1000b000`, GIC SPI 170 |
 | Final Gemian DTB | `9e26929563f7682d1f7545d6007f0092c7e085a4edbd6e7be0ac8eaa5159b2f9` |
@@ -199,7 +199,7 @@ not a standard GIC behavior.
 
 ### 5.2 Vendor GIC layer
 
-`drivers/misc/mediatek/irq/mt6797/irq.c` adds:
+The vendor's MT6797 IRQ code adds:
 
 - an affinity check that compares the requested SMP affinity with
   `GICD_ITARGETSR` and warns on mismatch;

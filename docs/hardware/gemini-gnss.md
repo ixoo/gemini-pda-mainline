@@ -464,8 +464,7 @@ coexistence may require.
 
 Facts here come from static analysis of the retained 2019 userspace payload and
 the two ROM patch images, decompiled with Ghidra 12.1.2 and cross-checked with
-radare2 5.5.0, plus the pinned vendor kernel at
-`8cfe6596a503612e3332d9c26e292a19525a7f07`. No device was accessed for that study, and it
+radare2 5.5.0, plus the vendor's kernel source. No device was accessed for that study, and it
 observed no fix. The [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md)
 later gave positions under stock Gemian, using the vendor DSP image.
 

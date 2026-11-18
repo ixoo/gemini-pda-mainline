@@ -130,10 +130,10 @@ programmed only in that separate snapshot. The mainline read path therefore
 has a same-boot positive control. These observations do not identify a writer
 or establish the effective protection policy.
 
-Pinned Gemian [SCP helper source](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/scp/mt6797/scp_helper.c#L743-L761)
+The vendor's SCP helper
 requests region 22 over the SCP shared-memory reservation, matching the
 separate `0x8f000000..0x8fffffff` Gemian range. Its
-[MT6797 permission table](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/eccci/mt6797/ccci_platform.c#L60-L130)
+MT6797 permission table
 labels domain 2 `CONN`. These are source-supported intent, not an
 authenticated writer trace or measured master-domain assignment; region 22
 does not overlap the WLAN reservation. The

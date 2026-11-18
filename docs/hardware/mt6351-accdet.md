@@ -145,8 +145,8 @@ Without those, the driver has no consumer and cannot be validated.
 
 ## 7. Evidence
 
-- Vendor `drivers/misc/mediatek/accdet/mt6797/accdet.c`,
-  `reg_accdet.h`, and `mt6351` register headers.
+- The vendor's ACCDET driver, its register header, and the `mt6351` register
+  headers.
 - Mainline `sound/soc/codecs/mt6359-accdet.c` and its binding, used only as a
   structure reference.
 - [Gemini audio input/output](gemini-audio.md) and
