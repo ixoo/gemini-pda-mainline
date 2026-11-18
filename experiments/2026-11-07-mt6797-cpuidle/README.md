@@ -3749,7 +3749,9 @@ Two ways on:
   entry between one and two states. This is open-ended after four
   disproved explanations.
 
-### Request D5i (proposed): a backstop for the period that never returns
+### Request D5i (approved 2026-11-18): a backstop for the period that never returns
+
+**Approved** by the owner ("Approve D5i").
 
 The owner chose to keep diagnosing ("Keep diagnosing"). The open question
 is what is stuck when a period does not return:
