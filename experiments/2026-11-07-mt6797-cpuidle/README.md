@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, CPU0 cannot resume (D5a-D5i); D5j proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, CPU0 cannot resume, the reset follows fast (D5a-D5j); D5k proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3827,7 +3827,7 @@ reboot ([LK](../../docs/hardware/lk.md)). Gemian booted after every D5
 reset, so its kernel log for those boots holds the reason, if Gemian
 keeps it.
 
-### Request D5j (proposed): read why the device reset
+### Request D5j (approved 2026-11-18): read why the device reset
 
 This is a read-only inspection of Gemian's logs, with no SODI run and no
 writes. From the station, mount Gemian's root read-only without journal
@@ -3845,6 +3845,54 @@ D5h and D5i.
 | `boot_reason=3` or 4, about 31 s after the last line | The watchdog reset a hung CPU. The program stalls with CPU0 clocked off. Next: observe the SPM from outside CPU0, for example a second CPU kept online and polling the PCM registers, which SODI normally forbids, so this needs its own review |
 | Another reason, or seconds after the last line | A power or hardware reset, not a hang. P1-P3 and the rails come first, even for test periods |
 | No log kept | Record the reason on the next reset, then decide |
+
+### D5j: Gemian kept no reason; resets follow within 28-42 s (custodian, 2026-11-18)
+
+**Approved** by the owner ("Approve D5j"). From boot 6c447b07, the
+custodian mounted Gemian's root `ro,noload`, read its logs and unmounted
+it.
+
+**Observed.** Gemian keeps no journal. Its rsyslog files hold no kernel
+lines, so no command line or `boot_reason` survives for any boot. Only
+rsyslogd's start time is kept per boot.
+
+| Run | Last mainline line | Gemian rsyslogd start | Gap |
+| --- | --- | --- | --- |
+| D5 run 1 | 15:32:58 (on1 start) | 15:33:30 | 32 s |
+| D5a | 15:50:30 | 15:51:06 | 36 s |
+| D5b | 16:24:56 | 16:25:24 | 28 s |
+| D5f | 18:29:09 | 18:29:45 | 36 s |
+| D5g | 19:19:20 | 19:19:57 | 37 s |
+| D5h | 16:40:59 | 16:41:41 | 42 s |
+| D5i | 17:00:52 | 17:01:31 | 39 s |
+
+**Result.** The reset comes within 28-42 s of the hang, Gemian's boot to
+rsyslog included. Gemian's boot time from reset to rsyslog has not been
+measured. If it is 25-35 s, the reset follows the hang within seconds, or
+about 15 s at most. That is quicker than a 31 s watchdog plus a boot.
+*Inference, not established:* the reset is not the watchdog catching a
+hung CPU. It may be a hardware or power reset that the period itself
+triggers. Landing in Gemian shows the bootloader took its default path,
+as after a reset rather than a power-key start.
+
+### Request D5k (proposed): bound the reset
+
+Read-only, with no SODI run:
+1. **The station's watchdog.** Read `/sys/class/watchdog/watchdog0`
+   (`state`, `timeout`) and systemd's `RuntimeWatchdogSec`, to learn
+   whether the 31 s watchdog is armed at all.
+2. **Gemian's boot time.** The owner starts Gemian once from the power
+   key, and the custodian takes the time from the key press to rsyslogd's
+   start. This turns the 28-42 s gaps into a bound on the reset delay.
+3. **`expdb` (p3).** The vendor's exception store may hold a reset
+   record. Read it read-only and analyse it privately. Only the
+   conclusion goes into this record.
+
+| Outcome | Decision |
+| --- | --- |
+| Watchdog not armed, or the bound well under its timeout | A hardware or power reset. Check rails and P1-P3 first; ask the SPM trace session which step can reset the SoC (PCM watchdog, power-down) |
+| Watchdog armed, bound near 31 s | A hung CPU, as D5i suggests. Wait for the SPM trace before the next run |
+| `expdb` holds a reset record | It decides between the two |
 
 ### What it should save
 
