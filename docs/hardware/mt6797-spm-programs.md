@@ -13,7 +13,7 @@ None of this is mainline support. No SPM program has run on mainline.
 | Device | Named Gemini PDA development unit (MT6797X) |
 | Last verified | 2026-11-08 (static analysis; no device access) |
 | Programs | The unit's nine files, hashes in [§3 of the sleep page](mt6797-spm-sleep.md#3-the-spm-program-files) |
-| Method | A private extended decoder, written for this pass and run in the RE VM, starting from the public [mt8173-pcm-tools](https://git.paulk.fr/mt8173-pcm/mt8173-pcm-tools.git) encodings. It was checked against the vendor kernel's register names (`pcm_def_mt6797.h`, `mt_spm_reg_mt6797.h`, `sleep_def_mt6797.h`), the event-vector descriptors, the kernel's `PCM_REG_DATA_INI`/`pwr_ctrl` set-up and its wake-status reads |
+| Method | A private extended decoder, written for this pass and run in the RE VM, starting from the public [mt8173-pcm-tools](https://git.paulk.fr/mt8173-pcm/mt8173-pcm-tools.git) encodings. It was checked against the vendor driver's names for the SPM registers, the PCM register bits and the flags, the event-vector descriptors, the kernel's `PCM_REG_DATA_INI`/`pwr_ctrl` set-up and its wake-status reads |
 | Not published | Program bytes, disassembly listings and decoder output. They stay private because the programs are proprietary |
 
 "Observed" means read directly from the decoded programs. "Inferred" means
@@ -98,8 +98,11 @@ AUXADC and DRAM-controller blocks, and DRAM itself.
 **Not settled:** the exact predicate of ops 2, 3 and 4. Op 3 behaves as
 `≥` in the thermal-period counter, and ops 2 and 4 bound a temperature ADC
 reading from below and above. Also not settled: what op 9 computes, what the
-conditional `r14` modes wait for, the `r14` time unit, and whether a top-level
-`ret` halts the PCM. None of these blocks reading the programs' control flow.
+conditional `r14` modes wait for and the `r14` time unit. Two points are
+settled by mainline device reads: a top-level `ret` returns the PCM to its
+idle state (`PCM_FSM_STA` low bits `0x48490` after every returned SODI
+period), and `PCM_EVENT_REG_STA` mirrors the last `r14` value (`0x90100000`,
+the main-loop wait, in the same reads). None of these blocks reading the programs' control flow.
 
 ### 1.5 Events
 
@@ -298,6 +301,47 @@ Screen-on idle. Observed differences from deep idle:
   `ddrphycfg_sel` to parent 0. Exit always restores them; there is no
   flag-10 test as in suspend. GCE is not touched. `I2C_APPM` and the I2C6
   soft reset are handled as in suspend.
+
+### 5.1 SODI with the CPU kept powered
+
+Mainline runs SODI with flag 0 set (CPU0 stays powered) and CG mode. The
+path the program then takes is observed, apart from what the waits wait for:
+
+1. Ungate `I2C_APPM`, soft-reset I2C6, start the PCM timer and set the wake
+   masks.
+2. One wait in `r14` (`0xd00f0000`; the CPU-power-down path uses `0x5000aaaa`
+   instead). Then abort if a wake is already pending.
+3. Set the bus-master pause masks and raise `R7_TOP_MAS_PAU_REQ`. The masters
+   stay paused until the exit.
+4. Skip the CPU, cluster, MCUSYS and `CPU_EXT_BUCK_ISO` steps (flag 0), and
+   the I2C buck write (flag 9).
+5. With no further wait and no check of the CPU's state: `ddrphycfg_sel` to
+   26 MHz, `R7_FREQH_PAUSE_ARM`, APMIXED `0xf38` bit 4, and in `R0` the ARM and
+   SMI clock-off bits and every ARMPLL/ARMBPLL off stage.
+6. Arm the CG-mode APSRC events and enter the main wait.
+7. On a wake, exit. The exit restores the PLLs in three timed stages, turns
+   the ARM clock back on, sets `ddrphycfg_sel` to parent 1, gates `I2C_APPM`,
+   releases the master pause and raises the return interrupt.
+
+So in this mode the program never removes CPU0's power, but it does pause
+the bus masters and stop the ARM clocks and PLLs while CPU0 is expected to
+be in WFI. Whether the first wait guarantees that CPU0 is already in WFI is
+not known. The vendor never ran this mode outside FPGA bring-up. Its shipped
+flow powers the CPU down through PSCI, which has the secure firmware turn the
+core's retention off and wait in WFI before the program touches the ARM
+clocks (§1 of the [sleep page](mt6797-spm-sleep.md#1-the-secure-firmwares-suspend-path)).
+The vendor also masks the GIC and clones edge interrupts into SYS_CIRQ before
+it resets the PCM, so after the kick its CPU executes nothing but the WFI
+path.
+
+**Observed on mainline:** in every SODI period that returned, `SPM_SW_DEBUG`
+read 0, `SPM_PASR_DPD_0` read 0 and `PCM_EVENT_REG_STA` read the main-loop
+wait value, with the multimedia state bit set in `r13`. No resource handler
+ran, so DRAM self-refresh was never reached in a returned period.
+
+**For hang analysis:** the SPM latches state across a reset in
+`PCM_WDT_LATCH_0`-`4` (`0x10006190`-`0x198`, `0x1c4`, `0x1c8`) and
+`DRAMC_DBG_LATCH` (`0x19c`). The vendor driver prints them at boot.
 
 ## 6. The VCORE-DVFS programs (`pcm_vcorefs_lpm/hpm/ultra`)
 
