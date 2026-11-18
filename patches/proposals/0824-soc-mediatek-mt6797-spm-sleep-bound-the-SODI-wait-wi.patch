@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 18 Nov 2026 16:53:29 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: bound the SODI wait with
+ CPU0's timer
+
+With two idle states registered, a SODI period sometimes never returns,
+including the first period of a run (stage D5h), and the watchdog resets
+the device with nothing recorded. CPU0 waits in WFI with its timers
+masked and every device interrupt at the GIC masked, so nothing ends
+the wait but the program.
+
+For SODI periods, arm CPU0's physical timer 100 ms after the PCM timer
+should end the period, unmasked; its PPI stays enabled through the GIC
+mask. If it fires first, end the wait as a period with no return and
+record the program's state. Log the PCM FSM state and whether the
+backstop fired.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 33 +++++++++++++++++++++++--
+ 1 file changed, 31 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 9086ff288..9e5efabc0 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -294,6 +294,8 @@ struct spm_wake {
+ 	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
+ 	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
+ 	u32 wfi_loops;
++	u32 fsm;		/* PCM_FSM_STA after the wait */
++	bool backstop;		/* CPU0's timer ended the wait, not the PCM */
+ 	u32 rd_en, rd_pend;	/* CPU0's SGIs and PPIs at entry */
+ 	u64 isr_el1;		/* at entry */
+ 	u64 cnt_kick, cnt_return;	/* arch counter around the wait */
+@@ -765,6 +767,7 @@ static void spm_cirq_disable(void)
+ static int spm_run(const struct spm_scen *sc)
+ {
+ 	u32 con0, con1, settle, axi[3], v;
++	u64 cntp_cval = 0, cntp_ctl = 0;
+ 	int i;
+ 
+ 	s.entered = false;
+@@ -907,6 +910,22 @@ static int spm_run(const struct spm_scen *sc)
+ 		writel(BIT(SPM_GIC_INTID % 32),
+ 		       s.gicd + GICD_ISENABLER + 4 * (SPM_GIC_INTID / 32));
+ 
++	/*
++	 * SODI: CPU0's physical timer is a backstop, 100 ms after the PCM timer
++	 * should end the period, so a program that never returns leaves CPU0
++	 * able to record its state instead of waiting for ever (D5i). Its PPI
++	 * stays enabled through the GIC mask.
++	 */
++	if (sc->cirq) {
++		cntp_cval = read_sysreg(cntp_cval_el0);
++		cntp_ctl = read_sysreg(cntp_ctl_el0);
++		write_sysreg(__arch_counter_get_cntpct() +
++			     mul_u64_u64_div_u64(sc->ticks, arch_timer_get_cntfrq(), 32768) +
++			     arch_timer_get_cntfrq() / 10, cntp_cval_el0);
++		write_sysreg(ARCH_TIMER_CTRL_ENABLE, cntp_ctl_el0);
++		isb();
++	}
++
+ 	/* C2: CPU0 waits; the PCM-return interrupt ends the sleep */
+ 	s.wake.cnt_kick = __arch_counter_get_cntvct();
+ 	if (sc->idle)
+@@ -919,9 +938,18 @@ static int spm_run(const struct spm_scen *sc)
+ 			s.wake.returned = true;
+ 			break;
+ 		}
++		if (sc->cirq && (read_sysreg(cntp_ctl_el0) & ARCH_TIMER_CTRL_IT_STAT)) {
++			s.wake.backstop = true;
++			break;
++		}
+ 	}
+ 	if (sc->idle)
+ 		ct_cpuidle_exit();
++	if (sc->cirq) {
++		write_sysreg(cntp_ctl, cntp_ctl_el0);
++		write_sysreg(cntp_cval, cntp_cval_el0);
++		isb();
++	}
+ 	s.wake.cnt_return = __arch_counter_get_cntvct();
+ 	s.wake.wfi_loops = i;
+ 	if (sc->cirq)
+@@ -929,6 +957,7 @@ static int spm_run(const struct spm_scen *sc)
+ 	spm_gic_restore();
+ 
+ 	/* X1: wake status */
++	s.wake.fsm = spm_rd(PCM_FSM_STA);
+ 	s.wake.assert_pc = spm_rd(PCM_REG_DATA_INI);
+ 	s.wake.r12 = spm_rd(SPM_SW_RSV_0);
+ 	s.wake.r12_ext = spm_rd(PCM_REG12_EXT_DATA);
+@@ -1013,8 +1042,8 @@ static void spm_log_wake(const char *what)
+ 	if (!s.entered)
+ 		return;
+ 	dev_info(&s.pdev->dev,
+-		 "%s: returned=%d loops=%u cg0=%08x>%08x cg1=%08x>%08x cg2=%08x>%08x clk_cfg_0=%08x>%08x r12=%08x r12_ext=%08x raw=%08x ext=%08x misc=%08x timer_out=%08x r13=%08x idle=%08x debug=%08x event=%08x isr=%08x pc=%08x\n",
+-		 what, s.wake.returned, s.wake.wfi_loops,
++		 "%s: returned=%d backstop=%d fsm=%08x loops=%u cg0=%08x>%08x cg1=%08x>%08x cg2=%08x>%08x clk_cfg_0=%08x>%08x r12=%08x r12_ext=%08x raw=%08x ext=%08x misc=%08x timer_out=%08x r13=%08x idle=%08x debug=%08x event=%08x isr=%08x pc=%08x\n",
++		 what, s.wake.returned, s.wake.backstop, s.wake.fsm, s.wake.wfi_loops,
+ 		 s.wake.cg_before[0], s.wake.cg_after[0],
+ 		 s.wake.cg_before[1], s.wake.cg_after[1],
+ 		 s.wake.cg_before[2], s.wake.cg_after[2],
+-- 
+2.43.0
+

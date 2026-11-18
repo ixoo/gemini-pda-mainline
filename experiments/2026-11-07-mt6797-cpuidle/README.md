@@ -3749,6 +3749,46 @@ Two ways on:
   entry between one and two states. This is open-ended after four
   disproved explanations.
 
+### Request D5i (proposed): a backstop for the period that never returns
+
+The owner chose to keep diagnosing ("Keep diagnosing"). The open question
+is what is stuck when a period does not return:
+- the SPM program, still sleeping or blocked mid-sequence;
+- CPU0 or its bus, so that CPU0 cannot resume at all.
+
+During a period, nothing but the program can end CPU0's wait: its timers
+are masked, and so is every device interrupt at the GIC.
+
+[`0824`](../../patches/proposals/0824-soc-mediatek-mt6797-spm-sleep-bound-the-SODI-wait-wi.patch)
+(module only) arms CPU0's physical timer (CNTP, INTID 30, which stays
+enabled through the GIC mask) as a backstop for SODI periods. It fires
+100 ms after the PCM timer should end the period. If it fires first:
+- the wait ends as a period with no return (`returned=0 backstop=1`);
+- the existing return path records the program's state, including
+  `SPM_SW_DEBUG` (the program's step flag), the PCM PC, `r12` and now
+  `PCM_FSM_STA`, then restores and logs it;
+- `d4.sh` then stops on "no return from a period".
+
+The kernel's CNTP compare value and control are saved and restored around
+the wait. It is compile-checked with `W=1`, with and without
+`CONFIG_CPU_IDLE`, and checkpatch `--strict` is quiet. There is no new
+SPM, GIC or PMIC write; CNTP is CPU0's own timer.
+
+- **Candidate:** image 137 on a fresh boot, `mt6797-spm-sleep.ko` from a
+  Buildbox build of the commit recording this stage. No boot2 write.
+- **Run:** as D5h: `d4.sh` 787dbcf3, `D4_CIRQ_LEVEL=1`, two states, no
+  cap, pings in C, cable out, hands off.
+- *Unique observation:* the state of a period that does not return, or
+  that CPU0 cannot resume from one.
+- **Stops:** as in D4. A reset is recovered as in D5a.
+
+| Outcome | Decision |
+| --- | --- |
+| A `backstop=1` line, the station alive | The program stalls. Its step flag and PC name the step. Next: what that step waits for, and what two states change in it |
+| A `backstop=1` line, then a reset | The program stalls, and the state it leaves (gated clocks) breaks the station after the wait. The logged state still names the step |
+| Reset with no `backstop=1` line | CPU0 does not resume from WFI, or the bus hangs on the first SPM read. The program has stopped CPU0 itself, so look at what the two-state idle changes in CPU0's power or clock control |
+| Passes | An armed, unmasked CNTP during the period changes the outcome. That points at the timer masking; compare with D5g's masked runs |
+
 ### What it should save
 
 | State | Today | Expected |
