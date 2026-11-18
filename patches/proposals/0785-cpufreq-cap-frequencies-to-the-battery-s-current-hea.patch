@@ -19,6 +19,11 @@ down, one state at a time, on each change the supplies report, with no
 polling, and it touches the caps and logs only when one moves. While the
 battery reports no headroom, as before its gauge's first reading, a
 fallback_ua parameter stands in for it; left at 0, nothing is capped.
+
+The default 50 % margin is measured: with 30 %, all ten CPUs loaded on
+an aged cell at 28-31 % charge held 3.07 V at worst against the 3.10 V
+floor, and one step less on the next policy down lifts that by about
+40 mV.
 ---
  drivers/cpufreq/Kconfig            |  12 ++
  drivers/cpufreq/Makefile           |   1 +
@@ -123,7 +128,7 @@ index 000000000..851ee004e
 +module_param(vmin_uv, uint, 0444);
 +MODULE_PARM_DESC(vmin_uv, "battery voltage the CPU current is reckoned at (uV)");
 +
-+static unsigned int leak_pct = 30;
++static unsigned int leak_pct = 50;
 +module_param(leak_pct, uint, 0444);
 +MODULE_PARM_DESC(leak_pct, "margin on the energy model's power (percent)");
 +

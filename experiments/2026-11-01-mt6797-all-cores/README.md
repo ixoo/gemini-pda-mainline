@@ -1675,6 +1675,61 @@ Choices, and what stays as built:
   With that as a backstop, the budget can sit at the median instead of the tail. That
   is a design choice for the owner, after T11.
 
+**T11 result (observed, owner-approved, image 137, boot `2bea635f`; passed).**
+
+Image 137 was built from 735859f0. Its seven A72 and cpufreq modules match T7-T10.
+
+Setup:
+- `a72-at-boot` and `cpufreq-at-boot` set, SODI unloaded, nothing loaded by hand;
+- powered off at 28 % (3.673 V at 168 mA), cable out, for 15 min;
+- after 2 min idle on the new boot: 3.651 V at 177 mA (about 3.72 V open-circuit),
+  `current_max` 1.22 A, battery 23.9 C.
+
+Checks:
+- The init loaded the whole stack, `battery-headroom` included.
+- The first caps came at 20.8 s: headroom 1.36 A, CPU budget 0.66 A, caps
+  338/1209/1547 MHz.
+- The clock, the hashes and taint 0 were as in T9.
+
+The load: `t7.sh 300` with the stop at 3.0 V ended `passed` after 153 samples.
+- **Vbat:** at least 3.072 V (at 1.77 A). 10 samples were below the cap's 3.10 V
+  target. The battery drew at most 1.79 A.
+- **Temperatures:** the SoC at most 76.7 C, the battery at most 30.7 C.
+- **Rates:**
+  - The A72s were at 338 MHz and LL at 1547 MHz in every sample.
+  - L ranged from 468 to 1495 MHz, under caps that moved between 832 and 1495 MHz as
+    the headroom moved between 1.24 and 1.47 A.
+  - L ended alternating 468/650 MHz near 74.5 C, which looks like the power
+    allocator (inferred).
+- **Afterwards:** 3.611 V at 198 mA idle.
+
+`a72-at-boot` is back to `.off`.
+
+Reading:
+- The cap held all-ten load on an aged cell at about 30 % charge. The terminal stayed
+  0.37 V above the 2.70 V cut-off, where T4b lost power without a cap.
+- A re-implementation of the module reproduces every caps line of the boot.
+- **At the tail it overshot its own target by up to 28 mV.** The samples below
+  3.10 V ran L at 962-1352 MHz. Measured battery current was about three times the
+  energy model's power over 3.1 V, as in the full-battery runs. One L step is worth
+  about 33-47 mV here.
+- The headroom rose during the load from 1.36 to 1.47 A, while the battery warmed
+  and its modelled resistance fell. That is the gauge's input.
+
+Change: `leak_pct` now defaults to 50
+([0785](../../patches/proposals/0785-cpufreq-cap-frequencies-to-the-battery-s-current-hea.patch)).
+At T11's headrooms that caps L one or two steps lower, at 468-1209 MHz. That would have
+kept the lowest sample at about 3.12 V (estimated, not run). `reserve_ua` 700 mA,
+`vmin_uv` 3.10 V and `fallback_ua` 0 stay as they are. The new value takes effect on
+the next image that rebuilds the module.
+
+What this means for the A72s on battery:
+- Loading them by default is safe: the cap holds all-ten load at low charge.
+- On battery they run at 338 MHz from a rest voltage of about 3.9 V down, by the
+  table above, and only near full charge go higher.
+- Using them more on battery needs the low-battery interrupt backstop described
+  above. That is the owner's choice.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
