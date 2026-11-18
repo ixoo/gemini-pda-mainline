@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, CPU0 stops, the watchdog resets (D5a-D5k); waiting for the SPM trace |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, CPU0 stops, the watchdog resets (D5a-D5k); D5l proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4030,6 +4030,47 @@ latches. To read them, the owner catches the bootloader after a reset and
 selects boot2 without powering off. The custodian then reads
 `0x10006190`-`0x1000619c`, `0x100061c4`, `0x100061c8` and the TOPRGU
 status read-only, before anything loads the SPM module.
+
+### Request D5l (proposed): two states with CPU0's frequency pinned
+
+**cpufreq was active in every D5 run (custodian).** The station init on
+image 137 loads `cpufreq_dt` and `clk_mt6797_mcusys` at each boot.
+Policy0 (CPU0-3, CPU0 alone once `d4.sh` offlines the rest) runs
+schedutil over 221-1547 MHz in 16 OPPs. Idle, CPU0 sits mostly at
+221 MHz but ramps whenever work arrives, such as ping handling and the
+script's own log writes. So every period's PLL cut and restore met
+whatever OPP schedutil had just chosen. That held in the passing runs
+too, so cpufreq alone does not separate pass from fail. With two states,
+the kept tick and the governor's idle exits give schedutil more
+updates, so periods may start at higher OPPs more often. And the
+program restarts the PLL with fixed waits tuned for the vendor's OPPs.
+
+`d4.sh` (now 1fb05241) takes `D4_PIN_KHZ`. It pins policy0 at that OPP
+(min = max) after taking CPU1-7 offline, checks `scaling_cur_freq`, and
+restores the range at the end or on a stop. Each `start` line already
+logs CPU0's frequency.
+
+- **Candidate:** image 137 on a fresh boot (no SODI module loaded),
+  module 97add2b2 (0824, D5i's). No boot2 write and no register change:
+  the pin is cpufreq's own sysfs.
+- **Run:** `d4.sh` 1fb05241 with `D4_CIRQ_LEVEL=1 D4_PIN_KHZ=<policy0's
+  lowest OPP, 221 MHz>`, two states, no cap. Wi-Fi power save on, pings
+  in C, cable out, hands off. This is the configuration that reset in
+  D5a-D5i, within 2-22 periods.
+- *Hypothesis:* the hang needs CPU0 at a higher OPP when the program cuts
+  and restarts its PLL; pinned at the bottom, two states pass.
+- *Unique observation:* two states with the OPP held constant.
+- **After a reset:** the owner catches the bootloader and selects boot2
+  without powering off. Before any module loads, the custodian reads,
+  read-only, the SPM latches (`0x10006190`-`0x1000619c`, `0x100061c4`,
+  `0x100061c8`) and the TOPRGU status (`0x10007000` + `0x0c`), and keeps
+  them privately. The record gets the conclusion.
+- **Stops:** as in D4.
+
+| Outcome | Decision |
+| --- | --- |
+| Windows A-C pass, about 380 periods | The OPP at entry matters. Next: the same pinned at 1547 MHz. If that hangs, the fixed PLL waits are too short above the vendor's range, and SODI entry pins or lowers CPU0's OPP |
+| Reset or hang | Not the OPP. The latches and the RGU status show where the PCM stood and what reset the chip |
 
 ### What it should save
 

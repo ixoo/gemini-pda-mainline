@@ -13,6 +13,8 @@
 # D4_IDLE=0 loads the module with sodi_idle=0, so its cpuidle driver is not
 # registered (0819, stage D5d). D4_STATES=1 loads it with sodi_idle_states=1,
 # the WFI state alone (0820, stage D5e).
+# D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
+# windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
 # local timer event (0821, stage D5f).
 # No period starts while the screen is lit: SODI with the display scanning
@@ -51,6 +53,9 @@ SODI=/sys/kernel/debug/sodi_once_ms
 USB=11271000.usb
 CPUS=/sys/devices/system/cpu
 TAKEN=""
+POLICY=/sys/devices/system/cpu/cpufreq/policy0
+PIN_MIN=""
+PIN_MAX=""
 USB_CONTROL=""
 
 exec >>"$LOG" 2>&1
@@ -65,6 +70,11 @@ new_dmesg() {
 }
 
 restore() {
+	if [ -n "$PIN_MIN" ]; then
+		echo "$PIN_MIN" >"$POLICY/scaling_min_freq"
+		echo "$PIN_MAX" >"$POLICY/scaling_max_freq"
+		log "cpufreq policy0 back to $(cat "$POLICY/scaling_min_freq")-$(cat "$POLICY/scaling_max_freq") kHz"
+	fi
 	if [ -n "$TAKEN" ]; then
 		for cpu in $TAKEN; do
 			echo 1 >"$CPUS/cpu$cpu/online" || log "cpu$cpu did not come back"
@@ -261,6 +271,18 @@ for cpu in 9 8 7 6 5 4 3 2 1; do
 done
 log "online: $(cat "$CPUS/online")"
 sleep 5
+if [ -n "${D4_PIN_KHZ:-}" ]; then
+	grep -qw "$D4_PIN_KHZ" "$POLICY/scaling_available_frequencies" ||
+		stop "$D4_PIN_KHZ kHz is not an OPP of policy0"
+	PIN_MIN=$(cat "$POLICY/scaling_min_freq")
+	PIN_MAX=$(cat "$POLICY/scaling_max_freq")
+	echo "$D4_PIN_KHZ" >"$POLICY/scaling_max_freq"
+	echo "$D4_PIN_KHZ" >"$POLICY/scaling_min_freq"
+	sleep 1
+	[ "$(cat "$POLICY/scaling_cur_freq")" = "$D4_PIN_KHZ" ] ||
+		stop "policy0 did not pin at $D4_PIN_KHZ kHz"
+	log "cpufreq policy0 pinned at $D4_PIN_KHZ kHz (was $PIN_MIN-$PIN_MAX)"
+fi
 REF=$(hash)
 log "hash reference $REF"
 grep -iE 'eint|aw9523|keyboard' /proc/interrupts | sed 's/^/    before: /'
