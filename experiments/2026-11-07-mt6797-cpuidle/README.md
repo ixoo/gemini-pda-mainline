@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, CPU0 stops, the watchdog resets (D5a-D5k); D5l proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); latches being decoded |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4031,7 +4031,7 @@ selects boot2 without powering off. The custodian then reads
 `0x10006190`-`0x1000619c`, `0x100061c4`, `0x100061c8` and the TOPRGU
 status read-only, before anything loads the SPM module.
 
-### Request D5l (proposed): two states with CPU0's frequency pinned
+### Request D5l (approved 2026-11-18): two states with CPU0's frequency pinned
 
 **cpufreq was active in every D5 run (custodian).** The station init on
 image 137 loads `cpufreq_dt` and `clk_mt6797_mcusys` at each boot.
@@ -4071,6 +4071,43 @@ logs CPU0's frequency.
 | --- | --- |
 | Windows A-C pass, about 380 periods | The OPP at entry matters. Next: the same pinned at 1547 MHz. If that hangs, the fixed PLL waits are too short above the vendor's range, and SODI entry pins or lowers CPU0's OPP |
 | Reset or hang | Not the OPP. The latches and the RGU status show where the PCM stood and what reset the chip |
+
+### D5l: pinned at 221 MHz, the first period still hangs (custodian, 2026-11-18)
+
+**Approved** by the owner ("Approve D5l").
+
+**Setup.** Boot 6c447b07 of image 137, taint 0, cable out at 83 %, Wi-Fi
+power save on. `d4.sh` 1fb05241, module 97add2b2 (0824),
+`D4_CIRQ_LEVEL=1 D4_PIN_KHZ=221000`, two states, no cap.
+
+**Observed.**
+- 17:22:04: CPUs online `0`.
+- 17:22:10: policy0 pinned at 221000 kHz (it was 221000-1547000).
+- 17:22:11: hash reference taken.
+- 17:22:12: pings arriving, then `start, cpu0 221000 kHz`.
+
+No period returned and no backstop line appeared. The owner caught the
+bootloader after the reset and selected boot2 with no Gemian boot and no
+power-off (boot b04ba5e5, 17:23:43). Read-only through `/dev/mem`, under a
+minute after boot, with no SPM module loaded:
+
+| Register | Value |
+| --- | --- |
+| `PCM_WDT_LATCH_0` `0x10006190` | `0x04248000` |
+| `PCM_WDT_LATCH_1` `0x10006194` | `0x00000000` |
+| `PCM_WDT_LATCH_2` `0x10006198` | `0xffffffff` |
+| `PCM_WDT_LATCH_3` `0x1000619c` | `0x0000c0ff` |
+| `PCM_WDT_LATCH_4` `0x100061c4` | `0x2a00005c` |
+| `DRAMC_DBG_LATCH` `0x100061c8` | `0x003dff08` |
+| TOPRGU MODE / LENGTH / STA / DEBUG_CTL | `0x15` / `0xf800` / `0` / `0xf3` |
+
+The RGU status of 0 does not rule the watchdog out: the power-key boot
+read 0 too, so the bootloader probably clears it. The preloader and LK
+ran before the read and may have used the SPM.
+
+**Result.** CPU0's OPP is ruled out: pinned at the lowest point, the first
+period still hung. Like D5h, this is a first-period hang. The latches are
+with the SPM program session for decoding.
 
 ### What it should save
 
