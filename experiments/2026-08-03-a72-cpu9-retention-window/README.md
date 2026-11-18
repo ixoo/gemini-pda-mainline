@@ -21,7 +21,7 @@ directly attributable record?
 
 ## Provenance and environment
 
-- Exact source: `59e00a9144d782e148332009a835b99c43382467`.
+- Exact source: the vendor's kernel.
 - Exact parent: `2026-08-03-a72-cpu9-cluster-reuse`, including its rejected
   runtime result and positive CPU9 execution boundary.
 - Build backend: Buildbox only; no native VM kernel build.

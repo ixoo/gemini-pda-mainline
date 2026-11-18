@@ -9,7 +9,7 @@ and cause remain unknown. No radio command or packet DMA ran.
 The pinned gen3 `nicRxWaitResponse()` reads the selected port's half of
 WRPLR and the corresponding data port. Its capability query selects port 1.
 This was checked against Planet revision
-`c5b0be85017ad0c599725e8273842efdbecdd88a`: `nic/nic_rx.c`
+the vendor's kernel: `nic/nic_rx.c`
 SHA-256 `a844bdf75065a152e78d30c789aabb398b0d0f336d30d6ffd028793bf091412b`
 at lines 3637–3688, and `common/wlan_lib.c` SHA-256
 `56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f`

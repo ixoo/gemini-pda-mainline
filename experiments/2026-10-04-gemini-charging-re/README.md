@@ -34,7 +34,7 @@ EINT176) and the [USB VBUS ownership record](../2026-09-08-usb-vbus-ownership/RE
 ## Inputs
 
 Every vendor citation below is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`, the same commit the identity read
+the vendor's kernel, the same commit the identity read
 used. Every mainline citation is Linux `7.1.3` as pinned in
 `kernel/manifest.json`. Exact URLs, sizes and SHA-256 values are in
 [`source-inputs.json`](source-inputs.json). Line numbers refer to those exact
@@ -57,20 +57,20 @@ marked as such.
   [`results/charger-id-20260912.json`](../2026-07-12-charger-power-recovery/results/charger-id-20260912.json).
   The vendor defconfig selects the BQ25896 path:
   `CONFIG_MTK_BQ25896_SUPPORT=y` at
-  [`aeon6797_6m_n_defconfig` line 186](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L186),
+  `aeon6797_6m_n_defconfig` line 186,
   which the power
-  [Makefile lines 43–44](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/Makefile#L43-L44)
+  Makefile lines 43–44
   maps to `bq25890.o` and `charging_hw_bq25890.o`. `CONFIG_MTK_RT9466_SUPPORT=y`
   (line 187) also builds the RT9466 driver, whose probe reports no device on the
   live board ([2026-07-14 capture index](../2026-07-12-charger-power-recovery/results/live-charger-battery-recovery-20260714.txt)).
 - **F2. The public board DTS does not describe the live charger node.**
-  [`aeon6797_6m_n.dts` lines 46–50](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L46-L50)
+  `aeon6797_6m_n.dts` lines 46–50
   contains `bq24261@6b` with compatible `bq24261`, while the live DTB has
   `/soc/i2c@11007000/sw_charger@6b` with compatible `mediatek,sw_charger`
   ([`CHARGER_ID.md`](../2026-07-12-charger-power-recovery/CHARGER_ID.md),
   "Identity, finite effects and collection"). The vendor driver matches only
   `mediatek,sw_charger`
-  ([`bq25890.c` lines 1150–1151](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/bq25890.c#L1150-L1151)).
+  (`bq25890.c` lines 1150–1151).
   The live DTB therefore came from a board file this public commit does not
   carry; board-level values in the public DTS are not authoritative.
 - **F3. The vendor charger driver requests no interrupt.** `bq25890.c` includes
@@ -78,7 +78,7 @@ marked as such.
   `irq_of_parse_and_map` or EINT registration; its probe only stores the client,
   runs a presence check on register `0x03`, dumps registers and hooks the
   control table
-  ([`bq25890.c` lines 1041–1056](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/bq25890.c#L1041-L1056)).
+  (`bq25890.c` lines 1041–1056).
   The live `sw_charger@6b` node exposed only `compatible` and `reg`
   ([reuse audit](../2026-07-12-charger-power-recovery/results/bq25890-reuse-audit-20260713.txt)).
   Consequence: the BQ25896 `INT` pin's board wiring is not recorded anywhere in
@@ -86,15 +86,15 @@ marked as such.
   (F13) and reacts to cable events through the PMIC (F4).
 - **F4. Cable presence comes from the MT6351 `CHRDET` comparator, not the
   charger.** Presence reads `RGS_CHRDET` = `CHR_CON0` (`0x0F78`) bit 5
-  ([`upmu_hw.h` lines 981, 11148–11150](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h#L11148-L11150));
+  (`upmu_hw.h` lines 981, 11148–11150);
   used by `is_chr_det()` and `charging_get_charger_det_status()`
-  ([`charging_hw_bq25890.c` lines 268–277, 506–515](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/charging_hw_bq25890.c#L268-L277)).
+  (`charging_hw_bq25890.c` lines 268–277, 506–515).
   The plug/unplug event is PMIC interrupt 46 (`INT_CON2` bit 14, `INT_STATUS2`
   at `0x02E4` bit 14; header lines 3018–3020, 3204–3206), registered as
   `chrdet_int_handler` and enabled unconditionally at
-  [`pmic_irq.c` lines 599 and 614](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_irq.c#L599).
+  `pmic_irq.c` lines 599 and 614.
   The handler asserts `RG_USBDL_RST` and calls `do_chrdet_int_task()`
-  ([lines 285–308](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_irq.c#L285-L308)).
+  (lines 285–308).
   The local MT6351 interrupt enumeration already carries this line as
   `MT6351_IRQ_CHRDET`, the 47th entry (index 46) in
   [patch 0010](../../patches/v7.1.3/0010-mfd-mt6397-add-MT6351-core-and-interrupt-support.patch),
@@ -104,10 +104,10 @@ marked as such.
   [`eint-summary.txt`](../2026-07-11-mt6351-pmic-recovery/results/eint-summary.txt)
   and [`runtime-summary.txt`](../2026-07-11-mt6351-pmic-recovery/results/runtime-summary.txt);
   the public `mt6797.dtsi` agrees (`interrupts = <262 4>`, `debounce = <262 1000>`,
-  [lines 969–975](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L969-L975)).
+  lines 969–975).
   Vendor requests it with `request_irq(..., IRQF_TRIGGER_NONE, "pmic-eint")`
   and `enable_irq_wake`
-  ([`pmic_irq.c` lines 627–638](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_irq.c#L627-L638)).
+  (`pmic_irq.c` lines 627–638).
 
 ### Charger type (BC1.1) and USB
 
@@ -117,26 +117,26 @@ marked as such.
   `BB_CTRL` bit 0, `RST` bit 1, `VSRC_EN` bits 2–3, `CMP_OUT` bit 7; header lines
   11319–11330) and classifies SDP (`STANDARD_HOST`), CDP (`CHARGING_HOST`),
   DCP (`STANDARD_CHARGER`), non-standard and Apple types
-  ([`pmic_chr_type_det.c` lines 82–318](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_chr_type_det.c#L82-L318)).
+  (`pmic_chr_type_det.c` lines 82–318).
   `Charger_Detect_Init()`/`Release()` (USB PHY D+/D- switch to the PMIC) wrap
   the sequence. The charger's own D+/D- detection is explicitly disabled:
   `REG02[0] AUTO_DPDM_EN = 0`, `HVDCP_EN = 0`, `MAXC_EN = 0`
-  ([`charging_hw_bq25890.c` lines 1028–1030](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/charging_hw_bq25890.c#L1028-L1030)).
+  (`charging_hw_bq25890.c` lines 1028–1030).
 - **F7. The vendor `ac`/`usb` power-supply split is a software mapping of the
   BC1.1 result.** `AC_ONLINE = 1` for non-standard, DCP and Apple types; SDP and
   CDP stay on `usb`
-  ([`battery_common.c` lines 2060–2080](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/battery_common.c#L2060-L2080)).
+  (`battery_common.c` lines 2060–2080).
   The earlier capture's "AC online, USB offline" therefore means a DCP-class
   adapter was attached, not a separate barrel input. Vendor logs' `chr_type=4`
   is `STANDARD_CHARGER` (DCP).
 - **F8. Pump Express Plus is enabled and used with this charger.**
   `CONFIG_MTK_PUMP_EXPRESS_PLUS_SUPPORT=y`
-  ([defconfig line 389](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L389)).
+  (defconfig line 389).
   For a DCP the switch-charging policy calls the PE+ hooks
-  ([`switch_charging.c` lines 758–762](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/switch_charging.c#L758-L762)),
+  (`switch_charging.c` lines 758–762),
   which raise adapter VBUS to 7 V and then 9 V; 12 V is compiled out
   (`TA_12V_SUPPORT` is commented in `mt_pe.h:25` and no DT property enables
-  `ta_12v_support`) ([`mtk_pep_intf.c` lines 233–234, 466–490](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/mtk_pep_intf.c#L466-L490))
+  `ta_12v_support`) (`mtk_pep_intf.c` lines 233–234, 466–490)
   using the BQ25896 `PUMPX_UP`/`PUMPX_DN` current-pulse pattern
   (`charging_set_ta_current_pattern`, `charging_hw_bq25890.c` line 656 onward;
   `bq25890_pumpx_up`, `bq25890.c` lines 656–672). The vendor `VINDPM` table
@@ -148,9 +148,9 @@ marked as such.
   `read_adc_v_charger()` reads PMIC AUXADC channel 2 (`VCDT`, 12-bit, ratio 1,
   1.8 V full scale) and scales by `(r_charger_1 + r_charger_2) / r_charger_2`
   with DT values 330 and 39
-  ([`battery_meter_hal.c` lines 1168–1183](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/battery_meter_hal.c#L1168-L1183),
-  [`pmic_auxadc.c` lines 495–498](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_auxadc.c#L495-L498),
-  [`mt6797.dtsi` lines 1042–1043](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L1042-L1043)).
+  (`battery_meter_hal.c` lines 1168–1183,
+  `pmic_auxadc.c` lines 495–498,
+  `mt6797.dtsi` lines 1042–1043).
   So an external 330 k / 39 k divider feeds the MT6351 `VCDT` pin, giving a
   nominal 17 V full scale. The PMIC `VCDT_HV` comparator threshold is also
   programmed by the charger HAL (`charging_set_hv_threshold`, line 457;
@@ -162,14 +162,14 @@ marked as such.
   [VBUS ownership record](../2026-09-08-usb-vbus-ownership/README.md). The
   public `aeon_gpio.dtsi` charger-enable pin states (`chr_ce0`/`chr_ce1`) are
   empty placeholders
-  ([lines 63–77](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi#L63-L77)),
+  (lines 63–77),
   so no CE GPIO is documented for this board.
 
 ### Charger register configuration (the vendor's effective "board limits")
 
 - **F11. `charging_sw_init()` is the full BQ25896 configuration the stock
   kernel applies at battery-driver start**
-  ([`charging_hw_bq25890.c` lines 1003–1060](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/charging_hw_bq25890.c#L1003-L1060)).
+  (`charging_hw_bq25890.c` lines 1003–1060).
   The decoded values, using TI's BQ25896 register map (datasheet rev. C,
   table 26 and preceding register tables; the same document the identity read
   cited):
@@ -205,11 +205,11 @@ marked as such.
   ([index](../2026-07-12-charger-power-recovery/results/live-charger-battery-recovery-20260714.txt));
   the policy's CV enum is `BATTERY_VOLT_04_340000_V` when
   `high_battery_voltage_support` is set
-  ([`switch_charging.c` lines 94, 153, 231](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/switch_charging.c#L231)).
+  (`switch_charging.c` lines 94, 153, 231).
   However, the public `charging_set_cv_voltage()` ignores the requested value
   and writes a fixed `0x24` to REG06 `VREG`, which is 4.416 V in the vendor's
   own `VBAT_CV_VTH` table (index 36) and in TI's 3.840 V + 16 mV encoding
-  ([`charging_hw_bq25890.c` lines 347–365](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/charging_hw_bq25890.c#L347-L365),
+  (`charging_hw_bq25890.c` lines 347–365,
   table at lines 58–71). The live capture's 4.336 V readback is code `0x1F`,
   not `0x24`, so either the running binary differs from this public source
   here too (F2) or the readback was the gauge voltage rather than the register;
@@ -225,7 +225,7 @@ marked as such.
   650 mA, DCP/AC 800 mA in DT (2050 mA header default), non-standard 500 mA,
   Apple 0.5/1.0/2.1 A → 500/650/800 mA. `select_charging_current()` applies
   them as both `ICHG` and `IINLIM`
-  ([`switch_charging.c` lines 709–790](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/switch_charging.c#L709-L790)),
+  (`switch_charging.c` lines 709–790),
   and PE+ raises them for a DCP (F8). Because F2 shows the live DTB differs
   from the public one, the live AC value is unknown; the logged 3000 mA shows
   it is not the public 800 mA.
@@ -233,8 +233,8 @@ marked as such.
   `charging_get_charging_status()` reads REG0B `CHRG_STAT` (bits 4:3) and
   reports full when it equals `0x3` ("charge termination done"); the policy
   requires `FULL_CHECK_TIMES` consecutive readings
-  ([`charging_hw_bq25890.c` lines 433–445](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/charging_hw_bq25890.c#L433-L445),
-  [`switch_charging.c` `charging_full_check`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/switch_charging.c)).
+  (`charging_hw_bq25890.c` lines 433–445,
+  `switch_charging.c` `charging_full_check`).
   With `EN_TERM = 1` the chip terminates at the programmed current and
   `CHRG_STAT` reaches `0x3`; the battery task additionally forces full when
   `UI_SOC2 == 100` with a charger present. *Correction (2026-10-31):* the
@@ -245,7 +245,7 @@ marked as such.
   [charging chain record](../2026-10-31-gemini-charging-chain/README.md).
 - **F14. A `BATFET_DIS` workaround exists for the RT5735 SDA-low fault.**
   `battery_disable_batfet()` sets REG09[5]
-  ([`bq25890.c` lines 1063–1070](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/bq25890.c#L1063-L1070)).
+  (`bq25890.c` lines 1063–1070).
   This cuts the battery FET (system off if no adapter). It is a vendor
   recovery hook, relevant to the GPU-rail record, not a charging feature.
 
@@ -257,18 +257,18 @@ marked as such.
   2–3), programs `FGADC_CON0` (`0x0CA4`) and `FG_OSR` (`FGADC_CON15`), and
   the readers use `FG_CAR_34_19`/`FG_CAR_18_03` (`FGADC_CON1`/`CON2`),
   `FG_CURRENT_OUT` (`FGADC_CON11`) and `FG_R_CURR` (`FGADC_CON25`)
-  ([`battery_meter_hal.c` lines 298–366, 386–470](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/battery_meter_hal.c#L298-L366);
+  (`battery_meter_hal.c` lines 298–366, 386–470;
   header lines 721–754, 2076–2081, 8748–8873). The current LSB is
   `UNIT_FGCURRENT = 158.122 µA` for a 20 mΩ sense base
-  ([line 36](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/battery_meter_hal.c#L36)),
+  (line 36),
   rescaled by `20 / r_fg_value` and then by `car_tune_value / 100`
   (lines 507–533). This resolves the roadmap's "inferred" note: the gauge is
   MT6351-internal by source, and `SOC_BY_HW_FG` is defined
-  ([`mt_battery_meter.h` line 21](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_battery_meter.h#L21)).
+  (`mt_battery_meter.h` line 21).
 - **F16. Board sense parameters (public DT, F2 caveat):** `r_fg_value = 10`
   mΩ, `car_tune_value = 118` (%), `cust_r_sense = 56`, `fg_meter_resistance =
   0`, `r_bat_sense = r_i_sense = 4`
-  ([`mt6797.dtsi` lines 1039–1077](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L1039-L1077)).
+  (`mt6797.dtsi` lines 1039–1077).
   Header defaults differ (`R_FG_VALUE 10`, `CAR_TUNE_VALUE 101/115`,
   `FG_METER_RESISTANCE 75`, `mt_battery_meter.h` lines 40, 74–84). A 10 mΩ
   battery sense resistor with an 18 % software gain correction is the
@@ -281,12 +281,12 @@ marked as such.
 - **F17. Battery voltage uses PMIC AUXADC channel 0 (`BATSNS`), 15-bit,
   ratio 3 (5.4 V full scale); charge current uses channel 1 (`ISENSE`), same
   scale.** Channel table and ratios at
-  [`pmic_auxadc.c` lines 244–259, 487–494](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_auxadc.c#L244-L259);
+  `pmic_auxadc.c` lines 244–259, 487–494;
   result registers `AUXADC_ADC_OUT_CH0_BY_AP` (`AUXADC_ADC23`, `0x0E2E`) and
   `CH1_BY_AP` (`AUXADC_ADC25`, `0x0E32`), request bits in `AUXADC_RQST0`
   (`0x0E96`) (header lines 793–818, 868, 9705–9719, 10062–10070). The low-battery
   interrupt thresholds use the same `× 4096 / 5400` scale
-  ([`pmic_irq.c` lines 358–360](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_irq.c#L358-L360)).
+  (`pmic_irq.c` lines 358–360).
   Boot-time OCV comes from `AUXADC_ADC_OUT_WAKEUP_PCHR`/`SWCHR`
   (`AUXADC_ADC20`/`ADC21`, `battery_meter_hal.c` lines 195–225).
   *Correction (2026-10-31):* with `SWCHR_POWER_PATH` (this BQ25896 build) the
@@ -296,10 +296,10 @@ marked as such.
   ratio 2, with `BATON_TDET_EN`/`RG_BATON_EN` enabled, converted through a
   pull-up model and an NTC table.** `read_adc_v_bat_temp()` reads
   `PMIC_AUX_BATON_AP`
-  ([`battery_meter_hal.c` lines 1150–1165](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/battery_meter_hal.c#L1150-L1165));
+  (`battery_meter_hal.c` lines 1150–1165);
   `BattVoltToTemp()` computes `R = Rpull × V / (Vpull − V)` and looks up a
   17-point table
-  ([`battery_meter.c` lines 1065–1088](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/battery_meter.c#L1065-L1088)).
+  (`battery_meter.c` lines 1065–1088).
   The public DT gives `rbat_pull_up_r = 24000`, `rbat_pull_up_volt = 1800`
   (lines 1115–1116) and a 10 kΩ-at-25 °C NTC table (lines 1118–1128); the header defaults are
   61.9 kΩ at 2.8 V (`mt_battery_meter_table.h` lines 33–36). `FIXED_TBAT_25`

@@ -29,8 +29,8 @@ measurement of that early transport failure.
 Proposal [0140](../../patches/proposals/0140-wifi-mt6797-decode-clear-EAPOL-receive-layouts.patch)
 adds an original, unlinked decoder needed for the first WPA2 EAPOL-Key receive.
 The management-only parser cannot handle ordinary RX-data packets. The public
-gen3 [RXD definitions](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h)
-and [RFB parser](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c)
+gen3 RXD definitions
+and RFB parser
 describe native and Ethernet-translated layouts. Translation needs group 4's
 AP and sequence metadata to reconstruct the native header for mac80211.
 
@@ -75,7 +75,7 @@ and the pinned vendor gen3 driver, which the vendor wlan Makefile selects for
 | Station state | `sta_state` returns `-EOPNOTSUPP`, so mac80211 cannot insert the AP station | `mac.c` `mt6797_mac_sta_state` |
 | Firmware commands | TC4 PIO normal commands on WTDR1, a CID whitelist with fixed payloads, 256 single-use sequence numbers per firmware session | `normal_command.h`, `hif_command.h` |
 | BSS activation | `BSS_ACTIVATE_CTRL` 0x11 sent for the scan, deactivated after it; the slot is never reused | `scan-wire.h`, `mac.c` |
-| RX filter | `SET_RX_FILTER` 0x0a with BROADCAST only; vendor default adds DIRECTED and MULTICAST | `normal_command.h`; vendor [`wlan_oid.h`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_oid.h) |
+| RX filter | `SET_RX_FILTER` 0x0a with BROADCAST only; vendor default adds DIRECTED and MULTICAST | `normal_command.h`; vendor `wlan_oid.h` |
 | RX | Polled WRDR0/1 only while a scan is active; bounded per tick and in total | `mac.c` `mt6797_mac_scan_work`, `hif.c` |
 | RX parsing | Firmware SW frames (type `0xe001`); only beacon and probe response, delivered to cfg80211 BSS inform, not to `ieee80211_rx` | `scan-wire.h`, `mac.c` |
 | Events | Any unknown event fails the session, including TX done 0x0f, channel privilege 0x10 and STA activation 0x0c | `mac.c` |
@@ -90,15 +90,15 @@ this device. Phase B is the first host RF transmission.
 Observation from the vendor source:
 
 - The host builds every authentication and association frame
-  ([`auth.c`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/auth.c), [`saa_fsm.c`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/saa_fsm.c)). The
+  (`auth.c`, `saa_fsm.c`). The
   firmware does not run the join.
 - Management frames go to TC4 through the command path as
   `COMMAND_TYPE_MANAGEMENT_FRAME`. Each frame is preceded by a 28-byte long
   `HW_MAC_TX_DESC_T` and written to the same WTDR1 port as commands
-  ([`nic_tx.c`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c), [`nic_tx.h`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_tx.h)).
+  (`nic_tx.c`, `nic_tx.h`).
   The page count includes the descriptor. The vendor AHB write path has a PIO
-  fallback ([`ahb.c`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c)).
-- Join order ([`ais_fsm.c`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c)): activate the network, request
+  fallback (`ahb.c`).
+- Join order (`ais_fsm.c`): activate the network, request
   the channel for JOIN, wait for the grant, create the STA record, run SAA,
   then update the BSS information after the association response.
 
@@ -112,7 +112,7 @@ Observation from the vendor source:
 | BSS information | `CMD_ID_SET_BSS_INFO` 0x12, after association | credit return only |
 | Teardown | 0x13 state 1 or `REMOVE_STA_RECORD` 0x14; 0x1c ABORT; 0x11 off | credit return; TX done for the deauthentication |
 
-Struct layouts are in the vendor [`nic_cmd_event.h`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h).
+Struct layouts are in the vendor `nic_cmd_event.h`.
 None of these steps needs DMA or a HIF interrupt in the vendor design.
 
 ## Proposed first admission

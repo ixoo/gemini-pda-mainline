@@ -30,7 +30,7 @@ SPM `0x10006000 + 0x000`, bit 0 as `BCLK_CG_EN_LSB`, and the high-half project
 key as `0x0b16`. The combined write is `0x0b160001`. These are source-defined
 fields and write semantics, not a measured current register value or a claim
 that key bits read back unchanged.
-[Register definitions](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/base/power/include/spm_v2/mt_spm_reg_mt6797.h#L264).
+Register definitions.
 
 | Source path | Actual placement | Ownership implication |
 | --- | --- | --- |
@@ -39,11 +39,11 @@ that key bits read back unchanged.
 | Selected OF WMT ON branch | Writes key/enable after external reset assertion and before `clk_prepare_enable(conn)` | Even the API-enabled branch retains a direct shared-register write; it is not confined to the inactive fallback |
 | `spm_mtcmos_ctrl_conn(state)` | Writes key/enable before branching to ON or OFF | CCF repeats the operation for actual island transitions; the same preamble occurs in other subsystem routines |
 
-[SPM initialization](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/base/power/spm_v2/mt_spm.c#L703),
-[PM caller](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/base/power/mt6797/mt_pm_init.c#L622),
-[SPM helper](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/base/power/spm_v2/mt_spm_sleep.c#L1069),
-[WMT preamble](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L328),
-[CCF preamble](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/clk/mediatek/clk-mt6797-pg.c#L574).
+SPM initialization,
+PM caller,
+SPM helper,
+WMT preamble,
+CCF preamble.
 
 Thus a requested ON is not necessarily a new CCF key write: the CCF wrapper
 can return early when it already considers the island ON. The actual CONN
@@ -53,7 +53,7 @@ state with repeated enabling writes, not proof of a one-shot unlock, required
 per-transition refresh, harmless concurrent writes, or a safe disable policy.
 The CCF wrapper's clock lock and the SPM helper's `__spm_lock` are distinct;
 the source does not establish a single lock shared with WMT or retained firmware.
-[CCF state check and lock](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/clk/mediatek/clk-mt6797-pg.c#L2278).
+CCF state check and lock.
 
 The existing upstream `mtk-scpsys.c` owns the MT6797 SPM power-domain mapping
 and transitions, but contains no corresponding key/enable initialization.
@@ -85,8 +85,8 @@ selected sequence. This comparison isolates the consequential differences:
 | Power requests | Separate primary then secondary writes, both ACKs polled | Same request order and dual-ACK intent | Matching source sequence, not hardware validation |
 | Delays and failures | No explicit island delay; unbounded ACK loops | Bounded polling and error returns | Do not import infinite loops or infer rollback from a timeout |
 
-[Planet CONN sequence](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/clk/mediatek/clk-mt6797-pg.c#L574),
-[Gemian comparator](https://github.com/gemian/gemini-linux-kernel-3.18/blob/d388d350cb2dda8f23b99be6fa5db9628896e87f/drivers/clk/mediatek/clk-mt6797-pg.c#L565).
+Planet CONN sequence,
+Gemian comparator.
 Their agreement is corroboration between related public source trees, not an
 independent hardware experiment or exact attribution of the retained binary.
 
@@ -96,7 +96,7 @@ clear. It also uses the rejected protection mask described in the earlier
 contract. It cannot justify adding that delay, combining the request writes,
 or changing the selected CCF order. The outer selected WMT delay after the
 CCF call is a different boundary and remains part of outer preparation.
-[Inactive OF fallback](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L635).
+Inactive OF fallback.
 
 ## Smallest supported direction and unresolved acquisition
 

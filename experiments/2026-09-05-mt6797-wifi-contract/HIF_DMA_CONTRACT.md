@@ -44,13 +44,13 @@ read-modify-write. Do not substitute a write-one-to-clear operation, use the
 host IRQ as completion, or infer a dedicated DMA IRQ from the generic node.
 The HIF handler masks its source and wakes its service thread; these are
 separate interrupt responsibilities.
-[PDMA registers](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_pdma.h#L58),
-[IRQ selection](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c#L535).
+PDMA registers,
+IRQ selection.
 
 RX packet DMA is selected only for `MCR_WRDR0/WRDR1`; TX only for `MCR_WTDR1`.
 This is an SDIO-like command interface on AHB, not proof of a native SDIO bus
 or compatibility with an existing matching-family DMA/network driver.
-[Transfer selection](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c#L867).
+Transfer selection.
 
 ## Address width: known bit-32 fields, unresolved bus route
 
@@ -65,7 +65,7 @@ The source names them address-extension fields but does not derive them from
 identifies these fields as source and destination address bit 32, with the
 memory/FIFO role changing by direction. It does not establish which bit-32
 alias reaches the fixed FIFO.
-[Configuration and start](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c#L232).
+Configuration and start.
 
 The existing retained kernel's named `HifPdmaInit` confirms the channel mapping;
 its `HifPdmaStart` confirms both unconditional bit sets. These are static binary
@@ -129,7 +129,7 @@ completion; refuse new work after an uncertain transfer and retain the buffer,
 mapping and prerequisites until proven quiescent. A probe-error/devres/remove
 path that releases them anyway is not ready. No whole-AP-DMA reset or forced
 shared clock shutdown is justified.
-[Stop and completion](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c#L310).
+Stop and completion.
 
 ## EMI is shared firmware memory
 
@@ -147,8 +147,8 @@ WMT policy permits domains 0 and 2. The permission macro's argument order makes
 those domain numbers explicit, but this does not prove the complete mapping
 from every AP-DMA/CONSYS/BT/GNSS master to a domain, nor isolation between
 CONSYS clients sharing a domain. Do not replay the blanket permission change.
-[WLAN MPU/copy path](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L838),
-[permission encoding](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h#L278).
+WLAN MPU/copy path,
+permission encoding.
 
 WMT and WLAN also share remap register `0x10001340`. Memory ownership, MPU
 policy and remap updates need the common owner; a Linux DMA mapping alone does
@@ -171,7 +171,7 @@ which does not fit nine bits. Payload 509 enters block mode and uses count 1.
 This is an explicit conservative refusal policy, not a claim that hardware
 cannot implement a special zero-count transfer. Callers must not silently split
 or change framing when refused.
-[Selected count layout](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/sdio.h#L76).
+Selected count layout.
 
 The helper and [30-case fixture](src/hif_transfer_size_test.c) are original
 GPL-2.0-only code, not copied vendor implementation. The selected HIF sizing

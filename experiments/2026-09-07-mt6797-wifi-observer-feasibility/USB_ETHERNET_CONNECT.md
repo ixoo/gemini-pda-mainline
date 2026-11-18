@@ -6,8 +6,8 @@ contains 51 `connection_work` rate-limit summaries from kernel seconds 3.258328
 through 63.258325, accounting for 356 suppressed callbacks. This is positive
 evidence of the native readiness wait, not an inference from missing debug text.
 
-At pinned native revision `59e00a9144d782e148332009a835b99c43382467`, the
-selected `drivers/misc/mediatek/mu3d/drv/mt_usb.c` has exactly one rate-limit
+At pinned native the vendor's kernel, the
+selected `mt_usb.c` has exactly one rate-limit
 call in `connection_work()`, inside `!is_usb_rdy()`. It reschedules after 100 ms
 and returns before the device-role and cable checks. `lib/ratelimit.c` prints
 the suppression summary independently of the MU3D debug mask, which disables

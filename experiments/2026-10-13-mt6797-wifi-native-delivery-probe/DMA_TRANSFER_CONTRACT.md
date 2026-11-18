@@ -15,10 +15,10 @@ and [shared-resource audit](../2026-09-07-mt6797-wifi-observer-feasibility/resul
 remain applicable. They are reused, not superseded by guesses.
 
 The reference is gen3 AHB SDIO-like HIF at public revision
-`59e00a9144d782e148332009a835b99c43382467`. In this MT6797/OF build,
+the vendor's kernel. In this MT6797/OF build,
 `HifPdmaInit()` selects **HIF PDMA**, not a generic GDMA backend.
-[PDMA implementation](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c),
-[register definitions](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_pdma.h).
+PDMA implementation,
+register definitions.
 
 | Item | Source-supported contract | Implementation consequence |
 | --- | --- | --- |
@@ -36,7 +36,7 @@ The reference is gen3 AHB SDIO-like HIF at public revision
 | Errors/quiescence | Vendor paths include mapping-error refusal, fatal-state checks, poll timeouts and EN polling, but some timeout branches can return success or unmap without proven idle. `DmaStop()` only masks the interrupt; its STOP write is compiled out. | Do not copy timeout success or unmap on uncertainty. A new owner must retain mapping/buffer/resources until quiescence is proved. No fallback replay after possible FIFO consumption. |
 | Clock/reset | `wifi-dma` uses shared `INFRA_AP_DMA`. Clock enable precedes CMD53 setup/DMA use, then channel lock/config/start, completion/ACK/EN handling, unlock/unmap and clock disable. Reset helper writes warm reset 1 and polls EN; if needed writes hard reset 2, waits 1 ms and clears reset. | No global AP-DMA reset or forced shared-clock shutdown. Clock failures must refuse. The vendor reset lacks sufficient final quiescence proof for a safe new error path. |
 
-The [public transfer path](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c)
+The public transfer path
 programs SDIO-like CMD53 setup before using the aperture. Firmware must see the
 same command bytes, port choice, transfer length/padding, ordering, page debit,
 returned-page reconciliation, TX completion PID and timeout policy as PIO.

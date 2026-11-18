@@ -25,8 +25,7 @@ separate slots when two fingers touch the screen, with the console undisturbed.
 
 ## Provenance and environment
 
-- Public vendor kernel `planet-community/android_kernel_planetcom_mt6797`, commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`, `aeon_nt36xxx/`.
+- Public vendor kernel the vendor's kernel, `aeon_nt36xxx/`.
 - The DTB in the retained vendor boot image, read privately; only the touch and
   I2C4 facts below are recorded.
 - Linux 7.1.3 with the station series; profile `mt6797-a53-station-a72`.
@@ -45,7 +44,7 @@ table has no NT36672A entry.
 The separate driver already exists as patch
 [0075](../../patches/v7.1.3/0075-input-touchscreen-novatek-add-NT36772-backend.patch),
 compile-tested only, in the station series but not in the station config. Reading
-it against the public vendor driver (commit `8cfe6596`) and the retained live DTB
+it against the public vendor driver (the vendor's kernel) and the retained live DTB
 found what would stop a first run, fixed in
 [0474](../../patches/proposals/0474-Input-novatek-nt36xxx-follow-the-vendor-s-bring-up-s.patch):
 

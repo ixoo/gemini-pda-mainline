@@ -25,7 +25,7 @@ per-CPU `cpu_data` record?
 - Exact parent experiment:
   [`2026-08-03-a72-scheduler-context`](../2026-08-03-a72-scheduler-context/README.md).
 - Exact parent Gemian source commit:
-  `59e00a9144d782e148332009a835b99c43382467`.
+  the vendor's kernel.
 - Exact parent scheduler patchset SHA-256:
   `bd5799cecd14aa34a87562b09507a6d9f18f11cd138420bcba629f12793e7bfe`.
 - Exact reconstructed parent `arch/arm64/kernel/psci.c` SHA-256:

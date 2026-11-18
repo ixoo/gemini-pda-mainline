@@ -43,8 +43,8 @@ current Image/gzip/final handoff or the E0 refusal path.
 - Initramfs: exact serviceability image, SHA-256
   `e0dffa04a621f60903cf4cf7280d773ec1c89c43ea63ec0f8b3a0879e7cebc0f`.
 - Public loader reference: Planet LK repository
-  `https://github.com/dguidipc/gemini-lk-android8`, commit
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`. It is source-contract
+  `the vendor's LK`, commit
+  the vendor's LK. It is source-contract
   evidence, not a byte-identity claim for the installed loader.
 - Boot path: LK Android-v0 container on inactive logical `boot2`.
 - No kernel compilation was needed: this is a recontainer of the exact

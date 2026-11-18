@@ -13,7 +13,7 @@ that exact passive owner. After the checked-OFF CONN query and existing VCN28
 and EMI samples, it makes 24 bounded SMC reads of the vendor-defined range
 registers for regions 0 through 23 and logs one raw word per region. The
 three bank bases and eight-register stride come from the pinned MT6797
-[`emi_mpu.h`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h).
+`emi_mpu.h`.
 It makes no SET/WRITE call, protection change, power transition, reset,
 radio request, firmware load or memory access to a protected window.
 
@@ -70,13 +70,13 @@ an all-zero census alone proves a mainline EMI protection policy, domain
 routing or overlap behavior.
 
 The pinned Gemian Wi-Fi reference source at
-`59e00a9144d782e148332009a835b99c43382467` already implements its
+the vendor's kernel already implements its
 `mpu_config` reader through `mt_emi_reg_read()`. For MPU offsets, the
-[`emi_reg_rw.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/emi_mpu/emi_reg_rw.c)
+`emi_reg_rw.c`
 implementation (SHA-256
 `da41e7d325aa4d3207a38bd566f39680a3b2275db87b4ba0919d266375d858e0`)
 routes that call to
-[`emi_mpu_smc_read()`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_secure_api.h),
+`emi_mpu_smc_read()`,
 which uses the same SMC32
 `0x82000208` with the offset in x1. The selected configuration has
 `CONFIG_MTK_PSCI=y`, and the header bounds its MPU offsets to `0x160..0x3bc`.
@@ -189,9 +189,9 @@ or an authorization for a protection write.
 ## Pinned Gemian source attribution
 
 A read-only check of the prepared Gemian source tree at
-`59e00a9144d782e148332009a835b99c43382467` found a likely producer for
+the vendor's kernel found a likely producer for
 the fourth differing range. Its
-[`scp_helper.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/scp/mt6797/scp_helper.c#L743-L761)
+`scp_helper.c`
 (SHA-256 `fa5778ab866b48da9fc83ff5e8a415eb9f21ca8604d285d0d4080e5182f3bbed`)
 assigns region 22 to SCP shared memory and requests protection over its
 reserved-memory base and size during SCP helper initialization. The
@@ -202,7 +202,7 @@ not attested, and the sysfs range does not identify the writer by itself;
 region 22 does not overlap the CONSYS window.
 
 The same source tree's
-[`ccci_platform.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/eccci/mt6797/ccci_platform.c#L60-L130)
+`ccci_platform.c`
 (SHA-256 `d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156`)
 labels MPU permission domain 2 `CONN` in both its field-order comment and
 default-permission table. This identifies the vendor source's intended

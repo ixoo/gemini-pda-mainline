@@ -18,8 +18,7 @@ repeat the closed retained binary observer or the unavailable live ftrace path.
 ## Reproducible source boundary
 
 All six files were fetched individually from
-`lineage-geminipda/android_kernel_planet_mt6797` at
-`c5b0be85017ad0c599725e8273842efdbecdd88a`. Byte lengths and SHA-256 digests
+the vendor's kernel. Byte lengths and SHA-256 digests
 matched the existing ledgers:
 
 - [HIF DMA sources](../2026-09-05-mt6797-wifi-contract/results/hif-dma-sources.json):
@@ -76,7 +75,7 @@ deployment, boot selection or radio action.
 
 The [source comparison receipt](results/native-build-selection-sources.json)
 pins twelve individually retrieved files from
-`gemian/gemini-linux-kernel-3.18@59e00a9144d782e148332009a835b99c43382467`.
+`gemian/the vendor's kernel@the vendor's kernel`.
 All six observation-site files above are byte-identical to the Planet inputs.
 This source already has a [Buildbox compile setup](../../docs/BUILDBOX.md#gemian-observer-compile-review-lane)
 with a pinned compiler and retained configuration. Its earlier A72 hook

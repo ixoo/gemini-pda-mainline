@@ -36,8 +36,8 @@ and the subsequent read. Ordinary sensor activity does not use this selector.
 ## Source and retained-image basis
 
 The selected Planet source at
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, file
-`drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.c`, defines:
+the vendor's kernel, file
+`bmi160_acc.c`, defines:
 
 - `bmi160_store_reg_sel`: parses two integers into cached register and length
   fields; it performs no bus transaction.

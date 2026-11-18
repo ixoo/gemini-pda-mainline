@@ -43,9 +43,9 @@ exercise CPU8/9, DVFS, thermal management, or vendor scheduling policy.
   and supplies the focused MediaTek scheduler flags omitted by the first
   capture's narrower filter.
 - The initial scheduler and HPS log decoding used Gemian GPL source commit
-  [`d388d350`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/d388d350cb2dda8f23b99be6fa5db9628896e87f),
+  the vendor's kernel,
   specifically the `mt_hotplug_strategy_{cpu,algo,core}.c` files below
-  `drivers/misc/mediatek/base/power/mt6797/`. No vendor source is copied into
+  the vendor's `mt6797` code. No vendor source is copied into
   this repository. That source revision has the matching `action-end` printk
   block commented out, while the exact running binary emits its format. The
   tuple interpretation was therefore a combined pinned-source and
@@ -58,7 +58,7 @@ exercise CPU8/9, DVFS, thermal management, or vendor scheduling policy.
   The equivalent source shows HPS changing its local count without checking
   `cpu_up()`/`cpu_down()` results, invalidating the original claim that a
   leading tuple alone proves online completion. The HPS algorithm file is
-  `drivers/misc/mediatek/base/power/mt6797/mt_hotplug_strategy_algo.c`; there is
+  `mt_hotplug_strategy_algo.c`; there is
   no `hps_v3` component in this source path.
 
 ## Safety assessment

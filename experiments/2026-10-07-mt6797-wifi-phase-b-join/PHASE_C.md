@@ -40,7 +40,7 @@ passphrase stay private inputs.
   join channel, in both the native 802.11 and the translated-Ethernet layouts,
   with the vector and group-4 metadata bounds, the fixed frame control, the
   peer identity and complete EAPOL-Key framing (`eapol-rx.h`).
-- Pinned vendor layouts for later stages (gen3 at revision `c5b0be85…`):
+- Pinned vendor layouts for later stages (gen3 at revision `the vendor's kernel…`):
   `CMD_802_11_KEY` for `CMD_ID_ADD_REMOVAL_KEY` (add/remove, TX key, key type,
   authenticator flag, peer address, BSS index, algorithm, key id, key length,
   WLAN index, 32 bytes of material, 16 bytes of RSC); algorithm identifiers

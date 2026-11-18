@@ -84,7 +84,7 @@ ownership is unchanged; no active driver or firmware operation is admitted.
 
 The [receipt](results/firmware-command-dispatch.json) pins the existing firmware
 identity, six private analysis scripts and two public host headers from Planet
-commit `c5b0be85017ad0c599725e8273842efdbecdd88a`. The existing RE-VM Ghidra
+the vendor's kernel. The existing RE-VM Ghidra
 project was reused. Instruction decoding uses the prior NDS32 mapping premise;
 the pointer table provides additional support for little-endian data but does
 not independently prove every ABI or mapping assumption.

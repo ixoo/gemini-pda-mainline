@@ -23,8 +23,8 @@ DCO certification in this slice.
 | Input | Pin and role |
 | --- | --- |
 | Current upstream | Linux `4d7d9486c04d917265f64c55bd23b2cc4fe7749c`; still the master endpoint at this audit, timestamp `2026-09-05T02:36:11Z` |
-| Selected vendor source | Planet `c5b0be85017ad0c599725e8273842efdbecdd88a`; selected Gemini defconfig, WMT wrapper and MT6797 clock provider |
-| Independent source comparator | Gemian `d388d350cb2dda8f23b99be6fa5db9628896e87f`; its MT6797 clock provider corroborates the island masks and sequence |
+| Selected vendor source | The vendor's kernel; selected Gemini defconfig, WMT wrapper and MT6797 clock provider |
+| Independent source comparator | The vendor's kernel; its MT6797 clock provider corroborates the island masks and sequence |
 | Retained named-device evidence | [Connectivity summary](../2026-07-12-connectivity-wmt-recovery/results/runtime-summary.txt) identifies `mtk_wmt`, `SCP_SYS_CONN` and four VCN supplies on Gemian `3.18.41+`; this is not a trace of individual power transitions |
 | Local kernel inputs | Manifest-selected Linux 7.1.3 plus local patches; neither the manifest nor any series/profile is changed or treated as pristine current upstream |
 
@@ -36,15 +36,15 @@ number 2. The provider's internal `SYS_CONN` number is 1; these are different
 namespaces. Its `pg_conn` has no parent or preclock. The executed path is
 `clk_prepare_enable(conn)` through the power-gate operations to
 `spm_mtcmos_ctrl_conn()`.
-[WMT selection](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h#L39),
-[DT mapping](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/boot/dts/mt6797.dtsi#L3767),
-[provider registration](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/clk/mediatek/clk-mt6797-pg.c#L2526).
+WMT selection,
+DT mapping,
+provider registration.
 
 The inactive direct-register fallback uses bus-protection bits 18/19. The
 executed provider uses **bits 17/18**. Its generic descriptor contains zero
 for the protection mask because custom CONN operations supply the real mask.
 Neither the fallback constants nor that zero may seed upstream CONN data.
-The [Gemian provider](https://github.com/gemian/gemini-linux-kernel-3.18/blob/d388d350cb2dda8f23b99be6fa5db9628896e87f/drivers/clk/mediatek/clk-mt6797-pg.c#L565)
+The Gemian provider
 independently agrees with the active Planet mask and island sequence. The
 Gemian tree's corresponding DT is `mt6797.dts`, not the Planet `.dtsi`; no
 matching common MT6797 WMT implementation was established from that pin.
@@ -72,7 +72,7 @@ enable SPM control; assert/ack protection; set isolation; set clock-disable;
 assert domain reset; clear primary then secondary power request; wait for
 both ACKs clear. There is no CONN SRAM transition or explicit delay inside
 this selected routine.
-[Provider definitions and sequence](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/clk/mediatek/clk-mt6797-pg.c#L574).
+Provider definitions and sequence.
 
 ## The outer owner is not a power-domain data field
 
@@ -84,7 +84,7 @@ programs MCU/AFE state, releases CONMCU reset and sleeps 20 ms. Its chip-ID
 loop permits ten attempts separated by 20 ms after misses, but its unsigned
 post-decrement mishandles exhaustion. Clock/regulator failures are logged
 without reliably stopping this path; the wrapper ultimately returns zero.
-[Outer sequence](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L291).
+Outer sequence.
 
 The retained [configuration summary](../2026-07-12-connectivity-wmt-recovery/results/wmt-config-summary.txt)
 records `co_clock_flag=0`. That is configuration evidence, not proof of the
@@ -96,7 +96,7 @@ TOPRGU's keyed reset update is serialized by its watchdog/reset provider.
 SPM reset release cannot substitute for CONMCU reset. A normal implementation
 must hold the independent reset across island activation until preparation
 has succeeded, and must propagate failure before releasing it.
-[Selected reset helper](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c#L396).
+Selected reset helper.
 
 Local [patch 0090](../../patches/v7.1.3/0090-watchdog-mtk-expose-MT6797-TOPRGU-resets.patch)
 already describes TOPRGU CONMCU bit 12; it is an existing

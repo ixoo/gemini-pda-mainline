@@ -14,7 +14,7 @@
   `2026-09-06-mt6797-wlan-drv-init-lifecycle-source-attribution` and
   `2026-09-06-mt6797-connectivity-producer-source-attribution` experiments.
   The public Planet source remains pinned at
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - **Frozen private input:** the already reconstructed active-kernel ELF at the
   existing RE-VM work path, expected SHA-256
   `cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162`.

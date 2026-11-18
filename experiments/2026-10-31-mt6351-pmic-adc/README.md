@@ -24,11 +24,10 @@ and that the vendor path applies no software calibration.
 
 ## Provenance and environment
 
-- Vendor kernel `planet-community/android_kernel_planetcom_mt6797`, commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`. Built MT6797 PMIC path:
-  `drivers/misc/mediatek/power/mt6797/`; wrapper:
-  `drivers/misc/mediatek/pmic_wrap/mt6797/`. The MT6353-family copies under
-  `drivers/misc/mediatek/pmic/mt6353/` are not built
+- Vendor kernel the vendor's kernel. Built MT6797 PMIC path:
+  the vendor's `mt6797` code; wrapper:
+  the vendor's `mt6797` code. The MT6353-family copies under
+  the vendor's `mt6353` code are not built
   (`CONFIG_MTK_PMIC_CHIP_MT6353` unset in the retained Gemian configuration).
 - MT6351 PMIC datasheet v12 (section 3.2.9, register summary) and MT6797
   register-table part 1 (PMIC wrapper, page 608).

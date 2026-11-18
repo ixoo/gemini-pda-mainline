@@ -28,10 +28,10 @@ kernel-probe guess.
 ## Provenance and environment
 
 - Pinned public LK source commit:
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`.
-- Audited `lk/platform/mt6797/atags.c` SHA-256:
+  the vendor's LK.
+- Audited `atags.c` SHA-256:
   `2085ee837776586a86c1e03504f3220ee7dc2bedf46934729c9042d3702bcb87`.
-- Audited `lk/app/mt_boot/mt_boot.c` SHA-256:
+- Audited `mt_boot.c` SHA-256:
   `9380b89d367770acf29f1c5b7f4856cc87bc4b64afd17aa9fa1fd621c213ecda`.
 - Live `lk` and `lk2` match the project-start loader capture, SHA-256
   `75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c`.

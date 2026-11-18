@@ -30,7 +30,7 @@ mainline boot or multimedia/firmware drivers are enabled?
   `artifacts/device-inventory/20260714T-handoff-refresh/` directory and
   normalized in [`results/live-handoff-refresh-20260714.txt`](results/live-handoff-refresh-20260714.txt).
 - Vendor source: Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Mainline comparison: Linux `7.1.3` and the local patch series.
 
 The capture reads `/proc/meminfo`, the flattened device-tree

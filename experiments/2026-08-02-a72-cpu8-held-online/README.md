@@ -20,7 +20,7 @@ and generic hotplug rejects every CPU8/9 down request before notifier dispatch?
 
 ## Provenance and environment
 
-- Pinned Gemian source: `59e00a9144d782e148332009a835b99c43382467`.
+- Pinned Gemian source: the vendor's kernel.
 - Exact accepted parent: the one-way CPU8 patchset and first online runtime.
 - Build backend: Buildbox only; no native VM kernel build.
 - Intended boot path: exact Android-v0 image on live-GPT-resolved `boot2` only

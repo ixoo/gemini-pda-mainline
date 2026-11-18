@@ -42,7 +42,7 @@ admission. This metadata tool does not satisfy those prerequisites itself.
 ## Selected board source: gen3, not the earlier gen2 assumption
 
 All Planet source references below are pinned to
-`c5b0be85017ad0c599725e8273842efdbecdd88a`. The board
+the vendor's kernel. The board
 `aeon6797_6m_n_defconfig` selects `CONFIG_MTK_COMBO_CHIP_CONSYS_6797=y`
 and `CONFIG_MTK_COMBO_WIFI=y`. Connectivity Kconfig maps that choice to
 `CONFIG_MTK_COMBO_CHIP="CONSYS_6797"`. The enclosing WLAN Makefile then
@@ -50,9 +50,9 @@ selects **gen3** and defines `MT6797`; other CONSYS selections use gen2.
 This direct selection chain corrects the earlier gen2 assumption. A physical
 device's historical kernel binary is not proven identical to this source
 merely because its labels match.
-[Board configuration](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/configs/aeon6797_6m_n_defconfig#L247),
-[Kconfig mapping](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/Kconfig#L144),
-[WLAN selector](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/Makefile#L27).
+Board configuration,
+Kconfig mapping,
+WLAN selector.
 
 The gen3 Makefile selects `os/linux/hif/ahb_sdioLike/` for MT6797. Its
 objects include AHB, PDMA and SDIO-like bus helpers. The selected AHB glue
@@ -61,8 +61,8 @@ HIF/MCU/remap resources. It spells its compatible `mediatek,WIFI`, whereas
 the older normalized live record spells `mediatek,wifi`; preserve these as
 separate source and observation records. SDIO-like helper names do not prove
 an enumerated physical SDIO function.
-[Gen3 HIF selection](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile#L92),
-[selected AHB driver](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c#L196).
+Gen3 HIF selection,
+selected AHB driver.
 
 ## Source-established MT6797 MTKE format
 
@@ -76,15 +76,15 @@ values, chip-info word or version values.
 | Header: 24 bytes | Signature, CRC and count as 32-bit words; 16-bit major/minor numbers; 32-bit chip-info and reserved words |
 | Each section: 16 bytes | 32-bit file offset; 8-bit key index and encryption selector; 16-bit reserved field; 32-bit length and destination |
 
-[MT6797 declarations](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h#L348),
-[MTKE signature](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h#L621).
+MT6797 declarations,
+MTKE signature.
 
 The gen3 loader validates CRC over byte 8 through EOF. Its entire CRC table
 was independently checked against reflected IEEE CRC32; initial/final
 inversion matches the gen2 comparator. The selected configuration enables
 divided download, acknowledgement and encryption support.
-[CRC gate](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L421),
-[gen3 configuration](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h#L492).
+CRC gate,
+gen3 configuration.
 
 The loader routes section indices 0 and 1 through HIF download configuration
 and PDA packets. Nonzero encryption selectors enable hardware encryption
@@ -94,20 +94,20 @@ into a 512 KiB CONSYS EMI mapping after MPU changes. Their destination's low
 direct shared-RAM ownership dependency, not merely a common firmware name.
 The source shows hardware download controls, not a requirement to decrypt
 firmware on the host.
-[Section routing and EMI copy](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L818),
-[configuration controls](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L2401).
+Section routing and EMI copy,
+configuration controls.
 
 An invalid signature/CRC branch attempts whole-image download with fallback
 settings. It is not evidence that the retained MTKE file uses a raw path.
 The inspector refuses CRC errors and never follows a raw fallback; it also
 never executes the HIF, DMA, MPU, memory-copy or firmware-start operations.
-[Fallback source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L442).
+Fallback source.
 
 ## Retained MTKW comparison format
 
 The primary reference is Planet commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, below
-`drivers/misc/mediatek/connectivity/wlan/gen2/`. The inspected source files
+the vendor's kernel, below
+the vendor's `gen2` code. The inspected source files
 have explicit GPL version 2 notices. The inspector is independently written;
 no vendor source, CRC table or firmware bytes are included.
 
@@ -118,8 +118,8 @@ Its signature definition identifies `MTKW`. All represented values are
 32-bit words; the inspector implements the little-endian format corresponding
 to the observed ARM64 platform. Destination values are checked internally
 but never emitted.
-[Header and section declarations](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/include/wlan_lib.h#L296),
-[signature](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/include/wlan_lib.h#L402).
+Header and section declarations,
+signature.
 
 The loader checks the signature and CRC over byte 8 through the end of the
 file before using the section table. The source CRC has initial and final
@@ -129,8 +129,8 @@ justifies Python's standard `zlib.crc32` for that field. The synthetic test
 oracle uses an independently written bit-at-a-time calculation and the
 published conventional `123456789` check vector, rather than calling the
 production CRC routine.
-[Loader check](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/common/wlan_lib.c#L378),
-[CRC implementation](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/common/wlan_lib.c#L2310).
+Loader check,
+CRC implementation.
 
 The Makefile defines `MT6628`; the configuration enables divided download
 for that build selector, with download acknowledgements and encryption
@@ -139,9 +139,9 @@ loader constructs section-download commands, later starts Wi-Fi and polls
 its ready state. This inspector performs none of those operations. Their
 existence also means that a successfully parsed file is insufficient evidence
 for a non-transmitting hardware test.
-[Build selector](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/Makefile#L4),
-[configuration](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/include/config.h#L483),
-[download operation](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/common/wlan_lib.c#L1949).
+Build selector,
+configuration,
+download operation.
 
 Cyrozap's CC0
 [SoC schema](https://github.com/cyrozap/mediatek-wifi-re/blob/bcbb3b914ce1292add14bffdee4f1e0a8af33500/mediatek_soc_wifi_firmware.ksy)
@@ -274,23 +274,23 @@ alone do not establish transport framing observed on Gemini.
 
 | Selected-source file | SHA-256 |
 | --- | --- |
-| `arch/arm64/configs/aeon6797_6m_n_defconfig` | `83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f` |
-| `drivers/misc/mediatek/connectivity/Kconfig` | `2bbf3d81f3f2299feaecd8318ab99e92bebe9bc58704b1302355e4fb0193af9a` |
-| `drivers/misc/mediatek/connectivity/wlan/Makefile` | `46185e00d63f9c29ee721781c9fd43b9f3e6f157f26d3610c60c63e00351fc33` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/Makefile` | `5e099f94e6c79593a9210b97096646d2d8e2b0ddd7110a8870519b3dd5c49204` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h` | `82680ed2fba541a751b63d01aa9d18b8414929e4e4eba74d44fe36d1c531172c` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c` | `56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h` | `c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_init_cmd_event.h` | `46f8490382ae71485dfb4f106d9e53735ec66ef662b97a12810362309eae7a56` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb.c` | `d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c` | `83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480` |
+| `aeon6797_6m_n_defconfig` | `83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f` |
+| `Kconfig` | `2bbf3d81f3f2299feaecd8318ab99e92bebe9bc58704b1302355e4fb0193af9a` |
+| `Makefile` | `46185e00d63f9c29ee721781c9fd43b9f3e6f157f26d3610c60c63e00351fc33` |
+| `Makefile` | `5e099f94e6c79593a9210b97096646d2d8e2b0ddd7110a8870519b3dd5c49204` |
+| `wlan_lib.h` | `82680ed2fba541a751b63d01aa9d18b8414929e4e4eba74d44fe36d1c531172c` |
+| `wlan_lib.c` | `56bf99536fcb96de5a5198943aec96c9efccb8af89261b29c62046e6560c422f` |
+| `config.h` | `c773b8e5e07978d60565c2eeee976dae3e285ecb9152062fe3bb50b1358a1c32` |
+| `nic_init_cmd_event.h` | `46f8490382ae71485dfb4f106d9e53735ec66ef662b97a12810362309eae7a56` |
+| `ahb.c` | `d9b4e80fe98695284627e495ad640e39728ebe7df235df129f64d48e8a2e726b` |
+| `ahb_pdma.c` | `83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480` |
 
 ## Next bounded implementation
 
 The exact-file inspection is complete. Use its sanitized receipt to pin
 section counts, CRC coverage and EMI extents in host fixtures, then specify
 the gen3 DOWNLOAD_CONFIG/PDA/ACK packet contract from
-[its exact command header](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_init_cmd_event.h),
+its exact command header,
 including sequence/status refusal and finite packet lengths. In parallel,
 map the shared CONSYS EMI/remap/MPU lifetime into the common power/firmware
 owner. None of that requires host-side firmware decryption or a device boot.

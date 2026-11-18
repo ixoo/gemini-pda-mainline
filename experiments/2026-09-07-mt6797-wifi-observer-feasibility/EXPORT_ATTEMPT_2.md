@@ -72,8 +72,8 @@ not proof that the candidate registered its backend or that its records survived
 
 ## Read-path check and next boundary
 
-In the pinned native source `59e00a9144d782e148332009a835b99c43382467`,
-`drivers/misc/mediatek/ram_console/mtk_ram_console.c:735–750` connects
+In the pinned native the vendor's kernel,
+the vendor's `mtk_ram_console.c:735–750` code connects
 `last_kmsg` to the saved RAM-console buffer. Lines 535–583 emit its header and,
 when configured, request old console records through `pstore_console_show()`.
 The latter serializes backend reads and frees temporary copies; it has no erase

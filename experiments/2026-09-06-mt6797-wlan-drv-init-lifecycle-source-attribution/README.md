@@ -16,7 +16,7 @@ exit invocation remain unresolved.
 
 The frozen [contract](WORK_ITEM.md) uses repository parent
 `30d414811724c25ebd4183c00f06cd8d27aebb0b` and Planet source
-`c5b0be85017ad0c599725e8273842efdbecdd88a`.
+the vendor's kernel.
 [Inputs](inputs.json) pin ten full source identities, six inherited and four
 new. [Search](search.json) preserves all four successful receipts and four
 bounded no-hit records. [Verdicts](verdicts.json) provide exact source/line/symbol

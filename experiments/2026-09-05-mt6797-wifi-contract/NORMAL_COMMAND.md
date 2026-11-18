@@ -9,7 +9,7 @@ it with the unchanged PIO primitive; no firmware or calibration input is read.
 ## Pinned wire and resource contract
 
 All source references below use Planet
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, gen3.
+the vendor's kernel, gen3.
 [Ten exact source-file identities](results/normal-command-sources.json).
 
 | Boundary | Selected source and consequence |
@@ -31,7 +31,7 @@ A source-bound upper bound is useful for the next owner. With pinned
 RDD test mode, `wlanLoadManufactureData` can queue at most eight conditional
 power/offset commands, two 56-byte domain commands, one country power-limit
 command and the 512-byte record. The conditional commands and domain commands
-each cost one TC4 page. [Pinned `rlm_domain.h`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/rlm_domain.h#L315)
+each cost one TC4 page. Pinned `rlm_domain.h`
 (SHA-256 `b0d57b3bcc6a071592b138a868ed6892c1272914327fd2dd45dc624a3f3eb4ec`)
 caps power-limit entries at 64; its `16 + 8 * 64`-byte payload plus the
 eight-byte command header costs at most

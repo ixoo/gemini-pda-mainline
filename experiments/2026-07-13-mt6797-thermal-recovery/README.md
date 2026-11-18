@@ -26,7 +26,7 @@ be recovered before selecting an existing SoC driver.
 
 - Kernel release: live device `3.18.41+`, AArch64, MT6797X.
 - Vendor source: `planet-mt6797-3.18`, commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Mainline source: Linux `7.1.3` in the development VM.
 - Live evidence: private, mode-0600
   `artifacts/device-inventory/20260714-live/thermal-auxadc.txt` (SHA-256

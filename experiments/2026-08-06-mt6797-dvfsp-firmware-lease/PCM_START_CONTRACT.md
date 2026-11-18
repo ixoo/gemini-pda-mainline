@@ -18,7 +18,7 @@ secure firmware, or a separately controlled service.
 
 The public Gemian 3.18 source now supplies a positive historical reference for
 the owner shape. At commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`,
+the vendor's kernel,
 `mt_cpufreq_hybrid.c` maps CSPM `0x11015000 + 0x1000` and CSRAM
 `0x0012a000 + 0x3000` in one probe, obtains the `INFRA_I2C_APPM` clock, and
 initializes the SW/HW status windows. Its `cspm_go_to_dvfs()` performs the

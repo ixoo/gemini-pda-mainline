@@ -98,7 +98,7 @@ from Group4, **not translated Ethernet destination bytes**.
 FC0x4208 reports version0, Data/subtype0, FromDS1/ToDS0, Protected1, not unicast
 or destination. TA equality reports comparison with the host's joined-AP value.
 The independently public-verified gen3
-[nic_rx.h:82](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h#L82)
+nic_rx.h:82
 defines CIPHER_SUITE_CCMP4 (file SHA256
 `0645985217a887e6c2d367955fa656b45f716a6aeeee13a29a2b462eb8dea5cb`).
 Thus security mode4 reports that source's CCMP encoding, not measured decryption;
@@ -147,8 +147,8 @@ Length80 versus32 is established; stale length, framing/port/producer effects or
 a control packet are hypotheses only. The refusal does not export header type or
 packet body, so it cannot select among them. The public gen3 caller also checks
 WRPLR versus descriptor byte count (`nic/nic_rx.c:2854..2889` at
-`gemian/gemini-linux-kernel-3.18` commit
-`59e00a9144d782e148332009a835b99c43382467`); it is not evidence for relaxing equality.
+`gemian/the vendor's kernel` commit
+the vendor's kernel); it is not evidence for relaxing equality.
 
 ## Readiness, incomplete leaf evidence and recovery
 
@@ -189,9 +189,9 @@ station/key record, trace independently verified caller wire fields and their
 translation-selection semantics, then compare any source-grounded producer
 interpretation forwarded by ROOT. Public gen3 names an eight-byte
 CMD_BASIC_CONFIG_T whose first byte is ucNative80211, CID0x02/Set;
-[definition](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h#L422),
-[initial sender](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L3218)
-and [OID sender](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c#L7070)
+definition,
+initial sender
+and OID sender
 independently verified at that public commit. Both callers set the byte to0;
 neither proves firmware consumption, supported nonzero values, untranslated
 ciphertext or replay-material preservation. Do not assume monitor redispatch implies

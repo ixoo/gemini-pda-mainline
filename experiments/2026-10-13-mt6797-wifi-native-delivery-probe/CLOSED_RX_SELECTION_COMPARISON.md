@@ -14,7 +14,7 @@ post-reads were already absent. Cached release counts do not explain the older
 C6 timeout, and the receive refusal is a separate transport result.
 
 The pinned public gen3
-[single-packet reader](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c#L2826-L2908)
+single-packet reader
 reads one whole WRPLR word, selects port 0 if nonempty, otherwise port 1,
 then reads that selected FIFO and requires descriptor/advertised equality.
 The current MAC instead requests each port separately with fresh whole-word

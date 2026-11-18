@@ -33,7 +33,7 @@ mainline A72 request. Those remain separate Gate 4 boundaries.
 - Exact deployed padded parent image SHA-256:
   `33ace2c30a8877be2a4b917135aa994ad718201f98ec36d8506a3b1f1d03a7aa`.
 - Selected vendor source remains hook-equivalent public commit
-  `59e00a9144d782e148332009a835b99c43382467`; it is not claimed to be the
+  the vendor's kernel; it is not claimed to be the
   unrecovered exact active source.
 - Any kernel build must use the pinned 2017 toolchain through Buildbox from an
   exact clean pushed project commit. A native VM kernel build is prohibited

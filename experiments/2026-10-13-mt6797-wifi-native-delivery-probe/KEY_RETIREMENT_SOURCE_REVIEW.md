@@ -14,7 +14,7 @@ The [validated C10 driver source](results/ccmp10-build-validation.json)
 submits separate pairwise and group removals, then station
 removal, channel return and BSS deactivation. Key-state 2 means submitted;
 returned TC4 pages retire command-buffer debt. The public
-[CMD_802_11_KEY layout](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h#L375-L389)
+CMD_802_11_KEY layout
 places AddRemove at payload byte 0, KeyType at 2, peer at 4, key ID at 12 and
 WLAN index at 14. C10's encoder uses AddRemove 0 and KeyType 1 for pairwise,
 0 for group. It has not changed from C9.
@@ -49,8 +49,8 @@ ADD_PKEY_DONE as a deletion acknowledgement.
 ## Transitive cleanup boundaries
 
 Only the two command entries actually used by host cleanup were selected:
-[REMOVE_STA_RECORD](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h#L1028-L1033)
-and [BSS_ACTIVATE_CTRL](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h#L899-L907).
+REMOVE_STA_RECORD
+and BSS_ACTIVATE_CTRL.
 Their first bounded windows supplied 85 and 39 instructions. The BSS window ended before the valid BSS-0 branch;
 that first window was argument-validation evidence, not a retirement test.
 A separately specified valid-branch continuation supplied 80 instructions.

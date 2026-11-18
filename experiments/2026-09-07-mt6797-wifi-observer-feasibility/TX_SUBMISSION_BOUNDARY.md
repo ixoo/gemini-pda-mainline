@@ -12,7 +12,7 @@ boundary and DMA join while retaining the post-hash stability limitation.
 
 The existing [source receipt](results/capture-sizing.json) pins the complete
 Gemian `nic_tx.c`, `hal.h`, `hif_tx.h` and `ahb.c` files at
-`59e00a9144d782e148332009a835b99c43382467`. The first three are verified before
+the vendor's kernel. The first three are verified before
 the [focused test](test-tx-submission-boundary.py) extracts and compiles the actual
 `nicTxInitCmd()` and AHB-selected `HAL_PORT_WR`/`HAL_WRITE_TX_PORT` definitions.
 Adapter layout, memory-copy fault injection and the port writer are host shims.

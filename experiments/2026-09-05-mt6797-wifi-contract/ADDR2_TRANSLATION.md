@@ -9,7 +9,7 @@ on the bus. No DMA mask, driver, DT policy or hardware action is admitted.
 ## Inputs and method
 
 Public comparisons use Planet revision
-`c5b0be85017ad0c599725e8273842efdbecdd88a`; exact file identities are in
+the vendor's kernel; exact file identities are in
 [the source ledger](results/addr2-sources.json). Public files were read in
 memory, without another source checkout. The existing prepared retained kernel
 and its embedded IKCONFIG were inspected in the RE VM. Private configuration,

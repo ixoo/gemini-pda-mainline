@@ -13,12 +13,12 @@ the range and policy registers of regions 18, 19 and 23 and logs their six raw
 32-bit values once. It does not call the SET or WRITE services, alter power,
 reset, rail, remap or firmware state, or populate a WLAN child. The service ID
 and register offsets were checked against pinned public vendor source revision
-`c5b0be85017ad0c599725e8273842efdbecdd88a`: the
-[`mt_secure_api.h`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_secure_api.h)
+the vendor's kernel: the
+`mt_secure_api.h`
 (SHA-256 `f810af34…a4b421`),
-[`emi_reg_rw.c`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/emi_mpu/emi_reg_rw.c)
+`emi_reg_rw.c`
 (SHA-256 `da41e7d3…375d858e0`) and
-[`emi_mpu.h`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h)
+`emi_mpu.h`
 (SHA-256 `a59c8a9a…a66ce2a5aed68d`). The implementation expresses only those
 register and interface facts; it does not copy vendor code. The selected
 source is a comparator, not yet byte-matched to the executing secure firmware.

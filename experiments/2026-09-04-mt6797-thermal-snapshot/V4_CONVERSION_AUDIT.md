@@ -11,7 +11,7 @@ The existing production `drivers/thermal/mediatek/auxadc_thermal.c` on Buildbox
 still matches SHA256 `e2ce72fa105be597a5c7a3cea37499512093c86ba4cc4ac85b92c10b0254c481`.
 This is the file tied to the exact candidate in the
 [source receipt](results/sensor-freshness-source-audit.txt). The pinned archive's
-`drivers/misc/mediatek/thermal/mt6797/src/mtk_tc.c` still matches its previously
+`mtk_tc.c` still matches its previously
 reviewed hash; pin and full identities are in the
 [arithmetic receipt](results/v4-conversion-audit.txt). No source tree was copied,
 prepared or changed. Only the pure production conversion body was extracted

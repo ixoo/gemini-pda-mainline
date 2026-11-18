@@ -7,7 +7,7 @@ are not rewritten. No earlier component is admitted to live/kernel use by
 those receipts. This correction is submitted for independent review before
 further payload layering.
 
-At selected Planet pin `c5b0be85017ad0c599725e8273842efdbecdd88a`, gen3
+At selected Planet pin the vendor's kernel, gen3
 `wlanImageSectionConfig` assigns `ucTC = TC4_INDEX` at line 2431 and passes
 that variable to `nicTxAcquireResource` at lines 2474–2475. In the same file,
 `wlanConfigWifiFunc` assigns `TC0_INDEX` at line 2845 and acquires that class

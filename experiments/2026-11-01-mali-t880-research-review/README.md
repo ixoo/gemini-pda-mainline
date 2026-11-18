@@ -14,7 +14,7 @@ Reviewed the [October 4 source investigation](../2026-10-04-gemini-gpu-re/README
 [October 31 preparation](../2026-10-31-mali-t880-offline-bringup/README.md),
 their selected patches and the [hardware record](../../docs/hardware/mali-t880.md).
 Used the retained public Gemian Git object at
-`8cfe6596a503612e3332d9c26e292a19525a7f07` on Buildbox, the existing Linux
+the vendor's kernel on Buildbox, the existing Linux
 7.1.3 prepared source, and targeted AArch64 disassembly in the RE VM
 (GNU Binutils for Ubuntu 2.42). No
 source tree was copied, kernel built, candidate composed for deployment, or
@@ -66,7 +66,7 @@ The vendor's divider-change parking requirement remains unresolved.
 
 ### 3. Async timing uses the maximum table frequency
 
-[`mtk_platform_init()`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_config_platform.c#L679-L684)
+`mtk_platform_init()`
 reads table index zero and selects `async_value = 0xa` for a maximum of at
 least 780 MHz, otherwise `0x5`. The power-on callback ORs this value into
 G3D offset `0x1c`. Type 12 has a 900 MHz maximum, so it selects **`0xa` even
@@ -82,7 +82,7 @@ observations; no live `MFG_ASYNC_CON` value was read.
 ### 4. Voltage requests and representable outputs differ
 
 The vendor's 1.0006 V calibration request passes through
-[`rt5735_set_voltage()`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/rt5735.c#L250-L275),
+`rt5735_set_voltage()`,
 which truncates `(microvolts - 600000) / 6250`. It programs selector 64,
 **1.0000 V nominal**. Targeted disassembly of the active ELF function at
 `0xffffffc0004bbae0` confirms that conversion. This supports 1.0 V as the

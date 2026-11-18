@@ -68,7 +68,7 @@ consumers is still necessary and does not prove absence of initializer effects.
 ## Verification and remaining work
 
 The [source receipt](results/controller-init-sources.json) pins the full edited
-parents and outputs at Gemian revision `59e00a9144d782e148332009a835b99c43382467`.
+parents and outputs in the vendor's kernel.
 The patch follows the capture/recovery patch and its prerequisites. Its archive
 author is synthetic and supplies no DCO certification.
 

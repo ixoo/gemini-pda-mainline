@@ -13,9 +13,9 @@ translation, header length/offset or status flags. It cannot identify native
 versus translated framing, a null frame or a valid descriptor.
 
 Pinned public gen3 source at
-[59e00a9, nic_rx.h](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h#L103-L156)
+the vendor's kernel, nic_rx.h
 defines the base descriptor fields; its
-[structure](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h#L455-L467)
+structure
 is 16 bytes. Header-control byte 6 contains header length (low six bits),
 two-byte offset (bit 6) and translation (bit 7). Little-endian bytes 10-11
 contain status flags, including NULL (bit 12) and DATA (bit 13).

@@ -8,7 +8,7 @@ driver, device protocol, runtime observation or Linux ownership/reuse approval.
 ## Frozen evidence and result
 
 The [work item](WORK_ITEM.md) uses Planet commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a` and repository parent
+the vendor's kernel and repository parent
 `a770a606ef28244d143fe270f76264ea6d0391d0`.
 [Inputs](inputs.json) pin every raw URL, whole-file SHA-256, Git blob identity,
 size and line count, plus the predecessor input digests.

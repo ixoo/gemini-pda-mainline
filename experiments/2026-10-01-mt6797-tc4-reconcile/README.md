@@ -9,7 +9,7 @@ owner; it does not reset its ledger or sequence history.
 ## Source contract and limits
 
 The [pinned source identities](../2026-10-01-mt6797-tx-status/results/sources.json)
-cover Planet gen3 revision `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+cover Planet gen3 the vendor's kernel.
 `hal.h:488–514` reads WTQCR0–7 into sixteen 16-bit returned counts;
 `nic_tx.h:297–315` assigns free-pool index 14 and CPU index 15, placing
 FFA in WTQCR7's low half and CPU in its high half. `nic_tx.c:55–63` maps

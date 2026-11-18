@@ -13,8 +13,8 @@ The eleven `2026-10-04-gemini-*-re` records make the peripheral work more
 concrete. Their source inventories name revisions, sizes and hashes; all
 eleven JSON files parsed, and their path/hash entries had sizes and URLs.
 This check did not re-fetch every input or independently reproduce every
-source conclusion. Most records use Gemian `8cfe6596`; the current Wi-Fi
-join uses `59e00a91`. Board DTS and running binary differences remain explicit
+source conclusion. Most records use the vendor's kernel; the current Wi-Fi
+join uses the vendor's kernel. Board DTS and running binary differences remain explicit
 limits. None of the new records establishes new mainline hardware support.
 
 The highest-value dependency findings are PMIC IRQ delivery shared by keys,
@@ -49,7 +49,7 @@ still need exact candidates, finite effects and stop conditions.
    until the positive Reset control passes and their effects are reviewed.
 3. **The connectivity AFE finding belongs before MCU release.** GPS F12/H2
    identifies an omitted hardware power-on stage, not a GNSS-only operation.
-   The retained `59e00a91` source used by the current Wi-Fi audit also has the
+   The vendor's kernel source used by the current Wi-Fi audit also has the
    eleven active writes before reset release; the WF_TX_02 write is commented
    out. Join the exact offsets, values, configuration branches and ownership
    into the [common-init review](../2026-10-03-mt6797-wifi-audit/COMMON_INIT_REVIEW.md)

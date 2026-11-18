@@ -91,11 +91,11 @@ handoff, retained-fault behavior and effective EMI ownership remain open.
 ## Working-reference control split
 
 The pinned Gemian
-[`mtk_wcn_consys_hw.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c)
+`mtk_wcn_consys_hw.c`
 (SHA-256 `0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce`)
 sets VCN28's hardware-control selector separately before the regulator vote
 on its `co_clock_type=0` power-on path. Its
-[header](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h)
+header
 enables PMIC control, and
 an authenticated read of the currently working Gemian boot
 `4b606b20-14a4-40bf-aef9-cff65cc0a946` found

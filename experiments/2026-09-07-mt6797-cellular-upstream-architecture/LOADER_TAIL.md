@@ -13,7 +13,7 @@ Preserve the complete 160 MiB MD1 reservation.
 ## Source mechanism
 
 The [source and binary receipt](results/loader-tail-audit-20260908.json) pins
-individual public LK files at `f4988d74bb70a0a15d7f362f412afba7e7fcda46`.
+individual public LK files the vendor's LK.
 The source is evidence only; no vendor implementation is copied into this
 repository and no source-to-installed-binary equivalence is asserted.
 
@@ -61,7 +61,7 @@ header parser, tag insertion success or execution history.
 ## Kernel consumer and limits
 
 A whole tracked-tree search of the pinned public Planet kernel
-`c5b0be85017ad0c599725e8273842efdbecdd88a` found no matches for
+the vendor's kernel found no matches for
 `free_in_kernel|retrieve_num|retrieve[0-9]|retrieve_info|retrieve_mem`.
 The exact command and no-match exit status are recorded in the receipt.
 This is a negative literal/symbol search, not proof against an indirect,

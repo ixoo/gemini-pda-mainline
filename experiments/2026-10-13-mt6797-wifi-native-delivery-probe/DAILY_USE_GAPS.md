@@ -139,8 +139,8 @@ The single channel only matters when joining a different network.
    After that, one boot against an access point that rekeys on a short
    interval.
    Offline answers, 2026-11-01, from the same public source
-   ([`privacy.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/privacy.c),
-   [`wlan_oid.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c)).
+   (`privacy.c`,
+   `wlan_oid.c`).
    Not tested:
    - **WLAN index.** `secPrivacySeekForBcEntry` gives each group key id its
      own entry. It reuses a non-pairwise entry for that BSS and peer whose key

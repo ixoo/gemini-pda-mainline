@@ -36,12 +36,12 @@ The predeclared decision boundary from Candidate AN was:
 - Reconstructed ELF: 64,416 kallsyms-derived symbols; no original build ID,
   relocations, DWARF, or original private source tree.
 - Chosen public explanatory source:
-  `gemian/gemini-linux-kernel-3.18@59e00a9144d782e148332009a835b99c43382467`.
+  `gemian/the vendor's kernel@the vendor's kernel`.
   The four relevant blobs are identical across checked public revisions from
   2019-03-24 through 2019-04-16. This is not a claim that `59e00a` is the exact
   whole active commit or a reproducible binary-equivalence result.
 - Historical board-source corroboration:
-  `planet-com/gemini-android-kernel-3.18@c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  `planet-com/gemini-android-kernel-3.18@the vendor's kernel`.
 - Exact retained external-firmware pairs:
   LK/LK2 SHA-256
   `75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c`,
@@ -55,7 +55,7 @@ The predeclared decision boundary from Candidate AN was:
   immutable private evidence below `~/reverse-engineering/`.
 
 The exact active source revision remains unresolved. The current public
-`d388d350...` head changes three of the four relevant source blobs, so its
+`the vendor's kernel...` head changes three of the four relevant source blobs, so its
 source is corroboration only; active-binary conclusions use the exact ELF.
 
 ## Safety assessment

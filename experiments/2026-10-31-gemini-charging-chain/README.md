@@ -26,14 +26,12 @@ independent thermal gates carry the rest.
 
 ## Provenance and environment
 
-- Vendor kernel `planet-community/android_kernel_planetcom_mt6797`, commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`. Built charging path:
-  `drivers/power/mediatek/switch_charging.c` and
-  `battery_common_fg_20.c`, `drivers/misc/mediatek/power/mt6797/`
+- Vendor kernel the vendor's kernel. Built charging path:
+  `switch_charging.c` and
+  `battery_common_fg_20.c`, the vendor's `mt6797` code
   (`bq25890.c`, `charging_hw_bq25890.c`, `pmic_chr_type_det.c`), PE+ 1.0 in
-  `drivers/power/mediatek/mtk_pep_intf.c`.
-- Bootloader `dguidipc/gemini-lk-android8`, commit
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`: `platform/mt6797/bq25890.c`,
+  `mtk_pep_intf.c`.
+- Bootloader the vendor's LK: `bq25890.c`,
   `mt_battery.c`, `atags.c`.
 - Retained private preloader, LK, SCP/TEE/modem images; TI BQ25896 datasheet;
   MT6351 PMIC datasheet; Android `.tp` thermal policy.

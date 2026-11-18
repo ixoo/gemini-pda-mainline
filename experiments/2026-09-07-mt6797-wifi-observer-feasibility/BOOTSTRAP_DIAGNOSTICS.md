@@ -104,7 +104,7 @@ Additional source identities from the same prepared input tree are:
 | `fs/pstore/ram_core.c` | `8a5a63163989901ec5dcccb374a77d572b81982fe5544025e090f4e00bcd0b10` |
 | `arch/arm64/mm/init.c` | `55e7f3f8895da839bfb1b5ad5cc2efa0cd44b5b3ead3533453f5c56f2b76a7d0` |
 | `drivers/of/fdt.c` | `3c9b23e038f9b58db3f7c428d598e14cba7fec2a8686691ead5c55e20623de41` |
-| `arch/arm64/boot/dts/mt6797.dtsi` | `5e7809ca4ceb07c501a76b5c2f4d7d067ce11b092fa556b5893246831bd9330f` |
+| `mt6797.dtsi` | `5e7809ca4ceb07c501a76b5c2f4d7d067ce11b092fa556b5893246831bd9330f` |
 
 ### Retained LK and complete DT comparison
 
@@ -137,11 +137,11 @@ own reservation list and adds nodes/properties; it does not replace the
 original pstore node in the inspected function.
 
 This agrees with pinned
-[mblock_v2.c](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/lib/mblock/mblock_v2.c)
+mblock_v2.c
 lines 125–174 and 969–1113, SHA-256
 `5712e8c35ec0e85e38339af4be5664a4bd8366785695bffb091746514183b004`,
 and the caller in
-[mt_boot.c](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/app/mt_boot/mt_boot.c)
+mt_boot.c
 lines 1718–1730, SHA-256
 `9380b89d367770acf29f1c5b7f4856cc87bc4b64afd17aa9fa1fd621c213ecda`.
 Both source identities were verified against downloads from that revision.

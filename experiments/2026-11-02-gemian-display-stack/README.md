@@ -29,9 +29,9 @@ Pinned inputs:
 
 | Input | Revision |
 | --- | --- |
-| Gemian kernel | `d388d350cb2dda8f23b99be6fa5db9628896e87f` |
-| Planet LK | `f4988d74bb70a0a15d7f362f412afba7e7fcda46` |
-| Planet vendor reference tree | `c5b0be85017ad0c599725e8273842efdbecdd88a` |
+| Gemian kernel | The vendor's kernel |
+| Planet LK | The vendor's LK |
+| Planet vendor reference tree | The vendor's kernel |
 | `xf86-video-hwcomposer` | `163cd71436416f4303a99c292aab85354f1f67f8` (0.3.9+gemian1) |
 | `libhybris` | `9cbda6a9250530d73680cddbfbda29f267619b35` |
 | `glamor-hybris` | `6d369b94e8cc858587eb510af7bc97f6a3c1a453` |

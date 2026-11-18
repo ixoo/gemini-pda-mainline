@@ -40,9 +40,9 @@ and the [live resource map](../../docs/hardware/mt6797-live-resource-map.md).
 ## Inputs
 
 Every vendor kernel citation is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`, the same commit the charging record
+the vendor's kernel, the same commit the charging record
 used. Every loader citation is the public Planet Gemini Android 8 LK at commit
-`f4988d74bb70a0a15d7f362f412afba7e7fcda46`, the commit the
+the vendor's LK, the commit the
 [boot-graphics record](../2026-08-31-boot-graphics-recovery/README.md) pinned
 for the retained LK. Every mainline citation is Linux `7.1.3` as pinned in
 `kernel/manifest.json`. Exact URLs, sizes and SHA-256 values are in
@@ -67,23 +67,23 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
 - **F1. The loader builds both panel drivers and probes them in a fixed order
   with an identity read.** `CUSTOM_LK_LCM="aeon_nt36672_fhd_dsi_vdo_x600_xinli
   aeon_ssd2092_fhd_dsi_solomon"` at
-  [`k97v1_64_bsp.mk` line 16](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/project/k97v1_64_bsp.mk#L16),
+  `k97v1_64_bsp.mk` line 16,
   listed in that order at
-  [`mt65xx_lcm_list.c` lines 1515–1521](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/lcm/mt65xx_lcm_list.c#L1515-L1521).
+  `mt65xx_lcm_list.c` lines 1515–1521.
   With more than one driver, LK's `disp_lcm_probe()` initialises the DSI path
   with each driver's parameters, calls its `init_power` and then its
   `compare_id`; the first driver returning non-zero is selected, and if none
   does, the first list entry is used
-  ([`disp_lcm.c` lines 886–911](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/disp_lcm.c#L886-L911)).
+  (`disp_lcm.c` lines 886–911).
 - **F2. The two loader identity checks are asymmetric.** The NT36672 driver's
   `compare_id` sends a four-byte generic packet `B9 FF 83 99`, waits, reads one
   byte each from `0xDB` and `0xF4`, and returns 1 only when the pair equals
   `0x8070`
-  ([`aeon_nt36672_…xinli.c` lines 847–878](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c#L847-L878)).
+  (`aeon_nt36672_…xinli.c` lines 847–878).
   The SSD2092 driver's `compare_id` powers the panel, sends sleep-out, reads
   four bytes from `0xA1`, compares with `0x01572098`, and **returns 1 on both
   branches**
-  ([`aeon_ssd2092_…solomon.c` lines 669–695](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/lcm/aeon_ssd2092_fhd_dsi_solomon/aeon_ssd2092_fhd_dsi_solomon.c#L669-L695)).
+  (`aeon_ssd2092_…solomon.c` lines 669–695).
   Consequence: the loader can only report the NT36672 driver when the
   `0xDB`/`0xF4` read actually returned `0x80`/`0x70`; any unit on which that
   read fails is reported as SSD2092 whatever its silicon.
@@ -91,21 +91,21 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   re-identifies or re-initialises the panel.** LK sizes the `videolfb` tag with
   `strlen(mt_disp_get_lcm_id())` and stores it as `/chosen` property
   `atag,videolfb`
-  ([`mt_boot.c` lines 1983–1985 and 1432–1433](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/app/mt_boot/mt_boot.c#L1983-L1985));
+  (`mt_boot.c` lines 1983–1985 and 1432–1433);
   the name is the selected driver's name
-  ([`mt_disp_drv.c` lines 477–479](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_disp_drv.c#L477-L479)).
+  (`mt_disp_drv.c` lines 477–479).
   The kernel parses `fb_base`, `islcmfound`, `fps`, `vram` and `lcmname` from
   that tag and sets `is_lcm_inited = 1`
-  ([`mtkfb.c` lines 1820–1826 and 1901–1920](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/common/mtkfb.c#L1901-L1920)),
+  (`mtkfb.c` lines 1820–1826 and 1901–1920),
   passes the name to `primary_display_init()`
-  ([line 2343](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/common/mtkfb.c#L2343)),
+  (line 2343),
   which selects the compiled-in driver by `strcmp` against the list
-  ([`disp_lcm.c` lines 1025–1040](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/disp_lcm.c#L1025-L1040))
+  (`disp_lcm.c` lines 1025–1040)
   and, because the loader initialised the panel, skips `init_power` and `init`
-  ([`primary_display.c` lines 3311–3313](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/primary_display.c#L3311-L3313),
-  [`disp_lcm.c` lines 1118–1137](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/disp_lcm.c#L1118-L1137)).
+  (`primary_display.c` lines 3311–3313,
+  `disp_lcm.c` lines 1118–1137).
   The kernel-side `compare_id` is compiled to `return 1` outside LK
-  ([`aeon_nt36672_…xinli.c` lines 876–912](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c#L876-L912)),
+  (`aeon_nt36672_…xinli.c` lines 876–912),
   which is why the panel record could not use it as identity evidence.
 - **F4. Taken together, F1 to F3 make the named device's live driver name an
   indirect identity read.** The live capture shows the kernel bound to
@@ -125,19 +125,19 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
 - **F5. The loader also owns the framebuffer and its geometry.** LK reserves the
   framebuffer after loading the DTB and writes `atag,videolfb-fb_base_h/l` and
   `atag,videolfb-vramSize` into `/chosen`
-  ([`mt_disp_drv.c` lines 445–467](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_disp_drv.c#L445-L467));
+  (`mt_disp_drv.c` lines 445–467);
   the live Gemian values are a 1080x2160, 32 bpp, 4352-byte-stride buffer at
   `0x7dfb0000` of `0x1f90000` bytes, format labelled ARGB8888
   ([console recovery](../2026-07-15-display-console-recovery/README.md)).
   The vendor framebuffer pads width to 1088 pixels (`MTK_FB_ALIGNMENT 32`,
-  [`disp_drv_platform.h` line 40](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/videox/disp_drv_platform.h#L40)),
+  `disp_drv_platform.h` line 40),
   matching the live `virtual_size=1088,4320` and stride 4352.
 - **F6. Physical rotation is a build constant and the public kernel defconfig
   disagrees with the live one.** LK sets `MTK_LCM_PHYSICAL_ROTATION = 270`
-  ([`k97v1_64_bsp.mk` line 15](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/project/k97v1_64_bsp.mk#L15),
-  consumed by [`mt_logo.c` lines 77–82](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_logo.c#L77-L82)),
+  (`k97v1_64_bsp.mk` line 15,
+  consumed by `mt_logo.c` lines 77–82),
   the public kernel defconfig sets `"270"` and `CUSTOM_LCM_X="176"`
-  ([`aeon6797_6m_n_defconfig` lines 216–217](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L216-L217)),
+  (`aeon6797_6m_n_defconfig` lines 216–217),
   while the live kernel reports `"90"`
   ([panel `runtime-summary.txt`](../2026-07-11-gemini-panel-recovery/results/runtime-summary.txt)).
   The panel scans out portrait 1080x2160 in all cases; the rotation is applied
@@ -152,24 +152,24 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   bias enable (GPIO251) through the `aeon_lcd_bias_enp1`/`enn1` pinctrl states;
   20 ms; two I2C writes to the bias chip; reset high 10 ms, low 10 ms, high
   20 ms
-  ([`aeon_nt36672_…xinli.c` lines 795–840](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c#L795-L840);
+  (`aeon_nt36672_…xinli.c` lines 795–840;
   pin states at
-  [`aeon_gpio.dtsi` lines 143–171](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi#L143-L171)).
+  `aeon_gpio.dtsi` lines 143–171).
   The LK copy differs only in delays: 50 ms after reset low and 20 ms between
   the two bias writes
-  ([LK lines 793–845](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c#L793-L845)).
+  (LK lines 793–845).
   The SSD2092 kernel driver uses the identical power-on sequence
-  ([`aeon_ssd2092_…solomon.c` lines 795–810](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/aeon_ssd2092_fhd_dsi_solomon/aeon_ssd2092_fhd_dsi_solomon.c#L795-L810)),
+  (`aeon_ssd2092_…solomon.c` lines 795–810),
   so the board wiring (reset, two bias enables, one I2C bias chip) is common to
   both variants.
 - **F8. Power-off order.** DCS `0x28`, 50 ms, `0x10`, 120 ms, then 10 ms, then
   negative bias off followed by positive bias off; reset is left high
-  ([lines 234–240 and 847–857](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c#L847-L857)).
+  (lines 234–240 and 847–857).
   Resume is `lcm_poweron()` then `lcm_init()` (lines 859–863).
 - **F9. The bias chip is driven as two selector registers only.** `lp3101.c`
   matches `mediatek,I2C_LCD_BIAS` at address `0x3E`, stores the client, and
   `lp3101_poweron()` writes `0x00 = 0x0f` and `0x01 = 0x0f`
-  ([`lp3101.c` lines 18–27 and 105–127](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpio/lp3101.c#L105-L127)).
+  (`lp3101.c` lines 18–27 and 105–127).
   No register is ever read. Mainline's `tps65132-regulator` uses the same
   address-free layout, VPOS at `0x00`, VNEG at `0x01`, 4.0 V minimum in 100 mV
   steps, and one enable GPIO per output
@@ -180,30 +180,30 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   no `ti,tps65132` compatible until identified (H5).
 - **F10. The panel's logic rail is not software-switched.** The driver's
   `suspend_power`/`resume_power` bodies are fully commented out
-  ([lines 769–793](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c#L769-L793)),
+  (lines 769–793),
   no `lcm`/`lcd` regulator exists in the public SoC or board DTS, and the only
   rail named for the display block is `vmipi` for the MIPI PHY
-  ([`mt6797.dtsi` lines 676–677 and 766](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L676-L677)).
+  (`mt6797.dtsi` lines 676–677 and 766).
   The PMIC record lists VIO18 as always-on 1.8 V
   ([PMIC recovery](../2026-07-11-mt6351-pmic-recovery/README.md)). Which rail
   feeds the panel's IOVCC is not recorded anywhere in software (H6).
 - **F11. The reset is an MMSYS register bit, not a GPIO write, in both LK and
   the kernel.** `lcm_set_reset_pin()` writes `MMSYS_CONFIG_BASE + 0x150`
-  ([LK `ddp_dsi.c` lines 2431–2434](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/ddp_dsi.c#L2431-L2434),
-  [kernel `ddp_dsi.c` lines 2705–2716](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c#L2705-L2716),
+  (LK `ddp_dsi.c` lines 2431–2434,
+  kernel `ddp_dsi.c` lines 2705–2716,
   `DISP_REG_CONFIG_MMSYS_LCM_RST_B` bit 0 at
-  [`ddp_reg.h` lines 1485 and 1622](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_reg.h#L1485)).
+  `ddp_reg.h` lines 1485 and 1622).
   The kernel's pinctrl-state alternative is compiled out by `#if 1`. The pad is
   GPIO180 whose function 1 is `LCM_RST`
   ([mainline `mt6797-pinfunc.h` lines 940–943](https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L940-L943));
   the board DTS muxes it to that function in both reset states
-  ([`aeon6797_6m_n.dts` lines 1070–1084](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1070-L1084)).
+  (`aeon6797_6m_n.dts` lines 1070–1084).
   Hence the register drives the pad through the `LCM_RST` alternate function;
   muxing GPIO180 as a GPIO and using `reset-gpios` is an electrical equivalent
   only if the pad is the sole path to the panel's reset pin (H4).
 - **F12. DSI tearing-effect pin.** GPIO179 is muxed to `DSI_TE0` in both
   `mode_te` states
-  ([`aeon6797_6m_n.dts` lines 1058–1068](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1058-L1068)).
+  (`aeon6797_6m_n.dts` lines 1058–1068).
   The selected driver runs burst video mode (F13), which does not use TE, so a
   mainline description may omit it.
 
@@ -214,11 +214,11 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   3/15/10 lines, horizontal sync/back/front 10/42/42 pixels, `ssc_disable = 1`,
   `PLL_CLOCK = 440` (423 for the unused command-mode build), low-power clock
   between lines, ESD check DCS `0x0A` expecting `0x9C`
-  ([lines 656–717](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c#L656-L717)).
+  (lines 656–717).
   The LK copy carries the same values (LK lines 664–699). For comparison the
   SSD2092 driver uses `SYNC_PULSE_VDO_MODE`, V 1/43/76, H 4/20/26,
   `PLL_CLOCK = 502` and no ESD check
-  ([`aeon_ssd2092_…solomon.c` lines 676–716](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lcm/aeon_ssd2092_fhd_dsi_solomon/aeon_ssd2092_fhd_dsi_solomon.c#L676-L716));
+  (`aeon_ssd2092_…solomon.c` lines 676–716);
   neither its timing nor its command table is interchangeable with the
   NT36672's.
 - **F14. The init table.** `init_setting` (lines 243–455) selects Novatek pages
@@ -235,20 +235,20 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   `data_Rate = PLL_CLOCK * 2` (880 Mbit/s per lane), selects `pcw_ratio 1,
   S2Qdiv 2, posdiv 0` for rates of 500 Mbit/s and above, and programs
   `pcw = data_Rate * pcw_ratio / 13` with three fractional bytes
-  ([`ddp_dsi.c` lines 1368–1375, 1462–1492 and 1510–1521](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c#L1462-L1492)).
+  (`ddp_dsi.c` lines 1368–1375, 1462–1492 and 1510–1521).
   The readback helper returns `26 * floor(pcw) / (prediv * posdiv * S2Qdiv)`
-  ([lines 1198–1213](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c#L1198-L1213)),
+  (lines 1198–1213),
   which for 880 Mbit/s is `26 * 67 / 4 = 435`. The resource map's retained
   435 MHz and the panel record's 4.4 % discrepancy are therefore the same
   number as the driver's 440 MHz request, truncated; the real lane rate is
   880 Mbit/s. The LK PHY code is the same algorithm
-  ([LK `ddp_dsi.c` lines 1150–1198](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/ddp_dsi.c#L1150-L1198)).
+  (LK `ddp_dsi.c` lines 1150–1198).
 - **F16. The PHY power-up order.** Lane resistance-trim fields are preserved,
   then `RG_DSI_BG_CORE_EN`, 1 ms, `RG_DSI_LDOCORE_EN` and
   `RG_DSI_CKG_LDOOUT_EN`, `DA_DSI_MPPLL_SDM_PWR_ON = 1`, `SDM_ISO_EN = 0`,
   1 ms, divider and PCW writes, optional SSC (disabled by F13),
   `SDM_FRA_EN = 1`, per-lane `LDOOUT_EN`, then PLL enable
-  ([`ddp_dsi.c` lines 1412–1560](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c#L1412-L1560)).
+  (`ddp_dsi.c` lines 1412–1560).
   The local [patch 0039](../../patches/v7.1.3/0039-phy-mediatek-add-MT6797-MIPI-DSI-TX-support.patch)
   reproduces this order and the MT6797 field layout (pre-divider bits 3:2,
   post-divider 6:4, S2Q 13:12, PCW latch at `0x60`); mainline's MT8173
@@ -259,7 +259,7 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   different formulas.** The vendor computes `ui = 1000 / data_Rate + 1` ns and
   `cycle_time = 8000 / data_Rate + 1` ns and derives HS_PRPR, HS_ZERO, HS_TRAIL,
   LPX, TA_*, CLK_* from them
-  ([`ddp_dsi.c` lines 1662–1775](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c#L1662-L1775));
+  (`ddp_dsi.c` lines 1662–1775);
   mainline `mtk_dsi_phy_timconfig()` uses its own rate-based expressions
   ([`mtk_dsi.c` lines 246–266](https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/mediatek/mtk_dsi.c#L246-L266)).
   Both target the D-PHY specification; neither carries panel-specific
@@ -269,7 +269,7 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
 - **F18. Video-mode porch bytes.** The vendor programs
   `HSA_WC = HSA*3 - 4`, `HBP_WC = (HBP + HSA)*3 - 10`, `HFP_WC = HFP*3 - 12`,
   each rounded up to 4, with `BLLP_WC = 0`
-  ([`ddp_dsi.c` lines 962–1030](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c#L962-L1030)),
+  (`ddp_dsi.c` lines 962–1030),
   giving 28, 148 and 116 bytes for F13. Mainline derives equivalent word
   counts from the DRM mode and lane count
   ([`mtk_dsi.c` lines 440–560](https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/mediatek/mtk_dsi.c#L440-L560)).
@@ -280,9 +280,9 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
 - **F19. The DSI host is MT8173-generation with MT6797 clocks.** The host at
   `0x1401c000` uses SPI 229 and two MMSYS gates, `MM_DSI0_MM_CLOCK` and
   `MM_DSI0_INTERFACE_CLOCK`
-  ([`mt6797.dtsi` lines 3115, 3143 and 3176–3177](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3176-L3177));
+  (`mt6797.dtsi` lines 3115, 3143 and 3176–3177);
   the MIPI-TX aperture is `0x10215000`
-  ([line 2185](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L2185)).
+  (line 2185).
   Mainline's `clk-mt6797-mm.c` provides both gates. Correction, 2026-10-06:
   this record first said the interface gate was missing, from reading only
   lines 65–76 of the gate table. Pristine v7.1.3 defines
@@ -290,7 +290,7 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   [line 77](https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797-mm.c#L77)
   in the second bank (set/clear/status `0x114`/`0x118`/`0x110`), bit 1. That
   matches the vendor clock table at
-  [line 1380](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/clk/mediatek/clk-mt6797.c#L1380)
+  line 1380
   (`mm1_cg_regs`, bit 1; DSI1 uses bit 3). Only the declared parent differs:
   mainline `clk26m`, vendor a null parent. Patch 0040's `digital` clock
   therefore resolves to a real gate. H7 is closed with no clock patch.
@@ -306,7 +306,7 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   The vendor `dispsys` node's clock list names every MM gate plus
   `INFRA_DISP_PWM`, the MM power domain as `DISP_MTCMOS_CLK`, `TOP_MUX_PWM`,
   `UNIVPLL2_D4` and the five `ULPOSC_D*` dividers
-  ([`mt6797.dtsi` lines 3156–3240](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3156-L3240)).
+  (`mt6797.dtsi` lines 3156–3240).
   The live `mm_sel` rate is 325 MHz
   ([clock capture](../2026-07-12-mt6797-clock-power-reset-recovery/results/runtime-summary.txt)).
 - **F21. Mainline 7.1.3 MT6797 coverage for this pipeline.** Present: MMSYS
@@ -350,23 +350,23 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
 - **F23. The LCD backlight is the display PWM block in "BLS PWM" mode with
   1024 levels.** Board LED node `lcd-backlight` has `led_mode = <5>` and
   `pwm_config = <0 0 0 0 0>`
-  ([`aeon6797_6m_n.dts` lines 192–196](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L192-L196));
+  (`aeon6797_6m_n.dts` lines 192–196);
   mode 5 is `MT65XX_LED_MODE_CUST_BLS_PWM`
-  ([`leds_sw.h` lines 33–38](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/leds/mt6797/leds_sw.h#L33-L38)).
+  (`leds_sw.h` lines 33–38).
   The LED class 0–255 level is mapped to `level * 1023 / 255`
   (`MT_LED_INTERNAL_LEVEL_BIT_CNT 10`, header line 52;
-  [`leds.c` lines 1046–1072](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/leds/mt6797/leds.c#L1046-L1072))
+  `leds.c` lines 1046–1072)
   and written as the PWM high width: `CON_1[28:16] = level`, period
   `CON_1[9:0] = 1023`, clock divider `CON_0[25:16] = 0`, enable `EN[0]`
-  ([`ddp_pwm.c` lines 195–241, 311–324 and 459–505](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/common/aal20/ddp_pwm.c#L195-L241);
+  (`ddp_pwm.c` lines 195–241, 311–324 and 459–505;
   offsets `EN 0x00, COMMIT 0x08, CON_0 0x10, CON_1 0x14` at
-  [`ddp_reg.h` lines 1309–1312](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_reg.h#L1309-L1312)).
+  `ddp_reg.h` lines 1309–1312).
   The block is at `0x1100f000`
-  ([`mt6797.dtsi` line 3118](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3118))
+  (`mt6797.dtsi` line 3118)
   and the pad is GPIO178 function `DISP_PWM`
   ([`mt6797-pinfunc.h` line 931](https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L931)).
   LK uses the same `disp_bls_set_backlight` hook
-  ([LK `cust_leds.c` line 32](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/target/k97v1_64_bsp/cust_leds.c#L32)),
+  (LK `cust_leds.c` line 32),
   so the loader leaves the PWM running at full width when the kernel starts.
 - **F24. The register layout equals mainline's MT8173 data; the clock contract
   is a single infra gate plus the MM domain.** Mainline `mt8173_pwm_data` is
@@ -375,8 +375,8 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
   identical to F23's offsets. The vendor display clock manager enables exactly
   one clock for the PWM module, ID `DISP_PWM`, which the SoC DTS maps to
   `INFRA_DISP_PWM`, and selects its parent through `MUX_PWM`
-  ([`ddp_clkmgr.h` lines 50–64](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_clkmgr.h#L50-L64),
-  [`ddp_pwm_mux.c` lines 137–156](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_pwm_mux.c#L137-L156),
+  (`ddp_clkmgr.h` lines 50–64,
+  `ddp_pwm_mux.c` lines 137–156,
   [`PWM_OSCILLATOR.md`](../2026-09-07-mt6797-display-upstream-architecture/PWM_OSCILLATOR.md)
   for the compiled `ddp_pwm_power_on()`). Mainline models the same tree:
   `infra_disp_pwm` gated from `pwm_sel` (ICG1 bit 17), `pwm_sel` a gated mux
@@ -392,10 +392,10 @@ security policy, not byte for byte; conclusions that depend on LK behaviour
 - **F25. The PWM source is the uncalibrated ULPOSC, selected and powered
   outside the clock framework.** Board selector 0 maps to `ULPOSC_D8`
   (vendor comment "29M")
-  ([`ddp_pwm_mux.c` lines 56–82](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_pwm_mux.c#L56-L82)),
+  (`ddp_pwm_mux.c` lines 56–82),
   and the power-on path performs direct enable/reset/gate writes at sleep
   controller offset `0x458`
-  ([lines 161–300](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/video/mt6797/dispsys/ddp_pwm_mux.c#L161-L300);
+  (lines 161–300;
   compiled-path confirmation in the PWM oscillator follow-up). The vendor's own
   divider comments (D2 117 M, D3 78 M, D4 58 M, D8 29 M, D10 23 M) imply a
   roughly 234 MHz oscillator, whereas mainline's factor table defines

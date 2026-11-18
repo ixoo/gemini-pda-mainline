@@ -31,7 +31,7 @@ This record adds no code, DT node, candidate or device action.
 ## Provenance and environment
 
 - Gemian GPL kernel
-  [`8cfe6596a503612e3332d9c26e292a19525a7f07`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/8cfe6596a503612e3332d9c26e292a19525a7f07):
+  the vendor's kernel:
   the MT6797 `videocodec` and `mjc` drivers, the vendor `mt6797.dtsi`, the
   clock and power-gate drivers, the M4U and SMI drivers. Read from Git objects
   in the RE VM.
@@ -115,7 +115,7 @@ and `+0x0AC` a pause.
 
 ### 2. The vendor kernel driver is a lock and power service
 
-`drivers/misc/mediatek/videocodec/mt6797/videocodec_kernel_driver.c` binds to
+`videocodec_kernel_driver.c` binds to
 `mediatek,mt6797-vdec_gcon` and creates `/dev/Vcodec` (character major 160).
 It contains no codec logic. It:
 
@@ -139,7 +139,7 @@ It contains no codec logic. It:
   load monitor;
 - loads no firmware.
 
-`drivers/misc/mediatek/mjc/v1.0/mjc_kernel_driver.c` binds to
+`mjc_kernel_driver.c` binds to
 `mediatek,mjc_top-v1`, creates `/dev/MJC`, and offers ioctls with magic `'N'`:
 `MJC_LOCKHW`, `MJC_WAITISR`, `MJC_READ_REG`/`WRITE_REG` (range checked to the
 MJC window), register tables, `MJC_SOURCE_CLK` and `MJC_REG_INFO`. Opening it

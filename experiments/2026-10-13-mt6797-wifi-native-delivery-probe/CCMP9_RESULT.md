@@ -66,7 +66,7 @@ transfers, four type-7 records, final -71 and WRPLR `0x000001ab`. Port 1:
 519 attempts, no successful transfers, 505 opposite-half advertisements,
 -EAGAIN and older WRPLR `0x00000050`. Attempt counts are not FIFO-read counts.
 
-Under the pinned public [RXD layout](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h#L121-L156),
+Under the pinned public RXD layout,
 `0x18` decodes to header-length 24, offset bit clear and translation bit clear.
 `0xe000` has DATA and both AMPDU bits set, NULL and the low error flags clear.
 The type/group hint reports class 2 and no groups. These are conditional layout
@@ -91,7 +91,7 @@ ACTIVE/scan/boot acquisition patterns remain possible contributors; the C8
 CLOSED-only selection comparison does not exclude them.
 
 A bounded retained-source review after the run checked four files at public
-commit `59e00a9144d782e148332009a835b99c43382467`:
+the vendor's kernel:
 
 | Source | SHA-256 | Boundary established |
 | --- | --- | --- |

@@ -34,7 +34,7 @@ will be committed. A fresh read-only run is retained privately at
 [consolidated live snapshot](../2026-07-14-first-boot-probe-audit/results/live-runtime-snapshot-20260714.txt).
 
 The optional register snapshot was audited against the exact downstream
-`drivers/mmc/host/mediatek/mt6797/dbg.c`. Writing `5 4 ID` to
+`dbg.c`. Writing `5 4 ID` to
 `/proc/msdc_debug` only queues `SD_TOOL_REG_ACCESS` operation 4. Reading the
 file then enables the selected controller clock, reads ordinary registers,
 explicitly skips the TX and RX FIFO registers, and disables the clock. No
@@ -42,7 +42,7 @@ controller register, storage block, tuning value, clock source, drive strength,
 or regulator state is written.
 
 Source comparison uses the exact Gemian GPL tree at downstream commit
-`d388d350` and the Planet board tree at commit `c5b0be85`, compared with the
+the vendor's kernel and the Planet board the vendor's kernel, compared with the
 pinned Linux 7.1.3 source. Public source is implementation evidence; live
 state wins when it differs.
 

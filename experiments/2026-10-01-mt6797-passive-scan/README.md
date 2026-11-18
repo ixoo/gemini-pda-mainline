@@ -9,7 +9,7 @@ association, keys, data TX, packet DMA and working Wi-Fi remain unproved.
 ## Protocol inputs
 
 The [source receipt](results/sources.json) pins individual Planet gen3 objects
-at `c5b0be85017ad0c599725e8273842efdbecdd88a` and the actual Linux 7.1.3
+the vendor's kernel and the actual Linux 7.1.3
 mac80211/cfg80211 headers. The existing [scan lifetime analysis](../2026-09-08-mt6797-wlan-offloads/FIRMWARE_SCAN_LIFETIME.md)
 joins V2 CID `0x03`, payload scan sequence and the 24-byte `0x0d` constructor.
 Its outer sequence is zero. Cancellation CID `0x1b` has no proved completion

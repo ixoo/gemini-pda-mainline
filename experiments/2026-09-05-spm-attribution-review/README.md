@@ -23,8 +23,8 @@ All 12 entries in the existing source ledger were independently fetched from
 their exact public revision, with a 256 KiB response ceiling and 15-second
 socket timeout, and matched both byte count and SHA-256. Sources were inspected
 in memory; no vendor source tree or implementation was retained. The four
-revisions are Planet `c5b0be85017ad0c599725e8273842efdbecdd88a`, Gemian
-`d388d350cb2dda8f23b99be6fa5db9628896e87f`, upstream Linux
+revisions are the vendor's kernel, Gemian
+the vendor's kernel, upstream Linux
 `4d7d9486c04d917265f64c55bd23b2cc4fe7749c`, and stable Linux
 `199c9959d3a9b53f346c221757fc7ac507fbac50`.
 

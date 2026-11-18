@@ -26,10 +26,10 @@ transaction-local state required by the A72 firmware/power contract.
 
 ## Provenance and environment
 
-- Public source: `gemian/gemini-linux-kernel-3.18`, commit
-  `d388d350cb2dda8f23b99be6fa5db9628896e87f`, inspected from the clean pinned
+- Public source: `gemian/the vendor's kernel`, commit
+  the vendor's kernel, inspected from the clean pinned
   recovery-VM checkout at
-  `~/src/reference/gemian-linux-kernel-3.18`.
+  a local checkout of the vendor's kernel.
 - Intended live kernel: the named Gemini's working Gemian `3.18.41+` system.
   Source similarity does not prove that the installed binary is byte-identical
   to the public commit; every future capture must retain live identity.

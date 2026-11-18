@@ -28,24 +28,23 @@ No code, patch, candidate or device state is changed.
 ## Provenance and environment
 
 Vendor source was cloned sparsely (no blobs) at Gemian
-`gemini-linux-kernel-3.18` commit
-`59e00a9144d782e148332009a835b99c43382467` inside the RE VM, read only. Private
+the vendor's kernel inside the RE VM, read only. Private
 firmware strings came from the retained 2019 vendor set. No vendor source or
 firmware is copied into this repository.
 
 | File | SHA-256 |
 | --- | --- |
-| `drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c` | `22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f` |
-| `drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c` | `e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e` |
-| `drivers/misc/mediatek/connectivity/common/common_main/core/wmt_conf.c` | `25a9b92f28ebfd1e37f5988406849b7cfcd91569886f8ef34044d2a9fe954361` |
-| `drivers/misc/mediatek/connectivity/common/common_main/include/stp_exp.h` | `9c1daca8fa5e30468865d42fb778bf070ac09e0adebf6735852631d5dc89ec42` |
-| `drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_idc.c` | `2b169b764916dbcafdbfc3c221af149e280f6d868c04d08bdd7198d9137dc523` |
-| `drivers/misc/mediatek/connectivity/common/common_main/linux/include/wmt_idc.h` | `0a80bc55e5a3b2fc8b1df589c55618c786b924a9ed2313797572fb4e8cc45371` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_cmd_event.c` | `cc61d706a4013126c1b3a60021c370590fd5b8c3df2114a1a3a99148fe27dd8f` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c` | `1f479d41bab8e2b5bba68eb6514f3e977559d31d97c39c7833f3dc9f111cd1ed` |
-| `drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_cmd_event.h` | `93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a` |
-| `drivers/misc/mediatek/connectivity/Kconfig` | `285fd2994b14dc55b9ea2769be54936e40b068cd32f25a26bb310e1b7ab7e0cc` |
-| `drivers/misc/mediatek/connectivity/Makefile` | `bcb9f2545c5a95cc16af92e90e59d2f975853b6a5c7a657a15a5bf8a46cc7b2c` |
+| `wmt_ic_soc.c` | `22d98e9e5f0c9c3cae36a3099e57315ed7808524239a061bf9ab0cf97379e66f` |
+| `wmt_core.c` | `e9f438c5c6033f0bf831347c69d656ec917b3e705648d3d27fb1b27409334f1e` |
+| `wmt_conf.c` | `25a9b92f28ebfd1e37f5988406849b7cfcd91569886f8ef34044d2a9fe954361` |
+| `stp_exp.h` | `9c1daca8fa5e30468865d42fb778bf070ac09e0adebf6735852631d5dc89ec42` |
+| `wmt_idc.c` | `2b169b764916dbcafdbfc3c221af149e280f6d868c04d08bdd7198d9137dc523` |
+| `wmt_idc.h` | `0a80bc55e5a3b2fc8b1df589c55618c786b924a9ed2313797572fb4e8cc45371` |
+| `nic_cmd_event.c` | `cc61d706a4013126c1b3a60021c370590fd5b8c3df2114a1a3a99148fe27dd8f` |
+| `nic_tx.c` | `1f479d41bab8e2b5bba68eb6514f3e977559d31d97c39c7833f3dc9f111cd1ed` |
+| `nic_cmd_event.h` | `93c8d67b1bc039a8db5b635e5a00975f2b9e408f4ab1bc8a384f5db49bf00a3a` |
+| `Kconfig` | `285fd2994b14dc55b9ea2769be54936e40b068cd32f25a26bb310e1b7ab7e0cc` |
+| `Makefile` | `bcb9f2545c5a95cc16af92e90e59d2f975853b6a5c7a657a15a5bf8a46cc7b2c` |
 
 Firmware hashes are the published ones in
 [firmware](../2026-07-11-gemian-firmware-inventory/README.md): `ROMv3_patch_1_0`

@@ -26,7 +26,7 @@ not authorize repeating the same image or extending the timeout automatically.
 ## Historical ownership is insufficient for this candidate
 
 Inspected public source:
-[`mtk_wdt.c` at Gemian revision `59e00a9144d782e148332009a835b99c43382467`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c),
+`mtk_wdt.c` in the vendor's kernel,
 SHA-256 `816e82eddf63d2bf9366b84ff238b3ff305c7929bea3bd694a229c0294acd6bc`.
 These are source observations, not executed paths or an exhaustive caller audit.
 
@@ -107,14 +107,14 @@ enables MT6797, CPU idle, the MTK idle governor and the watchdog kicker.
 The same source revision's power and cpuidle Makefiles select `spm_v2` and
 `cpuidle-mt67xx_v2.o`. The latter's `mt_soidle3_enter()` calls
 `soidle3_enter()`, whose MT6797 implementation calls `spm_go_to_sodi3()`.
-In [that implementation](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/base/power/spm_v2/mt_spm_sodi3p0.c#L393),
+In that implementation,
 the kicker-enabled MT6797 branch calls `wd_suspend_notify()` before entry
 and `wd_resume_notify()` afterward. `wd_api.c` connects these callbacks to the
 watchdog suspend/resume functions above. Their names therefore do not restrict
 them to an explicit userspace system-suspend request. Whether idle selection
 would actually choose this state during a particular attempt is unmeasured.
 
-The existing [cpuidle implementation](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/cpuidle/cpuidle.c)
+The existing cpuidle implementation
 exposes the read-only `off` parameter and makes `cpuidle_select()` return
 `-ENODEV` when set. The scheduler then takes its default idle path;
 ARM64 `arch_cpu_idle()` calls `cpu_do_idle()`, whose pinned implementation is
@@ -140,7 +140,7 @@ usable software preflight observation; it does not validate the proposed
 candidate or attribute the installed kernel to a source revision.
 
 The live panic timeout was one second. In the separately pinned
-[`kernel/panic.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/kernel/panic.c#L182),
+`panic.c`,
 a nonzero timeout reaches `emergency_restart()` after any positive delay.
 The existing `panic` boot parameter controls that value. Require `panic=0`
 and verify `/proc/sys/kernel/panic` is zero before experimental takeover.

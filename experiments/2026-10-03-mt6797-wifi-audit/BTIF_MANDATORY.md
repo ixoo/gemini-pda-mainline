@@ -3,7 +3,7 @@
 Status: selected source behavior reviewed; no driver, build or device admission.
 The [source receipt](results/btif-mandatory-source.json) pins the inspected
 vendor transport, register headers and STP/WMT core at commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a`.
+the vendor's kernel.
 
 ## Mandatory framing
 

@@ -732,7 +732,7 @@ This remains compile-only and default-off: no real provider, hardware
 operation, device boot, or CPU8/CPU9 admission was added.
 
 A source-only audit of the current managed vendor checkout (`HEAD`
-`8cfe6596a503612e3332d9c26e292a19525a7f07`) now fixes the historical owner
+the vendor's kernel) now fixes the historical owner
 boundary that the mainline provider must cross. PPM policy is protected by
 `ppm_main_info.lock` and exposes three 16-entry physical-cluster tables plus
 client limits; CCI uses a separate `cpu_dvfs[MT_CPU_DVFS_CCI]` table. CSPM/PLL
@@ -897,7 +897,7 @@ transition owner; the [token-content receipt](results/runtime-owner-token-conten
 retains only bounded labels and scan metadata. This closes the procfs/debugfs discovery path;
 the next owner work must be a real mainline callback/provider boundary.
 
-The public repository's current `main` ref (`d388d350`) was revalidated after
+The public repository's current `main` ref (the vendor's kernel) was revalidated after
 the earlier `master`-ref audit. Its exact MT6797 PPM, hybrid cpufreq, EEM, and
 PPM-internal files still expose separate policy, hybrid-CSPM, and EEM/PTP locks
 without a shared generation or single transition owner; the small branch delta
@@ -966,7 +966,7 @@ result. This remains compile-only evidence: the owner/provider are unregistered
 and CPU8/CPU9 admission remains closed.
 
 A source-only callback audit against the pinned public Gemian `main` revision
-`d388d350` then established that the vendor PTP-table and PPM-DVFS registration
+the vendor's kernel then established that the vendor PTP-table and PPM-DVFS registration
 APIs each hold one callback slot. Calling them from a separate observer would
 replace the existing EEM private-table update or cpufreq policy-limit callback,
 respectively. The bounded [callback replacement audit](results/vendor-callback-replacement-audit-20260810.txt)

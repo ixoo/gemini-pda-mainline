@@ -21,7 +21,7 @@ MODE update clears watchdog ENABLE. The existing register lock therefore does
 not itself preserve the owned deadline.
 
 These observations come from the complete native functions in
-[`mtk_wdt.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c)
+`mtk_wdt.c`
 and the watchdog API, AEE and connectivity caller search at that same revision.
 The [source receipt](results/recovery-reset-sources.json) pins the exact edited
 parent after the earlier ownership and setter patches.

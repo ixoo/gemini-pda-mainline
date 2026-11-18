@@ -29,7 +29,7 @@ integrated base. They are copied byte-for-byte into the generated patch; no
 vendor implementation or firmware is copied. Header API ownership stays with
 the [Wi-Fi experiment](../2026-09-05-mt6797-wifi-contract/README.md).
 Its public Planet gen3 source pin is
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, used as protocol evidence.
+the vendor's kernel, used as protocol evidence.
 
 The new [adapter](src/kernel_adapter.c) and its [interface](src/kernel_adapter.h)
 are original GPL-2.0-only experimental code. Codex/LLM assistance produced the

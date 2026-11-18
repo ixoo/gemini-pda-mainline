@@ -39,7 +39,7 @@ another investigation and are only referenced here.
 ## Inputs
 
 Every vendor citation below is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`, the same commit the
+the vendor's kernel, the same commit the
 [charging record](../2026-10-04-gemini-charging-re/README.md) used. Every
 mainline citation is Linux `7.1.3` as pinned in `kernel/manifest.json`. Exact
 URLs, sizes and SHA-256 values are in [`source-inputs.json`](source-inputs.json).
@@ -62,17 +62,17 @@ disagree, the live capture wins.
   `# CONFIG_SND_SOC_MAX98926 is not set`, and no
   `CONFIG_MTK_SND_SOC_NEW_ARCH`, `CONFIG_MT_SND_SOC_CODEC` or
   `CONFIG_MTK_SPEAKER`
-  ([`aeon6797_6m_n_defconfig` lines 399–419](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L399-L419)).
+  (`aeon6797_6m_n_defconfig` lines 399–419).
   Without `MTK_SND_SOC_NEW_ARCH` the top-level Makefile takes the old branch
   and builds only `mt_soc_audio_6797/`
-  ([`sound/soc/mediatek/Makefile`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/Makefile)),
+  (`Makefile`),
   whose object list carries the AFE, clock, GPIO, PCM, machine and
   `mt_soc_codec_63xx.o` objects and gates `mt_soc_codec_speaker_63xx.o` on
   the unset `MTK_SPEAKER`
-  ([`mt_soc_audio_6797/Makefile`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/Makefile)).
+  (`Makefile`).
   The codec in use is therefore
   `mt_soc_audio_6797/mt_soc_codec_63xx.c` (compatible
-  `mediatek,mt_soc_codec_63xx`, [lines 5635–5636](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c#L5635-L5636)),
+  `mediatek,mt_soc_codec_63xx`, lines 5635–5636),
   not the newer `codec/mt6351/` tree that the July record hashed. The MT6351
   register header contains no `SPK_CON`/`SPK_ANA_CON` block at all, so the
   "class D / class AB" speaker controls in the codec source are dead code on
@@ -80,14 +80,14 @@ disagree, the live capture wins.
 - **F2. The live card is the vendor's 31-link `mt-snd-card`, and the live
   kernel did not add the external-speaker links.** `mt_soc_dai_common[]` has
   exactly 31 DAI links
-  ([`mt_soc_machine.c` lines 1001–1256](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_machine.c#L1001-L1256))
+  (`mt_soc_machine.c` lines 1001–1256)
   and the card is named `mt-snd-card` (line 1332). The 2026-07-12 live
   capture saw 31 PCM device numbers on `mt-snd-card`
   ([runtime summary](../2026-07-12-audio-afe-recovery/results/runtime-summary.txt)).
   Two more links, `ext_Speaker_Multimedia` (codec DAI `max98926-aif1`, codec
   `MAX98926_MT`) and `I2S1_AWB_CAPTURE`, are appended only when a node with
   compatible `maxim,max98926L` exists
-  ([lines 1257–1276, 1352–1360](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_machine.c#L1352-L1360)).
+  (lines 1257–1276, 1352–1360).
   31 observed links means that lookup failed on the live board; see F7.
 
 ### AFE, clocks and codec pads
@@ -96,8 +96,8 @@ disagree, the live capture wins.
   restated with line anchors).** `audiosys: audio@11220000` is
   `mediatek,audio`, 64 KiB, SPI 151 level-low, one-cell clock provider; the
   DL1 child lists 30 clocks and the driver table names 30
-  ([`mt6797.dtsi` lines 2712–2784](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L2712-L2784),
-  [`AudDrv_Clk.c` lines 110–184](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Clk.c#L110-L184)).
+  (`mt6797.dtsi` lines 2712–2784,
+  `AudDrv_Clk.c` lines 110–184).
   The vendor reparents `top_mux_audio` between `syspll3_d4` and `clk26m`
   (lines 382–413) and `top_mux_audio_int` between `syspll1_d4` and `clk26m`
   (lines 310–341); APLL1/APLL2, their tuners and the hi-res ADC clocks exist
@@ -108,10 +108,10 @@ disagree, the live capture wins.
   ([`mt6797-dai-adda.c` lines 104–115, 142–147](https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-dai-adda.c#L104-L115)).
   The vendor codec node carries two board knobs, `use_hp_depop_flow = <0>`
   and `use_ul_260k = <1>`
-  ([`mt6797.dtsi` lines 2877–2881](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L2877-L2881)).
+  (`mt6797.dtsi` lines 2877–2881).
   The parent switch is rate-driven: `SetDLSrc2()` calls `AudDrv_AUD_Sel(1)`
   (that is, `top_sys_pll3_d4`) only for downlink rates >= 96 kHz
-  ([`mt_soc_afe_control.c` lines 1785–1793](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c#L1785-L1793)),
+  (`mt_soc_afe_control.c` lines 1785–1793),
   and returns to `clk26m` on disable (line 2293). APLL1/APLL2 are enabled by
   `EnableALLbySampleRate()` from `EnableAfe()` (lines 698–760, 1005–1035);
   the live Gemian boot only logs `EnableApll1/2` around HDMI open/close, so
@@ -126,14 +126,14 @@ disagree, the live capture wins.
   per direction.** `AUD_CLK_MOSI` (GPIO146, pin state commented out),
   `AUD_DAT_MISO` GPIO147, `AUD_DAT_MOSI` GPIO148, `VOW_CLK_MISO` GPIO149 and
   `ANC_DAT_MOSI` GPIO150
-  ([`aeon6797_6m_n.dts` lines 843–1008](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L843-L1008)).
+  (`aeon6797_6m_n.dts` lines 843–1008).
   `AudDrv_GPIO_Request()` switches MOSI for downlink and MISO for uplink
   between GPIO and audio function on every stream open/close
-  ([`AudDrv_Gpio.c` lines 304–328](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Gpio.c#L304-L328)),
+  (`AudDrv_Gpio.c` lines 304–328),
   called from the AFE ADDA enable paths
-  ([`mt_soc_afe_control.c` lines 1757, 2300](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c#L1757)).
+  (`mt_soc_afe_control.c` lines 1757, 2300).
   The vendor does call this for the ADDA downlink and uplink
-  ([`mt_soc_afe_control.c` lines 1757, 2300](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c#L1757)),
+  (`mt_soc_afe_control.c` lines 1757, 2300),
   but every Gemini `aud_clk_mosi`/`aud_dat_mosi`/`aud_dat_miso` pinmux entry
   is commented out (lines 843–1008), so those selections are empty no-ops.
   The board DWS sets the five pads to mode 1 and the preloader applies that
@@ -154,7 +154,7 @@ disagree, the live capture wins.
     (`AUDDEC_ANA_CON9` `0xA000`, `CON10` bit 8), IBIST, sets HP gain to −40 dB
     (`ZCD_CON2 0x0F9F`), de-OSC/STBENH (`CON1`), enables DAC and switches the
     HP mux to the DAC (`AUDDEC_ANA_CON0 0xE09F → 0xF4FF`)
-    ([`mt_soc_codec_63xx.c` lines 1710–1852](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c#L1710-L1852)).
+    (`mt_soc_codec_63xx.c` lines 1710–1852).
     HP offset trim comes from PMIC efuse words read at `0x0C18`
     (`Auddrv_Read_Efuse_HPOffset`, lines 610–690).
   - Earpiece: `Voice_Amp_Change()` enables the HS driver (`AUDDEC_ANA_CON0`
@@ -170,7 +170,7 @@ disagree, the live capture wins.
   - Kcontrols: `Audio_Amp_R/L_Switch`, `Voice_Amp_Switch`,
     `Speaker_Amp_Switch`, `Headset_Speaker_Amp_Switch`, the PGA gains,
     `Ext_Speaker_Amp_Switch`, `Receiver_Speaker_Switch`, `Audio HP Impedance`
-    ([lines 3046–3079](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c#L3046-L3079)).
+    (lines 3046–3079).
     DAPM is vestigial: three bare `EARPIECE`/`HEADSET`/`SPEAKER` outputs and
     one route (lines 5398–5413).
   - Register addresses used above (MT6351 header, `upmu_hw.h`):
@@ -178,7 +178,7 @@ disagree, the live capture wins.
     `CON10 0x0D06`, `AUDENC_ANA_CON0 0x0D08`, `CON1 0x0D0A`, `CON3 0x0D0E`,
     `CON9 0x0D1A`, `CON10 0x0D1C`, `CON11 0x0D1E`, `ZCD_CON1 0x0802`,
     `ZCD_CON2 0x0804`, `DRV_CON2 0x0230`, `TOP_CKPDN_CON2 0x0246`
-    ([lines 70–81, 408–409, 760–782](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h#L760-L782)).
+    (lines 70–81, 408–409, 760–782).
 
   Mainline `sound/soc/codecs/mt6351.c` exposes the same four analog ends as
   DAPM outputs `Receiver`, `Headphone L`, `Headphone R`, `LINEOUT L`
@@ -195,16 +195,16 @@ disagree, the live capture wins.
   pulse-coded GPIO, not by I2C.** `Ext_Speaker_Amp_Switch` →
   `Ext_Speaker_Amp_Change()` calls `AudDrv_GPIO_EXTAMP_Select(true, 3)` and
   `AudDrv_GPIO_EXTAMP2_Select(true, 3)`, then waits 25 ms
-  ([lines 2154–2215](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c#L2154-L2215)).
+  (lines 2154–2215).
   Both helpers emit `mode` (default 3) low/high pulses of 2 µs each on the
   pinctrl states named `hpdepop-pullhigh`/`hpdepop-pulllow` and
   `hpdepop-pullhigh_e2`/`hpdepop-pulllow_e2`
-  ([`AudDrv_Gpio.c` lines 442–528](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Gpio.c#L442-L528));
+  (`AudDrv_Gpio.c` lines 442–528);
   the dedicated `audextamp_*` and `audcvspk_*` states are commented out
   (lines 81–88, 127–134) and `AudDrv_GPIO_RCVSPK_Select()` is `#if 0`
   (lines 530–553). The board DTS maps those states to **GPIO243** and
   **GPIO244** as push-pull outputs
-  ([`aeon6797_6m_n.dts` lines 924–954](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L924-L954)).
+  (`aeon6797_6m_n.dts` lines 924–954).
   These are the only audio pads the Gemini board actually configures, and the
   mainline MT6797 pin controller does not switch a pad to GPIO mode when the
   GPIO is requested, so proposal `0401` adds one default pinmux state per
@@ -227,16 +227,16 @@ disagree, the live capture wins.
   ([I2C reuse audit](../2026-07-14-upstream-mt6797-coverage-audit/results/i2c-mt6797-controller-reuse-20260714.txt),
   [baseline table](../../docs/hardware/gemini-gemian-baseline.md#live-i2c-inventory)),
   while the public `i2c0@11007000` holds only `bq24261@6b` and `mt6306@64`
-  ([`aeon6797_6m_n.dts` lines 46–53](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L46-L53)).
+  (`aeon6797_6m_n.dts` lines 46–53).
   An OF-instantiated I2C client is named from the compatible's suffix, so
   the live compatible is `mediatek,speaker_amp`. Exactly one vendor driver
   matches that string: a MediaTek-adapted Maxim **MAX98926** driver,
   `sound/soc/codecs/max98926.c` (`of_match` `mediatek,speaker_amp`, I2C id
   `max98926L`, commented board info `max98926L` at `0x31`, DT properties
   `vmon-slot-no`/`imon-slot-no`;
-  [lines 956–1061](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/codecs/max98926.c#L956-L1061)).
+  lines 956–1061).
   Its Kconfig symbol `SND_SOC_MAX98926`
-  ([`sound/soc/codecs/Kconfig` lines 820–824](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/codecs/Kconfig#L820-L824))
+  (`Kconfig` lines 820–824)
   is unset (F1), which is why the live client is unbound, and the machine
   driver looks for a different compatible (`maxim,max98926L`, F2), so even a
   built driver would not have been linked into the card. Consequence: the
@@ -246,11 +246,11 @@ disagree, the live capture wins.
 - **F8. A MAX98926 would need an I2S feed that mainline MT6797 cannot
   provide today.** The vendor's digital-amplifier path is the `I2S0DL1OUTPUT`
   link (DL1 to I2S0 and the internal DAC at once;
-  [`mt_soc_machine.c` lines 1068–1074](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_machine.c#L1068-L1074),
+  `mt_soc_machine.c` lines 1068–1074,
   `mt_soc_pcm_dl1_i2s0Dl1.c`). The public DTS comments out every smart-PA
   pin state (GPIO69/70/72/73 as `I2S0_LRCK/BCK/DI` and `I2S3_DO`, GPIO135/
   136/138 as TDM;
-  [lines 855–922](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L855-L922)),
+  lines 855–922),
   and nothing in the 6797 audio directory calls `AudDrv_GPIO_SMARTPA_Select()`
   (only `AudDrv_GPIO_Request()` is used, F4). Mainline's MT6797 AFE
   registers only ADDA, PCM, hostless and memory-interface DAIs
@@ -272,13 +272,13 @@ disagree, the live capture wins.
   260–261); `ACCDET_EINT` (AP GPIO), pin swap, pin recognition, four-key and
   TS3A225E options are unset. The driver registers PMIC interrupt callbacks
   12 (`accdet_int_handler`) and 13 (`accdet_eint_int_handler`)
-  ([`accdet.c` lines 1638–1639](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/mt6797/accdet.c#L1638-L1639)),
+  (`accdet.c` lines 1638–1639),
   which are `MT6351_IRQ_ACCDET` and `MT6351_IRQ_ACCDET_EINT` (indices 12 and
   13, `MT6351_IRQ_ACCDET_NEGV` 14) in the local
   [patch 0010](../../patches/v7.1.3/0010-mfd-mt6397-add-MT6351-core-and-interrupt-support.patch)
   enumeration. The AP-EINT setup (`accdet_setup_eint`, lines 579–633) and the
   DTS state `accdet_pins_eint_as_int` on **GPIO92/EINT15**
-  ([`aeon6797_6m_n.dts` lines 719–726](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L719-L726))
+  (`aeon6797_6m_n.dts` lines 719–726)
   are behind `#ifndef CONFIG_ACCDET_EINT_IRQ` (line 578), so GPIO92 is not a
   jack line in this build. The live PMIC interrupt snapshot showed sources
   12–14 at count 0
@@ -287,15 +287,15 @@ disagree, the live capture wins.
   at `0x0F46..`, with `CTRL = CON1 (0x0F48)`, `IRQ_STS = CON12 (0x0F5E)`,
   `EINT_CTL = CON15 (0x0F64)`; clock gate `TOP_CKPDN_CON2` bit 9, reset
   `TOP_RST_CON0` bit 4; interrupt enables in `INT_CON0` bits 12/13/14
-  ([`reg_accdet.h` lines 19–58, 84–128](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/mt6797/reg_accdet.h#L19-L58),
-  [`upmu_hw.h` lines 956–971](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h#L956-L971)).
+  (`reg_accdet.h` lines 19–58, 84–128,
+  `upmu_hw.h` lines 956–971).
   `accdet_init()` ungates and resets the block, programs PWM width/threshold,
   `STATE_SWCTRL = 0x07`, rise/fall delay, debounce 0/1/3/4, EINT polarity
   (default level-low, line 42), enables IRQ 12 and 13, then sets the analog
   side: `AUDENC_ANA_CON11 |= 0xF`, `AUDENC_ANA_CON10 |= (mic-vol << 4) | 0x80`
   (MICBIAS1 reference and enable), `ACCDET_CON0 = 0x0010`, and the
   internal ACCDET–EINT connection bit 11 of `AUDENC_ANA_CON11`
-  ([lines 1204–1310](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/mt6797/accdet.c#L1204-L1310)).
+  (lines 1204–1310).
   Plug-in/out debounce is retuned on each EINT edge (256 ms in, 1 ms out;
   lines 518–577) and MICBIAS1 is left on for 6 s after an event
   (`MICBIAS_DISABLE_TIMER`, line 89). Headset mic bias is therefore
@@ -305,7 +305,7 @@ disagree, the live capture wins.
   `AUXADC_RQST0` bit 5, polls `AUXADC_ADC5` (`0x0E0A`) for bit 15, takes the
   12-bit value at 1.8 V full scale and subtracts an efuse offset from OTP
   word 3 bits 5–12
-  ([lines 238–250, 1194–1201](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/mt6797/accdet.c#L238-L250)).
+  (lines 238–250, 1194–1201).
   Thresholds map to `KEY_PLAYPAUSE` (< mid), `KEY_VOLUMEUP`, `KEY_VOLUMEDOWN`
   (lines 646–701); the input device also declares `KEY_VOICECOMMAND`
   (lines 1611–1614). Jack state goes to a `switch` class device (Android
@@ -316,17 +316,17 @@ disagree, the live capture wins.
   debounce3), `accdet-plugout-debounce = 1`, `accdet-mic-mode = 1` (ACC),
   `headset-three-key-threshold = <0 80 220 400>` mV, four-key values
   present but unused
-  ([`aeon6797_6m_n.dts` lines 702–717](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L702-L717),
-  struct at [`accdet.h` lines 123–150](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accdet/mt6797/accdet.h#L123-L150)).
+  (`aeon6797_6m_n.dts` lines 702–717,
+  struct at `accdet.h` lines 123–150).
   These are MediaTek reference defaults, not Gemini measurements.
 - **F13. Two further board GPIOs are tied to the headphone path by non-MediaTek
   code: GPIO234 `headphone_en` and GPIO235 `headphone_cs`.** Both are
   push-pull outputs with high/low states
-  ([`aeon6797_6m_n.dts` lines 1010–1039](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1010-L1039);
-  helpers at [`AudDrv_Gpio.c` lines 571–596](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Gpio.c#L571-L596)).
+  (`aeon6797_6m_n.dts` lines 1010–1039;
+  helpers at `AudDrv_Gpio.c` lines 571–596).
   `headphone_en` is driven high when the DCC-mode ADC path powers on and low
   when it powers off
-  ([`mt_soc_codec_63xx.c` lines 3493, 3762](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c#L3493)),
+  (`mt_soc_codec_63xx.c` lines 3493, 3762),
   that is, together with the **microphone**, not with playback.
   `headphone_cs` is only reachable from userspace through a world-writable
   `/proc/headphone_cs` (lines 5570–5617). The code style differs from the
@@ -348,7 +348,7 @@ disagree, the live capture wins.
   and routes `AIN1 → L PGA` (`0x0221`, `0x5221`); the reference mic uses
   MICBIAS2 1.9 V (`AUDENC_ANA_CON9 0x2100`) and `AIN2 → R PGA → R ADC`
   (`AUDENC_ANA_CON1 0x0331`, `0x5331`); PGA default 18 dB
-  ([lines 3140–3260](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c#L3140-L3260)).
+  (lines 3140–3260).
   Mic modes default to ACC (lines 130–132); DMIC code exists only for the
   voice-wakeup path and the DTS has no DMIC pins. Planet specifies dual /
   integrated ambient microphones and the user guide places a microphone at

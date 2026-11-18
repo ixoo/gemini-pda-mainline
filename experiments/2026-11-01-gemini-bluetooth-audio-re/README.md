@@ -45,26 +45,26 @@ Source inputs, all public and read at pinned revisions:
 
 | Tree | Revision |
 | --- | --- |
-| Gemian `gemini-linux-kernel-3.18` | `59e00a9144d782e148332009a835b99c43382467` |
+| The vendor's kernel | the one Gemian runs |
 | Linux `7.1.3` | pinned in `kernel/manifest.json` |
 
 | File | SHA-256 |
 | --- | --- |
-| `drivers/misc/mediatek/connectivity/drv_bt/linux/hci_stp.c` | `659a38e7d7f21bc5777d9023650820f8f993608c8546b965bf8455424c50f5cd` |
-| `drivers/misc/mediatek/connectivity/drv_bt/include/hci_stp.h` | `44e9a83347d84f0421ef539ed06dee8c000d5f28e01f2fb15e7c1c0d6b5ee543` |
-| `drivers/misc/mediatek/connectivity/drv_bt/include/bt_conf.h` | `652da845929cb3922390911fdb53f0f2ed6c10409affb03c98954fd925844f3f` |
-| `drivers/misc/mediatek/connectivity/bt/stp_chrdev_bt.c` | `55565ca1cafb1c9171965a06f5bae8b773c241c49cb2b2a3b770f17786eeb9d9` |
-| `sound/soc/mediatek/common/mt_soc_pcm_btcvsd.c` | `b843ac6f6b70b376abbe08a41feb35b4f8d53953ced7d6f8df91b99e4058d356` |
-| `sound/soc/mediatek/common/mt_soc_pcm_btcvsd.h` | `8f263b7f09b3c6169d15c77e7339a065408cf589125428995a875c80a87e35f4` |
-| `sound/soc/mediatek/common/mt_soc_pcm_btcvsd_rx.c` | `ad01954f908baed2a5491737df887bbd284b2700648c49f799af0e2f6eeb927f` |
-| `sound/soc/mediatek/common/mt_soc_pcm_btcvsd_tx.c` | `008351cce3a25ce4a0cabda0e8e1a72e4679e723bc5025570213949aeb9ada6a` |
-| `sound/soc/mediatek/mt_soc_audio_6797/mt_soc_machine.c` | `f067eba71be95dec9972db9c6c775b923d7a1aa72bf3f97fce6c7d4b5cfe3cd0` |
-| `sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_dl1_bt.c` | `6d427f93bd3581b20cdb6391907c471c7de9c8353802e3022f90d124949d208a` |
+| `hci_stp.c` | `659a38e7d7f21bc5777d9023650820f8f993608c8546b965bf8455424c50f5cd` |
+| `hci_stp.h` | `44e9a83347d84f0421ef539ed06dee8c000d5f28e01f2fb15e7c1c0d6b5ee543` |
+| `bt_conf.h` | `652da845929cb3922390911fdb53f0f2ed6c10409affb03c98954fd925844f3f` |
+| `stp_chrdev_bt.c` | `55565ca1cafb1c9171965a06f5bae8b773c241c49cb2b2a3b770f17786eeb9d9` |
+| `mt_soc_pcm_btcvsd.c` | `b843ac6f6b70b376abbe08a41feb35b4f8d53953ced7d6f8df91b99e4058d356` |
+| `mt_soc_pcm_btcvsd.h` | `8f263b7f09b3c6169d15c77e7339a065408cf589125428995a875c80a87e35f4` |
+| `mt_soc_pcm_btcvsd_rx.c` | `ad01954f908baed2a5491737df887bbd284b2700648c49f799af0e2f6eeb927f` |
+| `mt_soc_pcm_btcvsd_tx.c` | `008351cce3a25ce4a0cabda0e8e1a72e4679e723bc5025570213949aeb9ada6a` |
+| `mt_soc_machine.c` | `f067eba71be95dec9972db9c6c775b923d7a1aa72bf3f97fce6c7d4b5cfe3cd0` |
+| `mt_soc_pcm_dl1_bt.c` | `6d427f93bd3581b20cdb6391907c471c7de9c8353802e3022f90d124949d208a` |
 | `sound/soc/codecs/bt-sco.c` | `9c0530904e2072369419fd77542e8879da6084702828be443bfc107c40694c8f` |
-| `arch/arm64/boot/dts/mt6797.dtsi` | `eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e` |
-| `arch/arm64/configs/aeon6797_6m_n_defconfig` | `83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f` |
-| `arch/arm64/configs/aeon6797_6m_n_hybris_defconfig` | `adcfc69fa6428231957edf46bb70c58e21899032e0569364f3207bcca3b73b2c` |
-| Linux 7.1.3 `sound/soc/mediatek/common/mtk-btcvsd.c` | `935f11bfe1fdf003358a76fc22cada7210098279b4d0e99ed508d1d2c70e3612` |
+| `mt6797.dtsi` | `eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e` |
+| `aeon6797_6m_n_defconfig` | `83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f` |
+| `aeon6797_6m_n_hybris_defconfig` | `adcfc69fa6428231957edf46bb70c58e21899032e0569364f3207bcca3b73b2c` |
+| Linux 7.1.3 `mtk-btcvsd.c` | `935f11bfe1fdf003358a76fc22cada7210098279b4d0e99ed508d1d2c70e3612` |
 
 Retained firmware strings were read from the private 2019 vendor set; no
 firmware, binary or configuration content is copied here.

@@ -9,7 +9,7 @@ the outer EMI wrapper is the layer that discards it.
 
 The [work contract](WORK_ITEM.md) pins parent
 `cb035d7f8b9f782b1b8b1139352621fe2a38c025` and public Planet commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a`. The [input inventory](inputs.json)
+the vendor's kernel. The [input inventory](inputs.json)
 records two complete tree responses, the allowlist frozen before source reads,
 whole-file Git/SHA-256 identities, and the five exact predecessor/ABI documents.
 The [attempt ledger](search-attempts.json) records every request, timestamp,
@@ -38,7 +38,7 @@ secure macro. Its no-PSCI fallback returns zero without issuing that call; this
 conditional alternative is not a second selected definition. See exact
 `build_*`, `config_*`, `header_include` and `adapter_body` citations in
 [the verdict record](verdicts.json), including the
-[adapter definition](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/emi_mpu/emi_reg_rw.c#L74).
+adapter definition.
 
 The direct chain has only two references from the adapter anchor. At its end,
 the MT6797 ARM64 secure wrapper specifies:
@@ -55,7 +55,7 @@ describing a 64-bit call is not authority to substitute `0xc2000209`. The update
 x0-bound variable is explicitly converted to `int`; the adapter propagates this
 value, with no errno mapping or preservation of the full 64-bit raw result. See
 `secure_id`, `secure_macro`, `secure_arguments` and `secure_return`, including
-the [selected wrapper](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_secure_api.h#L46).
+the selected wrapper.
 
 The predecessor's exact WLAN requester citation supplies literal region18 and
 first-half-MiB bounds. Its source hash and locator are checked against the frozen

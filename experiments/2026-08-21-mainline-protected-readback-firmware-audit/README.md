@@ -29,7 +29,7 @@ runtime enablement of both read-only transports?
   read-only and both match the privately analyzed 2019 payload at SHA-256
   `2cd154f332ee72edb6dee431a68eb5f8b98b4dc05ee14e56591cfbffcf81a9b3`.
 - Public protocol source is pinned to Gemian repository commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`; exact named-firmware behavior is
+  the vendor's kernel; exact named-firmware behavior is
   pinned by the retained private payload analysis, not inferred from that
   source alone.
 

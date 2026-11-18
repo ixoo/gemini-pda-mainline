@@ -41,8 +41,8 @@ partition there. The pinned Gemian LXC fstab independently uses that mount.
 Thus the retained relative path agrees with the selected driver's
 `/data/nvram/APCFG/APRDEB/WIFI` path **if that configuration was installed and
 active**. This is a source-supported mapping, not an observed runtime mount.
-[Gemini init](https://github.com/lineage-geminipda/android_device_planet_geminipda/blob/8f7cd432feb3252497497a5259c7e4e326407a4f/rootdir/init.mt6797.rc#L85),
-[Gemini fstab](https://github.com/lineage-geminipda/android_device_planet_geminipda/blob/8f7cd432feb3252497497a5259c7e4e326407a4f/rootdir/fstab.mt6797#L11),
+Gemini init,
+Gemini fstab,
 [Gemian fstab](https://github.com/gemian/lxc-android/blob/dc9d10409a9bf04d3353969f170bc8aa10d8bdbd/var/lib/lxc/android/fstab.mt6797#L16).
 
 The retained Linux image matched its full backup hash, but `debugfs` 1.47.0

@@ -68,11 +68,11 @@ WFI.
   [v7.1](https://github.com/torvalds/linux/tree/v7.1). The 7.1.3 stable tree
   does not change these paths for this purpose.
 - Vendor source: Gemian Linux 3.18
-  [`59e00a91`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467),
-  `drivers/misc/mediatek/base/power/spm_v2/` (`mt_spm_mcdi.c`,
+  the vendor's kernel,
+  the vendor's `spm_v2` code (`mt_spm_mcdi.c`,
   `mt_spm_internal.c`, `mt_idle.c`, `mt_idle_mt6797.c`),
-  `drivers/misc/mediatek/base/power/include/spm_v2/mt_spm_reg_mt6797.h`,
-  `drivers/misc/mediatek/base/power/cpuidle_v1/mt_cpuidle.c` and
+  `mt_spm_reg_mt6797.h`,
+  `mt_cpuidle.c` and
   `drivers/clocksource/cpuxgpt_mt6797.c`. Read as evidence only; nothing is
   reused.
 - Earlier records: [power management](../2026-11-06-gemini-power-management/README.md)

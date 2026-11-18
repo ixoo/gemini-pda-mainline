@@ -4,7 +4,7 @@ The unselected [patch](patches/firmware-read/0001-wlan-capture-native-firmware-f
 records the allocation, signed file-read result and output publication in the
 native `kalFirmwareImageMapping()` path. The [source receipt](results/firmware-read-capture-sources.json)
 pins the complete original and changed `gl_kal.c` files to Gemian revision
-`59e00a9144d782e148332009a835b99c43382467`. The tested composition is the
+the vendor's kernel. The tested composition is the
 MT6797 AHB configuration with the ten pstore patches, DMA hooks and stop hooks.
 No manifest profile or boot candidate selects this patch.
 

@@ -9,7 +9,7 @@ they are not negative findings or permission to implement a provider.
 The [work contract](WORK_ITEM.md), [inputs](inputs.json),
 [request inventory](search-attempts.json) and [verdicts](verdicts.json) freeze
 parent `d56c4d8763d2b11f0521b945e890a9a108dbe16e` and public Planet source commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a`. Source identity is recorded as immutable
+the vendor's kernel. Source identity is recorded as immutable
 raw URLs, whole-file SHA-256 and Git blob identity, tied to two complete recursive
 API tree responses with matching hashes. There was no checkout, mirror or archive.
 
@@ -30,7 +30,7 @@ no-map removal, and the matching callback receives the initialized pair but stor
 only the base. The allocation-API boundary is sufficient for this source claim,
 not proof of live success, exclusion of a weak-function override, or a fixed
 physical address. See verdict citations `declaration` through `callback`, including
-the [allocator source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/of/of_reserved_mem.c#L95).
+the allocator source.
 
 WMT's power wrapper refuses a zero EMI base. Register control requests reset bit12
 and the probe-acquired `conn` clock, but does not propagate its recorded clock
@@ -54,7 +54,7 @@ outer EMI wrapper encodes the five-bit region in bits31:27, discards the adapter
 return and returns zero; the downloader ignores that zero too. The secure macro
 is not a proved connection to the missing adapter body. No secure-success or
 raw-status claim follows. See `region18_request` through `secure_macro`, especially
-the [outer EMI wrapper](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c#L1116).
+the outer EMI wrapper.
 
 ## Search accounting and limits
 

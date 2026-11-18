@@ -13,7 +13,7 @@ normal console output does not establish which CONSYS clock mode was selected
 or whether the region-18/19/23 secure EMI protection requests succeeded. Those
 are decision-changing inputs for the mainline shared-owner design. This
 experiment builds a reusable Gemian reference kernel from public source commit
-`59e00a9144d782e148332009a835b99c43382467`, the hash-pinned live Gemian
+the vendor's kernel, the hash-pinned live Gemian
 configuration, and the same pinned GCC 6.3 toolchain used by the established
 Gemian Buildbox lane. The tracked [patch](patches/0001-diagnostic-record-Gemian-Wi-Fi-setup-decisions.patch)
 records the co-clock argument at WMT initialization and CONSYS register
@@ -816,13 +816,13 @@ off or a transition fault remains; do not infer safe mainline teardown. A
 traced off and clear status still would not prove exclusive Linux ownership,
 firmware quiescence, EMI policy or mainline release safety.
 
-The [exact v8 source](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/drv_bt/linux/hci_stp.c#L1273-L1440)
+The exact v8 source
 assigns `hci_stp_open`/`hci_stp_close` to this HCI device. Close calls WMT
 Bluetooth off only after it clears `HCI_RUNNING`; open calls WMT Bluetooth on.
 Both functions appear in the live v8 ftrace filter list. The revised trace
 includes them, so a down HCI interface without the close or WMT-off call is
 distinguishable from a released BT vote. The source is pinned to the v8 build
-receipt's `59e00a9144d782e148332009a835b99c43382467` source commit; this
+receipt's vendor kernel source; this
 audit did not change the radio or the running kernel.
 
 The finite effect budget was one ConnMan Wi-Fi disable, one HCI down, one WMT
@@ -1330,7 +1330,7 @@ The first kernel-only build at `fd11d907` failed: the observer used
 `EVENT_LINK_QUALITY_EX`, which the pinned configuration compiles out; the
 error was recovered by an authorized focused compile from the prepared source
 and the link-quality event became header-only. The replacement build at
-`95a72c7b` (ten ordered patches, 0010 `0693fc0e…`; pinned source `59e00a91`,
+`95a72c7b` (ten ordered patches, 0010 `0693fc0e…`; the vendor's kernel,
 toolchain `a45d945f…`, configuration `231d8a2f…`, DCT `7a7eb416…`; 16 jobs on
 Buildbox-1 after the reviewed preparation-only provisioning) linked the full
 kernel with zero compiler warnings and the one known modpost section-mismatch

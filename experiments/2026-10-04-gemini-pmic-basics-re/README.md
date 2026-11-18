@@ -41,7 +41,7 @@ and the [kernel restart diagnostic](../2026-07-20-mt6797-kernel-restart-diagnost
 ## Inputs
 
 Every vendor citation below is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`, the same commit the charging
+the vendor's kernel, the same commit the charging
 record used. Every mainline citation is Linux `7.1.3` as pinned in
 `kernel/manifest.json`. Exact URLs, sizes and SHA-256 values are in
 [`source-inputs.json`](source-inputs.json). Line numbers refer to those exact
@@ -66,7 +66,7 @@ better witness for the running kernel.
 - **F1. Both kernels skip wrapper initialisation when the loader already did
   it.** The vendor driver tests `PMIC_WRAP_INIT_DONE2` and only calls
   `pwrap_init()` when it reads zero
-  ([`pwrap_hal.c` lines 1374–1384 and 1428](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/pmic_wrap/mt6797/pwrap_hal.c#L1374-L1384)).
+  (`pwrap_hal.c` lines 1374–1384 and 1428).
   Mainline `pwrap_probe()` has the same gate with the comment "The PMIC could
   already be initialized by the bootloader"
   ([`mtk-pmic-wrap.c` lines 2532–2542](https://github.com/gregkh/linux/blob/v7.1.3/drivers/soc/mediatek/mtk-pmic-wrap.c#L2532-L2542)),
@@ -85,7 +85,7 @@ better witness for the running kernel.
   `0x6543C210`/`0xFEDBA987` and output selects `0x87654210`/`0xFED3CBA9`,
   enables starvation control, writes `INIT_DONE0`–`INIT_DONE3` and finally
   enables the P2P channel
-  ([`pwrap_hal.c` lines 1076–1189](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/pmic_wrap/mt6797/pwrap_hal.c#L1076-L1189)).
+  (`pwrap_hal.c` lines 1076–1189).
   Mainline's MT6797 master data uses `PWRAP_CAP_RESET | PWRAP_CAP_DCM` and the
   MT6351 slave entry has `caps = 0`, i.e. no SPI-slave reset and no dual-IO
   step (lines 2207–2210, 2318–2326). The two sequences are therefore not
@@ -93,23 +93,23 @@ better witness for the running kernel.
 - **F3. The PMIC interrupt reaches the AP only through EINT176.** The vendor
   requests `pmic-eint` with `IRQF_TRIGGER_NONE` on the DT line
   (`interrupts = <262 4>`, `debounce = <262 1000>`,
-  [`mt6797.dtsi` lines 965–977](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L965-L977)),
+  `mt6797.dtsi` lines 965–977),
   disables the line in the hard handler, wakes a `SCHED_FIFO` priority-98
   thread, and that thread reads the four `INT_STATUS` banks, runs one callback
   per set bit, writes the bit back (W1C), clears the wrapper's EINT latch and
   re-enables the line
-  ([`pmic_irq.c` lines 518–524 and 648–730](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_irq.c#L648-L730)).
+  (`pmic_irq.c` lines 518–524 and 648–730).
   The local MFD patch's 64-entry enumeration matches the vendor table bit for
   bit, including the unused slots 8, 38, 39 and 53–63
   ([patch 0010](../../patches/v7.1.3/0010-mfd-mt6397-add-MT6351-core-and-interrupt-support.patch),
-  [`pmic_irq.c` lines 124–198](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_irq.c#L124-L198)).
+  `pmic_irq.c` lines 124–198).
 
 ### MT6351 identity and boot-time initialisation
 
 - **F4. The vendor keys silicon-specific writes on `HWCID`, and the live part
   takes the `0x5140` branch.** `PMIC_INIT_SETTING_V1()` compares `HWCID`
   (`0x0200`) against `0x5120` and `0x5140`
-  ([`pmic_initial_setting.c` lines 157–457](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_initial_setting.c#L157-L457));
+  (`pmic_initial_setting.c` lines 157–457);
   the live reads were `HWCID 0x5140`, `SWCID 0x5120`
   ([PMIC recovery](../2026-07-11-mt6351-pmic-recovery/README.md#physical-pmic-identity)).
   The `0x5140` branch adds six writes: `RG_SRCVOLTEN_MODE` and `RG_VOWEN_MODE`
@@ -123,7 +123,7 @@ better witness for the running kernel.
   the CID and status registers, then runs `PMIC_INIT_SETTING_V1()`, the
   AUXADC init, the interrupt setup, the regulator registration and the
   low-battery protection
-  ([`pmic.c` lines 4668–4750, 5098](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic.c#L4668-L4750)).
+  (`pmic.c` lines 4668–4750, 5098).
   The decoded table groups as follows (register family, writes):
 
   | Family | Writes | What the writes do |
@@ -146,19 +146,19 @@ better witness for the running kernel.
   configuration.** `pmic_pre_wdt_reset()` sets `VSLEEP_SEL = 0` and
   `VOSEL_SLEEP = 0x10` for VCORE, VSRAM_MD, VMODEM and VMD1 with interrupts
   disabled, then dumps all registers
-  ([`pmic.c` lines 203–227](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic.c#L203-L227)).
+  (`pmic.c` lines 203–227).
   It is called from the TOPRGU reset path (F19). Mainline's restart does not
   touch the PMIC.
 - **F7. Low-battery and over-current protection are software features of the
   vendor PMIC driver.** Thresholds are `3400`, `3250` and `3100` mV scaled by
   `4096/5400` into `AUXADC_LBAT_VOLT_MAX/MIN`, with the `BAT_L` interrupt
   (index 7) enabled on demand, and battery over-current at `5950`/`7000` mA
-  ([`mt_pmic.h` lines 36–42](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_pmic.h#L36-L42),
-  [`pmic.c` lines 2336–2338, 2405–2427](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic.c#L2405-L2427)).
+  (`mt_pmic.h` lines 36–42,
+  `pmic.c` lines 2336–2338, 2405–2427).
   The default interrupt set the vendor enables unconditionally is keys 0–3
   and `CHRDET` 46, with the RTC driver adding 9
-  ([`pmic_irq.c` lines 570–646](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_irq.c#L570-L646),
-  [`mtk_rtc_common.c` lines 735–742](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/rtc/mtk_rtc_common.c#L735-L742)).
+  (`pmic_irq.c` lines 570–646,
+  `mtk_rtc_common.c` lines 735–742).
   Mainline has none of the protection logic; the roadmap's battery step
   inherits that gap.
 
@@ -168,11 +168,11 @@ better witness for the running kernel.
   VMODEM, VMD1, VSRAM_MD, VS1, VS2, VPA, VSRAM_PROC; 600–1393.75 mV in
   6.25 mV steps) and 33 LDO entries including the split `vcn33_bt`/`vcn33_wifi`
   pair sharing one `VOSEL`
-  ([`pmic.c` lines 1584–1663](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic.c#L1584-L1663)).
+  (`pmic.c` lines 1584–1663).
   The public DT marks every buck except VCORE `regulator-always-on` and
   `regulator-boot-on`, and marks these LDOs `boot-on`: `va18`, `vtcxo24`,
   `vusb33`, `vemc_3v3`, `vio28`, `vio18`, `vsram_proc`, `vxo22`, `va10`,
-  `vdram` ([`mt6797.dtsi` lines 417–774](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L417-L774)).
+  `vdram` (`mt6797.dtsi` lines 417–774).
   The local [regulator driver](../../patches/v7.1.3/0015-regulator-mt6351-add-regulator-driver.patch)
   describes the same nine bucks and a single `VCN33`; the live mainline boot
   registered 40 regulators and consumed only VEMC and VIO18 (F1 result,
@@ -206,14 +206,14 @@ better witness for the running kernel.
   and the public Gemian source reports the power key as `KEY_ESC`.** IRQs 0/2
   (`pwrkey`, `pwrkey_r`) and 1/3 (`homekey`, `homekey_r`) call
   `kpd_pwrkey_pmic_handler()`/`kpd_pmic_rstkey_handler()`
-  ([`pmic_irq.c` lines 216–275](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_irq.c#L216-L275)),
+  (`pmic_irq.c` lines 216–275),
   which under `CONFIG_KPD_PWRKEY_USE_PMIC=y` report `KEY_ESC` for the power key
   and the DT `kpd-sw-rstkey` code for the home key
-  ([`hal_kpd.c` lines 356–382](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/keyboard/mediatek/mt6797/hal_kpd.c#L356-L382),
-  [`kpd.c` lines 356–370](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/keyboard/mediatek/kpd.c#L356-L370),
-  [defconfig line 371](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L371)).
+  (`hal_kpd.c` lines 356–382,
+  `kpd.c` lines 356–370,
+  defconfig line 371).
   The DT value `kpd-sw-pwrkey = <116>` (`KEY_POWER`,
-  [`cust_kpd.dtsi` lines 11–30](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_kpd.dtsi#L11-L30))
+  `cust_kpd.dtsi` lines 11–30)
   is not used on this path. The earlier PMIC record's "reported as Linux key
   code 116" was read from the live DT, not from an event capture; the public
   source says the Gemini's On/Esc button is delivered as Escape under Gemian.
@@ -224,7 +224,7 @@ better witness for the running kernel.
   writes `RG_PWRKEY_RST_EN`, `RG_HOMEKEY_RST_EN` and `RG_PWRKEY_RST_TD` only
   when `CONFIG_KPD_PMIC_LPRST_TD` is defined, and otherwise clears both
   enables
-  ([`hal_kpd.c` lines 240–290](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/keyboard/mediatek/mt6797/hal_kpd.c#L240-L290)).
+  (`hal_kpd.c` lines 240–290).
   The public defconfig at this commit sets `CONFIG_ONEKEY_REBOOT_NORMAL_MODE`
   and `_OTHER_MODE` (lines 369–370) but **not** `CONFIG_KPD_PMIC_LPRST_TD`, so
   the public build disables hardware long-press reset; the retained active
@@ -233,7 +233,7 @@ better witness for the running kernel.
   established. The running kernel's register state is still unobserved (H3).
   Field positions are confirmed in the header: `TOP_RST_MISC` (`0x02b6`) bits
   9/8 enables, bits 13:12 selector
-  ([`upmu_hw.h` lines 2811–2844](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h#L2811-L2844)).
+  (`upmu_hw.h` lines 2811–2844).
 - **F13. Mainline `mtk-pmic-keys` has no MT6351 data and always writes the
   reset register.** The driver covers MT6397/6323/6331/6357/6358/6359
   (`mtk-pmic-keys.c` lines 61–135, 302–318) and programs `pmic_rst_reg` from
@@ -248,8 +248,8 @@ better witness for the running kernel.
 
 - **F14. Register layout: base `0x4000`, write trigger at `+0x3c`, key
   `0x43 << 8`, PMIC interrupt 9.** Vendor:
-  [`mtk_rtc_hal.h` lines 26 and 36](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mtk_rtc_hal.h#L26-L36),
-  [`mt_rtc_hw.h` lines 19–26, 265](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_rtc_hw.h#L19-L26).
+  `mtk_rtc_hal.h` lines 26 and 36,
+  `mt_rtc_hw.h` lines 19–26, 265.
   `BBPU` bits: `PWREN` 0 ("BBPU = 1 when alarm occurs"), `BBPU` 2 ("1: power
   on, 0: power down"), `AUTO` 3 ("BBPU = 0 when xreset_rstb goes low"),
   `CLRPKY` 4, `RELOAD` 5, `CBUSY` 6. Mainline `rtc-mt6397` uses the same
@@ -260,9 +260,9 @@ better witness for the running kernel.
 - **F15. The vendor `RELOAD` sequence is shared with chips that mainline
   already serves without it.** `hal_rtc_get_tick_time()` sets `KEY | RELOAD`,
   triggers, then reads the counters and re-reads seconds for rollover
-  ([`mtk_rtc_hal_common.c` lines 201–218](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/rtc/mtk_rtc_hal_common.c#L201-L218)).
+  (`mtk_rtc_hal_common.c` lines 201–218).
   That file is built for every vendor PMIC family, MT6323 and MT6391 included
-  ([`rtc/Makefile`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/rtc/Makefile)),
+  (`Makefile`),
   while mainline `__mtk_rtc_read_time()` reads the counters directly and
   checks seconds rollover with no `RELOAD`
   ([`rtc-mt6397.c` lines 62–86](https://github.com/gregkh/linux/blob/v7.1.3/drivers/rtc/rtc-mt6397.c#L62-L86))
@@ -272,7 +272,7 @@ better witness for the running kernel.
 - **F16. Alarm and interrupt handling match in shape.** Vendor sets the alarm
   with `RTC_AL_MASK_DOW`, `IRQ_EN |= ONESHOT | AL`, reads `IRQ_STA` (read-
   clear) and treats `IRQ_STA_LP` as a low-power exception
-  ([`mtk_rtc_hal.c` (mt6351) lines 229–300](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/rtc/mt6351/mtk_rtc_hal.c#L229-L300));
+  (`mtk_rtc_hal.c` (mt6351) lines 229–300);
   mainline does the same at `rtc-mt6397.c` lines 40–58 and 178–235, with the
   local [IRQ_EN masking fix](../2026-09-08-mt6397-rtc-irq-fix/README.md) and
   [wake error fix](../2026-09-12-mt6397-rtc-wake-errors/README.md) pending.
@@ -281,11 +281,11 @@ better witness for the running kernel.
   `PWRON_TIME` 7, `GPIO_*` users 8–12, `FAST_BOOT` 13, `KPOC` 14, `DEBUG` 15;
   `RTC_PDN2` carries `PWRON_ALARM` 4, UART bits 5–6, autoboot 7, `LOGO` 15;
   `RTC_SPAR0` bit 6 is `32K_LESS` and bit 7 `LP_DET`
-  ([`mt_rtc_hw.h` lines 195–245](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_rtc_hw.h#L195-L245)).
+  (`mt_rtc_hw.h` lines 195–245).
   `arch_reset("recovery"|"bootloader"|"kpoc")` sets `FAC_RESET`, `FAST_BOOT`
   or `KPOC` through `rtc_mark_*()` before the TOPRGU reset
-  ([`wd_api.c` lines 583–613](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/watchdog/mediatek/wdk/wd_api.c#L583-L613),
-  [`mtk_rtc_common.c` lines 346–374](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/rtc/mtk_rtc_common.c#L346-L374)).
+  (`wd_api.c` lines 583–613,
+  `mtk_rtc_common.c` lines 346–374).
   Mainline `rtc-mt6397` reads only `PDN2_PWRON_ALARM` and never writes `PDN1`
   or `SPAR0`, so a mainline reboot cannot request recovery or fastboot and,
   conversely, cannot corrupt the loader's flags (H9). The vendor init also
@@ -306,18 +306,18 @@ better witness for the running kernel.
 - **F19. The vendor explicitly bypasses PSCI for both restart and power-off
   on MT6797.** Its `psci.c` wraps `arm_pm_restart = psci_sys_reset` and
   `pm_power_off = psci_sys_poweroff` in `#ifndef CONFIG_ARCH_MT6797`
-  ([`psci.c` lines 410–414](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/kernel/psci.c#L410-L414)),
+  (`psci.c` lines 410–414),
   the DT advertises `arm,psci-0.2` with only suspend/off/on/affinity function
-  IDs ([`mt6797.dtsi` lines 59–66](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L59-L66)),
+  IDs (`mt6797.dtsi` lines 59–66),
   and `machine_restart()` falls through to the restart-notifier chain
-  ([`process.c` lines 160–170](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/kernel/process.c#L160-L170)).
+  (`process.c` lines 160–170).
   There a priority-128 notifier calls `arch_reset()` → `wd_api->wd_sw_reset()`
   → `wdt_arch_reset()`: an SMC `MTK_SIP_KERNEL_DISABLE_DFD`, `WDT_RESTART`
   with its key, `WDT_MODE = KEY | EXTEN` plus `AUTO_RESTART` for an ordinary
   reboot, `pmic_pre_wdt_reset()` (F6), a 100 µs delay and `WDT_SWRST` with key
   `0x1209`
-  ([`wd_api.c` lines 583–650](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/watchdog/mediatek/wdk/wd_api.c#L583-L650),
-  [`mtk_wdt.c` lines 321–366](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/watchdog/mediatek/wdt/mt6797/mtk_wdt.c#L321-L366)).
+  (`wd_api.c` lines 583–650,
+  `mtk_wdt.c` lines 321–366).
   Mainline registers the PSCI restart notifier at priority 129 and
   `mtk_wdt` at 128 ([`psci.c` lines 309–330, 682](https://github.com/gregkh/linux/blob/v7.1.3/drivers/firmware/psci/psci.c#L309-L330),
   [`mtk_wdt.c` lines 228–245, 439](https://github.com/gregkh/linux/blob/v7.1.3/drivers/watchdog/mtk_wdt.c#L228-L245));
@@ -332,16 +332,16 @@ better witness for the running kernel.
   the pre-reset buck writes (F6); neither has been shown necessary.
 - **F20. Vendor power-off is an RTC `BBPU` write, installed over PSCI at
   late init.** `mt_power_management_init()` sets `pm_power_off = mt_power_off`
-  ([`mt_pm_init.c` line 620](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_pm_init.c#L620)).
+  (`mt_pm_init.c` line 620).
   `mt_power_off()` → `hal_rtc_bbpu_pwdn()`: clear the 2-second reboot bits in
   `RTC_AL_SEC` (`2SEC_EN` bit 8, `AUTO_PDN_SEL` bit 6), set `RTC_CON_F32KOB`
   when no `RTC_GPIO` user holds the 32 kHz export, and, when `32K_LESS` is
   clear and no charger is detected, drive the `SRCLKEN` pin low as a GPIO
   before writing `BBPU = KEY | AUTO | PWREN` (`0x4309`, `BBPU` bit 2 cleared)
   and triggering
-  ([`mtk_rtc_hal.c` (mt6351) lines 176–213](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/rtc/mt6351/mtk_rtc_hal.c#L176-L213),
-  [`mtk_rtc_hal_common.c` lines 138–154](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/rtc/mtk_rtc_hal_common.c#L138-L154),
-  [`mtk_rtc_common.c` lines 388–410](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/rtc/mtk_rtc_common.c#L388-L410)).
+  (`mtk_rtc_hal.c` (mt6351) lines 176–213,
+  `mtk_rtc_hal_common.c` lines 138–154,
+  `mtk_rtc_common.c` lines 388–410).
   `PWREN` stays set so an RTC alarm can power the device back on, and with a
   charger attached the PMIC's `CHRDET` re-powers into LK's kernel power-off
   charging mode (`CONFIG_MTK_KERNEL_POWER_OFF_CHARGING=y`, defconfig line 387;

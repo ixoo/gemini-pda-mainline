@@ -28,7 +28,7 @@ CPU-hotplug diagnostic.
 ## Evidence basis
 
 The public Gemian kernel source is pinned locally at commit
-`d388d350cb2dda8f23b99be6fa5db9628896e87f`. Its MT6797 A72 path coordinates
+the vendor's kernel. Its MT6797 A72 path coordinates
 the external DA9214 BUCKB rail, TOPRGU PWRAP reset, SPM isolation state,
 MCUCFG DCM, and private secure-firmware calls before PSCI. Live Gemian evidence
 identifies the fixed pre-boot state as BUCKB enabled at 1,000,000 uV, with

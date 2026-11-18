@@ -124,6 +124,6 @@ is not a complete initialization-flow proof.
 
 Private scripts, logs and listings remain retained with the original evidence.
 Public host inputs are pinned to Planet commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a`. No emulation, firmware execution,
+the vendor's kernel. No emulation, firmware execution,
 device/radio access, kernel change or hardware test occurred. Repository
 publication checks apply; no kernel build is needed.

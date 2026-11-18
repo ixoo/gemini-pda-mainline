@@ -35,14 +35,14 @@ implemented together and replayed offline before the next boot2 handoff.
 
 ## Pinned inputs
 
-- Parent: the full Gemian tree at `59e00a9144d782e148332009a835b99c43382467`
-  (`gemian/gemini-linux-kernel-3.18`), the parent of every reference image;
+- Parent: the full the vendor's kernel
+  (`gemian/the vendor's kernel`), the parent of every reference image;
   the v10 patch applies on top of patches 0001 to 0009 with the pinned
   configuration (`CONFIG_MTK_COMBO_WIFI=y`: the gen3 driver is built in under
   module name `wlan_gen3`; `CONFIG_LOG_BUF_SHIFT=17`, a 128 KiB kernel log
   ring; `CONFIG_DYNAMIC_DEBUG=y`; `CONFIG_PRINTK_TIME=y`).
 - Oracle: the pinned public gen3 extract. Every site below was resolved on
-  the `59e00a91` tree itself (the extract's line numbers coincide for the
+  the vendor's kernel itself (the extract's line numbers coincide for the
   files it holds): `nic/nic_tx.c` `nicTxCmd` 1706, `nicTxReleaseResource`
   561, `nicTxComposeDesc` 1019, `nicTxComposeSecurityFrameDesc` 1161,
   `nicTxProcessTxDoneEvent` 2377; `nic/nic_rx.c` `nicRxFillRFB` 285,
@@ -59,7 +59,7 @@ implemented together and replayed offline before the next boot2 handoff.
   vendor `DBGLOG` is already a dynamic-debug site behind the module level
   gate, left untouched); `os/linux/gl_proc.c` 633 to 710 (the existing
   `/proc/net/wlan/` controls, not extended).
-- Types and lengths, `include/nic_cmd_event.h` at `59e00a91`: `WIFI_CMD_T`
+- Types and lengths, `include/nic_cmd_event.h` the vendor's kernel: `WIFI_CMD_T`
   294 and `WIFI_EVENT_T` 307 (8-byte header: `u2PacketLength`,
   `u2PacketType`, `ucEID`, `ucSeqNum`, two reserved); `CMD_802_11_KEY` 375
   (`ucAddRemove`, `ucTxKey`, `ucKeyType`, `ucIsAuthenticator`,
@@ -146,7 +146,7 @@ calls at the resolved sites. Nothing else in the driver changes; the vendor
   is reported and never used as a bound); the raw status word is recorded so
   the analysis applies the data path's own acceptance test.
 
-| Site (`59e00a91`) | Record | Fields |
+| Site (the vendor's kernel) | Record | Fields |
 | --- | --- | --- |
 | `nicTxCmd` 1706, every command | `cmd` | `cid seq set len bss type`; frame commands `type frame=1 len bss sta`; a short or absent buffer `short=1` |
 | `cid 0x07` with the 16 metadata bytes present | `cmd key` | `seq addremove tx keytype auth bss alg keyid keylen wlan peer=<class>` (material and RSC never read) |

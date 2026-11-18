@@ -73,8 +73,8 @@ boundaries and include padding.
 | `ddp_pwm_power_on` | `0xffffffc0005b6a38` | `0xffffffc0005b6aa0` | `879bb23a2e084207dee0daa5f487b5f9e4262038fd92c282a8deaa67f35cecc1` |
 | `ddp_pwm_power_off` | `0xffffffc0005b69d0` | `0xffffffc0005b6a38` | `ce60fa784949e2185e533279d4c46a5095330d196a000429c94595a756fd5ff6` |
 
-Public comparison: Gemian commit `8cfe6596a503612e3332d9c26e292a19525a7f07`,
-paths below `drivers/misc/mediatek/video/`:
+Public comparison: the vendor's kernel,
+paths below the vendor's `video` code:
 
 | Path | SHA-256 |
 | --- | --- |

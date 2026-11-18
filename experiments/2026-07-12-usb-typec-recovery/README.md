@@ -28,7 +28,7 @@ tree uses MT6797-specific compatibles and hardcoded PHY banks.
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
 - Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Vendor source: Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Mainline comparison: Linux `7.1.3` in the development VM.
 - Public silicon references: [onsemi FUSB301 datasheet](https://www.onsemi.com/download/data-sheet/pdf/fusb301-d.pdf) and [FUSB301A datasheet](https://www.onsemi.com/download/data-sheet/pdf/fusb301a-d.pdf).
 - Sanitized summary: [`results/runtime-summary.txt`](results/runtime-summary.txt).

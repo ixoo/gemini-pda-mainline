@@ -96,7 +96,7 @@ and VIO18 always-on at 1.8 V. The audit is static package evidence only and
 does not claim a mainline PMIC probe or rail control.
 
 Interpretation uses the Planet 3.18 GPL source at
-[`c5b0be85017ad0c599725e8273842efdbecdd88a`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/tree/c5b0be85017ad0c599725e8273842efdbecdd88a)
+the vendor's kernel
 and the partial 4.9 Gemini port at
 [`c65b8b5592a462041dce0d3058dc4e5f831704ce`](https://github.com/NotKit/kernel-4.9-geminipda/tree/c65b8b5592a462041dce0d3058dc4e5f831704ce).
 Public source is used as implementation evidence, not assumed to be identical

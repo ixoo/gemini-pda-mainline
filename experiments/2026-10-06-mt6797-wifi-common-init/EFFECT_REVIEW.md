@@ -10,7 +10,7 @@ evidence and are not used as such here.
 ## Evidence used
 
 - **Vendor source.** `wmt_ic_soc.c`, `sw_init()`, at public vendor revision
-  `c5b0be85` and Gemian v8 `59e00a91`; the two files are byte-identical
+  the vendor's kernel and Gemian v8 the vendor's kernel; the two files are byte-identical
   (SHA-256 `22d98e9e…`, [startup receipt](../2026-10-03-mt6797-wifi-audit/results/startup-followup.json)).
   The selected configuration is in the
   [common-init receipt](../2026-10-03-mt6797-wifi-audit/results/common-init-review.json).

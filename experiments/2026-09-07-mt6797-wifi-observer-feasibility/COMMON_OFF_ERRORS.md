@@ -15,7 +15,7 @@ assignments and shortcut behavior. Later failures retain their diagnostics;
 the first failure is returned. The [source receipt](results/common-off-errors-sources.json)
 pins the complete parent and changed `wmt_core.c` and verifies patch replay
 and reversal after the existing single-startup-attempt patch on public Gemian
-revision `59e00a9144d782e148332009a835b99c43382467`. The first Buildbox attempt
+the vendor's kernel. The first Buildbox attempt
 refused the original receipt's unpatched baseline hash at this composition
 boundary. Regenerating against the actual parent preserves the same two
 shutdown-function edits and the earlier startup correction.

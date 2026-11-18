@@ -21,14 +21,14 @@ actual ACTIVE native-beacon presence is **unproved**.
 ## Source contract and hypothesis
 
 Independently public source at
-[gemian/gemini-linux-kernel-3.18, commit59e00a9](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3)
+the vendor's kernel
 corroborates the existing byte-layout contract:
 
-- [nic_rx.h](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h),
+- nic_rx.h,
   SHA `0645985217a887e6c2d367955fa656b45f716a6aeeee13a29a2b462eb8dea5cb`:
   base16, groups4/1/2/3 sizes16/16/8/24, header low6 directly in bytes,
   BIT6 pad2, BIT7 translation; FCS bit1/ICV bit4.
-- [nic_rx.c](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c),
+- nic_rx.c,
   SHA `a844bdf75065a152e78d30c789aabb398b0d0f336d30d6ffd028793bf091412b`:
   nicRxFillRFB walks4/1/2/3 then pad, returns original header/remaining span;
   class2 uses the monitor consumer when enabled, separate from class7 management.

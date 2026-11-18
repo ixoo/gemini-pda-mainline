@@ -62,7 +62,7 @@ review.
 ## Retained LK source audit
 
 The public Planet Gemini Android 8 LK source was audited at commit
-`f4988d74bb70a0a15d7f362f412afba7e7fcda46` (see
+the vendor's LK (see
 [`lk-boot-contract-audit-20260713.txt`](results/lk-boot-contract-audit-20260713.txt)
 and [`audit-lk-boot-contract.sh`](scripts/audit-lk-boot-contract.sh); the
 current package-only rerun is [`lk-boot-contract-audit-current-20260713.txt`](results/lk-boot-contract-audit-current-20260713.txt)). Its

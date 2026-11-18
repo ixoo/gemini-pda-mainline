@@ -23,11 +23,11 @@ that Gemian reaches it through a private `/proc` ABI rather than the LED class.
 
 ## Provenance and environment
 
-- Vendor kernel commit `8cfe6596a503612e3332d9c26e292a19525a7f07`:
-  `drivers/misc/mediatek/aw9120/aw9120_led.c`,
-  `drivers/misc/mediatek/aw9120/aw9120_reg.h`,
-  `drivers/misc/mediatek/leds/`, `arch/arm64/boot/dts/mt6797.dtsi`,
-  `arch/arm64/boot/dts/aeon6797_6m_n.dts`.
+- The vendor's kernel:
+  `aw9120_led.c`,
+  `aw9120_reg.h`,
+  the vendor's `leds` code, `mt6797.dtsi`,
+  `aeon6797_6m_n.dts`.
 - Public `gemian/gemian-leds` at commit
   `02e05085e680d8be51722351a462bf3081e6aa03` (version 0.2, also the installed
   package version per the userspace inventory).

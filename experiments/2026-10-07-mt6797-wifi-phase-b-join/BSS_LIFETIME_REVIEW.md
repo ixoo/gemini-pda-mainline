@@ -26,8 +26,8 @@ already active; the matching LOOKING_FOR scan completion advances the
 connection path. This is source evidence for host design, not proof of our
 firmware command execution or new mainline runtime.
 
-Public revision: `c5b0be85017ad0c599725e8273842efdbecdd88a` in the
-[gen3 AIS state machine](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c).
+Public revision: the vendor's kernel in the
+gen3 AIS state machine.
 
 ## Required implementation gates
 

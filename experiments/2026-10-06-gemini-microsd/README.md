@@ -18,7 +18,7 @@ The board-services kernel already has `MMC_MTK` (which matches
 `mediatek,mt6797-mmc`), `MMC_BLOCK`, `REGULATOR_MT6351`, VFAT, EXT4 and MBR
 partitions. Only a composed DT is needed.
 
-## Board facts used (public board DWS at `c5b0be85…`)
+## Board facts used (public board DWS at `the vendor's kernel…`)
 
 - **MSDC1 pads.** GPIO129–134 (CMD, DAT0–3, CLK) default to mode 1, MSDC1.
   DAT0–3 have pull-up enabled in the DWS; the loader applies it, and mainline

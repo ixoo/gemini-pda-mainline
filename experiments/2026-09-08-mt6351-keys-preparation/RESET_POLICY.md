@@ -7,14 +7,14 @@ performed. This follow-up does not admit a Gemini key node.
 ## Evidence
 
 The public Gemian source at
-[`59e00a9144d782e148332009a835b99c43382467`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467)
+the vendor's kernel
 provides a timing contract independent of the upstream property's name:
 
 | Source | Observation |
 | --- | --- |
-| `drivers/input/keyboard/mediatek/Kconfig`, lines 65–71 | `KPD_PMIC_LPRST_TD` accepts selectors 0–3, documented as 8, 11, 14 and 5 seconds |
-| `drivers/input/keyboard/mediatek/mt6797/hal_kpd.c`, lines 240–290 | Normal and other boot paths select one-key or two-key reset from configuration, then pass the selector directly to `MT6351_PMIC_RG_PWRKEY_RST_TD`; factory modes disable both enables |
-| `drivers/input/keyboard/mediatek/kpd.c`, line 921 | Keypad probe invokes that setup function |
+| `Kconfig`, lines 65–71 | `KPD_PMIC_LPRST_TD` accepts selectors 0–3, documented as 8, 11, 14 and 5 seconds |
+| `hal_kpd.c`, lines 240–290 | Normal and other boot paths select one-key or two-key reset from configuration, then pass the selector directly to `MT6351_PMIC_RG_PWRKEY_RST_TD`; factory modes disable both enables |
+| `kpd.c`, line 921 | Keypad probe invokes that setup function |
 | MT6797 `upmu_hw.h`, lines 2829–2840 | MT6351 timeout is a two-bit field at bits 13:12 of `TOP_RST_MISC`; power/home reset enables occupy bits 9/8 |
 
 The retained [active Gemian configuration](../2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config)

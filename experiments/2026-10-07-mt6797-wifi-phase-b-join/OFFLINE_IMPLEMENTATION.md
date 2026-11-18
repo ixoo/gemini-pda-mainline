@@ -51,7 +51,7 @@ The proven Phase A profile is unchanged. Earlier checkpoints admitted no candida
 Selected patches are listed in
 `series-a53-wifi-phase-b-compile` (series retired 2026-10-24, in the git history).
 Their public wire source is gen3 at revision
-`c5b0be85017ad0c599725e8273842efdbecdd88a`; source links are in the experiment
+the vendor's kernel; source links are in the experiment
 [design](README.md). Vendor headers are not added to this repository.
 
 ## Validation completed
@@ -130,7 +130,7 @@ needs a scan-worker fence; full peer teardown is unfinished. No candidate
 admits this changed BSS lifetime.
 
 Patch 0134 adds only the typed HIF receive-filter command. Public gen3
-[`wlan_oid.h`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_oid.h)
+`wlan_oid.h`
 defines DIRECTED as bit 0 and BROADCAST as bit 3, so the admitted word is
 exactly 0x09. Other filter modes are refused before changing the credit,
 sequence history or output buffer. The existing scan filter stays 0x08.

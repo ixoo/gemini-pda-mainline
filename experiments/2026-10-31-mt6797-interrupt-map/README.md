@@ -19,15 +19,14 @@ dispatched, and what does each handler actually do?
 
 ## Provenance and environment
 
-- Public vendor source: Gemian `gemini-linux-kernel-3.18` commit
-  `59e00a9144d782e148332009a835b99c43382467`.
-- SoC DT: `arch/arm64/boot/dts/mt6797.dtsi`; reference board DT
-  `arch/arm64/boot/dts/aeon6797_6m_n.dts`.
+- Public vendor source: the vendor's kernel.
+- SoC DT: `mt6797.dtsi`; reference board DT
+  `aeon6797_6m_n.dts`.
 - Exact Gemian final DTB: retained `board.dtb`, SHA-256
   `9e26929563f7682d1f7545d6007f0092c7e085a4edbd6e7be0ac8eaa5159b2f9`,
   extracted from the active Gemian boot image
   `1fa78de9f8744a6818bcef2f6773737939f84364de982413910d4958d6d21513`.
-- GIC/EINT source: `drivers/misc/mediatek/irq/mt6797/irq.c`,
+- GIC/EINT source: `irq.c`,
   `drivers/irqchip/irq-mt-eic.c`.
 - Active vendor vmlinux: symbol-bearing 3.18 ELF, SHA-256
   `cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162`.

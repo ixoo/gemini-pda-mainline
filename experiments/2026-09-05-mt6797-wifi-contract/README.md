@@ -80,7 +80,7 @@ No gen2 loader or frame layout is promoted to a Gemini implementation.
 
 Initial comparator source identities:
 
-| Planet path below `drivers/misc/mediatek/connectivity/wlan/gen2/` | SHA-256 | Relevant fact |
+| Planet path below the vendor's `gen2` code | SHA-256 | Relevant fact |
 | --- | --- | --- |
 | `Makefile` | `4c374760e32142a31ea7e020ec2a251d04d18600f2e735f8ad4dc3de52a52807` | SDIO-named macro coexists with AHB object selection |
 | `os/linux/hif/ahb/ahb.c` | `62fbadbbac5f3062a23435cf66f39b2286bc6d15807da8cf2a299914467a5e42` | Platform match/registration, Wi-Fi DMA clock and IRQ setup |
@@ -90,7 +90,7 @@ Initial comparator source identities:
 | `include/nic_cmd_event.h` | `89a6c97e17a6fd3b78ffa14eb0a8c5dedcf442dd0c12ecbd6f457fb44a1de269` | WLAN command/event headers differ from STP/HCI |
 
 All Planet paths above refer to commit
-[`c5b0be85017ad0c599725e8273842efdbecdd88a`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/tree/c5b0be85017ad0c599725e8273842efdbecdd88a).
+the vendor's kernel.
 Sources were read selectively over HTTPS, not cloned or imported. No source
 tree, blob, firmware, private capture or proprietary document was added.
 

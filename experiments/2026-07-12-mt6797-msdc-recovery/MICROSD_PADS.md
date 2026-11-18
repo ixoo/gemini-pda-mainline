@@ -66,15 +66,15 @@ removed generic eMMC pad properties or enabling MSDC1 now.
 
 ## Provenance and reproduction
 
-Source: [Gemian commit 8cfe6596](https://github.com/gemian/gemini-linux-kernel-3.18/tree/8cfe6596a503612e3332d9c26e292a19525a7f07).
+Source: the vendor's kernel.
 Read the following Git objects in the RE VM and inspect array entries 129–134
 alongside the `MSDC1_*` definitions and helper implementations:
 
 | Path | SHA-256 |
 | --- | --- |
-| `drivers/misc/mediatek/gpio/mt6797/gpio_cfg.h` | `29ea8cc6a821288defab068c0f8c6f452b3adcd068d48c3ca0702a616454ac9c` |
-| `drivers/mmc/host/mediatek/mt6797/msdc_io.h` | `e3c97a2930ac29dd46838c170c733fb05d5d87b5aa139ee7837da9b9f242ce65` |
-| `drivers/mmc/host/mediatek/mt6797/msdc_io.c` | `b87966fb3bb7be7e9c7c273cc58e92e7c19ed6a3b09a503afbaedb529c890e07` |
+| `gpio_cfg.h` | `29ea8cc6a821288defab068c0f8c6f452b3adcd068d48c3ca0702a616454ac9c` |
+| `msdc_io.h` | `e3c97a2930ac29dd46838c170c733fb05d5d87b5aa139ee7837da9b9f242ce65` |
+| `msdc_io.c` | `b87966fb3bb7be7e9c7c273cc58e92e7c19ed6a3b09a503afbaedb529c890e07` |
 
 Upstream comparison uses commit `4d7d9486c04d917265f64c55bd23b2cc4fe7749c`,
 files `pinctrl-mt6797.c`, `pinctrl-mtk-mt6797.h`, `pinctrl-paris.c`, and

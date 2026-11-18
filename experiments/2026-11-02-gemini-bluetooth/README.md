@@ -585,7 +585,7 @@ The owner restarted with "ESC+side key", a hardware path, which may be why pstor
 
 ## Comparing with the vendor: what T5 did differently
 
-Requested by the owner after T5. Read from the public Gemian kernel at `59e00a91` and from the retained
+Requested by the owner after T5. Read from the vendor's kernel and from the retained
 `audio.primary.mt6797.so` statically, in the RE VM. No hang path was found in the kernel code, so the
 hang's cause stays open. Two of T5's settings were wrong, and both are this project's test, not the driver:
 

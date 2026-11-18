@@ -42,7 +42,7 @@ insufficient.
 
 The [source/binary receipt](results/stk-identity-sources.json) pins the
 inspected inputs and function spans. The selected public Planet source is commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a`. Its ALS/PS Makefile selects
+the vendor's kernel. Its ALS/PS Makefile selects
 `alsps/stk3x1x-new/`, not the similarly named copy under `alsps/mediatek/`.
 Source facts are corroborated by private RE-VM disassembly of the retained
 primary boot kernel:

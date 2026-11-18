@@ -24,7 +24,7 @@ It does not replace or renew the selected normal-cycle ownership observation.
 ## Source boundary
 
 The review reads thirteen individual gen3 files from Planet commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, already selected by the
+the vendor's kernel, already selected by the
 [transport contract](../2026-09-05-mt6797-wifi-contract/README.md). Exact objects
 were available in Buildbox's existing public Git cache after two raw-URL
 requests failed. No Linux source tree was transferred.
@@ -112,7 +112,7 @@ vendor source. Those behaviors must not become the mac80211 scan contract.
 ## Observation-path check
 
 Before the offload review, the public Gemian comparator
-`59e00a9144d782e148332009a835b99c43382467` was checked for a standard perf
+the vendor's kernel was checked for a standard perf
 alternative to the already-unavailable kprobe/ftrace path. Its perf UAPI has
 `PERF_SAMPLE_REGS_USER` but no `PERF_SAMPLE_REGS_INTR`.
 `kernel/events/core.c:4672` substitutes saved **user** registers when the

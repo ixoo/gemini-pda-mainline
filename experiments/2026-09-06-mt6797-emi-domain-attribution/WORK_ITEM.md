@@ -9,15 +9,15 @@
   uncertainty and files only under this experiment; `/root` integrates; Sol
   Medium reviews the evidence and scope boundary.
 - **Scope:** inspect only the public GPL-2.0-noticed Planet/Gemian kernel
-  repository `https://github.com/lineage-geminipda/android_kernel_planet_mt6797.git`
-  at commit `c5b0be85017ad0c599725e8273842efdbecdd88a`, limited to its complete
+  repository `the vendor's kernel`
+  the vendor's kernel, limited to its complete
   recursive commit-tree index and these exact paths:
-  `drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c`,
-  `drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h`,
-  `drivers/misc/mediatek/devapc/mt6797/devapc.c`,
-  `drivers/misc/mediatek/devapc/mt6797/devapc.h`,
-  `drivers/misc/mediatek/eccci/mt6797/ccci_platform.c`, and
-  `drivers/misc/mediatek/eccci/mt6797/ccci_platform.h`. Freeze each used file,
+  `emi_mpu.c`,
+  `emi_mpu.h`,
+  `devapc.c`,
+  `devapc.h`,
+  `ccci_platform.c`, and
+  `ccci_platform.h`. Freeze each used file,
   its SHA-256, file-level license and exact purpose in `inputs.json`; any other
   repository, revision or file is a scope change. Private evidence is limited to the
   already retained TEE identity and the named sanitized retained-ABI Markdown

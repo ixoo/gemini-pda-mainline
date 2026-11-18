@@ -10,7 +10,7 @@ or implement ordinary secure Wi-Fi.
 
 ## Source and live admission
 
-Pinned public gen3 source remains `59e00a9144d782e148332009a835b99c43382467`.
+Pinned public gen3 source remains the vendor's kernel.
 Three additional files were retained and checked:
 
 | File | SHA-256 | Relevant result |
@@ -66,7 +66,7 @@ instruction records remain in private evidence; no firmware code is published.
 This identifies a concrete control primitive, rather than a guessed register
 or a search for the number 48.
 
-The pinned public [RXD layout](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_rx.h#L455-L484)
+The pinned public RXD layout
 defines Group1/2/3 spans of 16/8/24 bytes. Their
 sum is 48, but neither that arithmetic nor this mask establishes that these
 bits control those groups, that pending frames are rewritten, or that FIFO

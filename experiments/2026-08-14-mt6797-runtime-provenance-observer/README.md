@@ -25,8 +25,8 @@ A compile result cannot establish runtime publication or hardware support.
 
 ## Provenance and environment
 
-- Vendor source: `https://github.com/gemian/gemini-linux-kernel-3.18.git`
-- Vendor source commit: `d388d350cb2dda8f23b99be6fa5db9628896e87f`
+- Vendor source: `the vendor's kernel`
+- Vendor source commit: the vendor's kernel
 - Observer parent commit: `f3d2a14bd1b8355c68e59e8bd4be6bc1525f9c24`
 - Recovery child commit: `2dbf7be3999120f297aedb9842bce320d759d26e`
 - Observer patch SHA-256: `3520538de1c31ea592c2f0c76af7deef10f5c1ee00689d74bdac17def48dbb11`

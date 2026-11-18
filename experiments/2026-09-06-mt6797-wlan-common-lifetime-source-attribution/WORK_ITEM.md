@@ -9,7 +9,7 @@
   attribution; Orchestrator owns scope/integration; Sol Medium independently
   reviews the frozen handoff.
 - **Scope:** Planet public source at
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`; start from the prior pinned
+  the vendor's kernel; start from the prior pinned
   `wlan_lib`, `gl_init`, `gl_kal`, `wifi_chrdev`, `wmt_exp`, `wmt_func`,
   `wmt_core`, `wmt_ctrl`, `wmt_lib`, `wmt_dev` and relevant headers recorded by
   `experiments/2026-09-06-mt6797-consys-owner-source-attribution/inputs.json`.

@@ -27,8 +27,7 @@ enable/disable actor are not.
 
 ## Provenance and environment
 
-- Public vendor source: Gemian `gemini-linux-kernel-3.18` commit
-  `59e00a9144d782e148332009a835b99c43382467` (chosen observer/source
+- Public vendor source: the vendor's kernel (chosen observer/source
   equivalent; the active private Gemian build is separate).
 - Key source hashes at that revision:
 

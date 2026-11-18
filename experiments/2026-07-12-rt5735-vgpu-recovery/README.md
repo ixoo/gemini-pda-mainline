@@ -26,7 +26,7 @@ can safely request `mali-supply`?
 - Live regulator/config capture: private, Git-ignored under
   `artifacts/device-inventory/20260711-live/pmic-regulators.txt`.
 - Vendor source: Gemian MT6797 tree commit
-  `d388d350cb2dda8f23b99be6fa5db9628896e87f`.
+  the vendor's kernel.
 - Mainline comparison: Linux `7.1.3` in the development VM.
 - Sanitized source summary: [`results/source-summary.txt`](results/source-summary.txt).
 

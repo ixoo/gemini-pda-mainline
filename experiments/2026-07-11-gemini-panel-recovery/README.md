@@ -28,10 +28,10 @@ non-identifying facts used here are preserved in
 [`results/runtime-summary.txt`](results/runtime-summary.txt).
 
 The live result was correlated with the exact Planet 3.18 source at commit
-[`c5b0be85017ad0c599725e8273842efdbecdd88a`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/tree/c5b0be85017ad0c599725e8273842efdbecdd88a),
+the vendor's kernel,
 especially the
-[`aeon_nt36672_fhd_dsi_vdo_x600_xinli` LCM](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c)
-and [`lp3101.c`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/gpio/lp3101.c).
+`aeon_nt36672_fhd_dsi_vdo_x600_xinli` LCM
+and `lp3101.c`.
 The official product specification independently describes a 5.99-inch
 2160x1080 display.
 

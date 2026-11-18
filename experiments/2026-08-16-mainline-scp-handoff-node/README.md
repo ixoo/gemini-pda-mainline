@@ -39,7 +39,7 @@ disabled in the input and Linux will not probe it.
 - Runtime-proven Stage-27 DT SHA-256 is
   `7ee8421ea03b604e30e1760f6fb5bc98d4d2566694a9da189326ce2c10e0c806`.
 - Public Planet LK source-contract reference is exact commit
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`.
+  the vendor's LK.
 - No kernel compilation is needed. No native VM build is permitted or run.
 
 ## Safety assessment

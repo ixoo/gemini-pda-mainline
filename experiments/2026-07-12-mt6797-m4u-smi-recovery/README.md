@@ -19,9 +19,9 @@ enabled on MT6797?
 
 ## Provenance and environment
 
-- Exact Gemian GPL tree: commit `d388d350`, paths below
-  `drivers/misc/mediatek/m4u/mt6797/` and `drivers/misc/mediatek/smi/`.
-- Planet board tree: commit `c5b0be85`.
+- Exact Gemian GPL tree: the vendor's kernel, paths below
+  the vendor's `mt6797` code and the vendor's `smi` code.
+- Planet board tree: the vendor's kernel.
 - Mainline comparison: checksum-verified Linux 7.1.3 source prepared by the
   repository workflow.
 - Live target: Gemini PDA running its current Gemian kernel; unique device

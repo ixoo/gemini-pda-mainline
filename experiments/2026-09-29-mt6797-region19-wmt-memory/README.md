@@ -4,10 +4,10 @@ The [first firmware START](../2026-09-28-mt6797-firmware-start-probe/results/run
 ended in a workqueue panic. Its compiled CONSYS owner maps the shared remap
 word at `0x10001340` but never reads or writes it. An earlier passive mainline
 boot read `0x180e0000` there, with the common mapping disabled. The pinned
-[Gemian source](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L1105-L1138)
+Gemian source
 programs region 19, ORs the reservation's MiB address and enable bit into that
 word, then clears the first 343 KiB of the second 512 KiB. Its
-[header](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h#L192-L198)
+header
 defines the exact clear length. The missing remap is a source-proven gap, not
 yet an attributed cause of the panic.
 

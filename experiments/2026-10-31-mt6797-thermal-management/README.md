@@ -24,13 +24,11 @@ and the firmware division of labour remained undocumented.
 
 ## Provenance and environment
 
-- Vendor kernel: `planet-community/android_kernel_planetcom_mt6797`, commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`, shallow checkout on Buildbox.
-- Bootloader: `dguidipc/gemini-lk-android8`, commit
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`.
-- Android device tree: `planet-community/android_device_planetcom_geminipda`
+- Vendor kernel: the vendor's kernel, shallow checkout on Buildbox.
+- Bootloader: the vendor's LK.
+- Android device tree: the vendor's Android tree
   branch `cm-14.1`; vendor tree
-  `planet-community/android_vendor_planetcom_geminipda` branch `cm-14.1`.
+  the vendor's Android tree branch `cm-14.1`.
 - Retained private images: preloaders `boot0`/`boot1`, `scp1`/`scp2`, `lk`/`lk2`,
   `tee1`/`tee2`, `md1img`, `md1dsp`, `md1arm7`, `md3img`, plus the installed
   Gemian vendor firmware set. Integrity was checked against the archive

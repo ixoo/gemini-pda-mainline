@@ -63,7 +63,7 @@ remain outside Git. No radio or calibration command ran in this follow-up.
 ## Exact selected host branches
 
 All source references below use Planet
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, gen3, with the source identities
+the vendor's kernel, gen3, with the source identities
 already owned by [the calibration audit](CALIBRATION.md#exact-source-identities).
 These are public branch conditions, **not a disclosure of private flag values**.
 
@@ -89,7 +89,7 @@ excluded by this selected 5GHz configuration.
 
 The selected path also calls `rlmDomainSendCmd(prAdapter, FALSE)` at
 `wlan_lib.c:4203`, before the 2.4GHz edge/11ac commands and full record.
-[The pinned domain source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c#L842)
+The pinned domain source
 (SHA-256 `8f3ff17db935ca1e47943a5437ca788a9fa8fa585bbb7c6f8c2a7f4f87612650`)
 expands that call, in order, into passive-scan domain information, ordinary
 domain information, and—because pinned `config.h:709` selects
@@ -105,7 +105,7 @@ Consequently the existing two-command capability/NVRAM helper does not model
 the complete selected initialization sequence. Sending `0x48` alone would
 claim neither source-equivalent configuration nor safe RF admission.
 
-[The TX-power wrapper](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic.c#L2247)
+The TX-power wrapper
 confirms the normal command and no-response setting.
 
 A skipped optional command leaves existing firmware state untouched by that

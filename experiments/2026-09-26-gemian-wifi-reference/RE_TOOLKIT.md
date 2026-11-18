@@ -1,6 +1,6 @@
 # Gemian Wi-Fi reference: RE toolkit decision
 
-This note applies to the pinned Gemian source `59e00a9144d782e148332009a835b99c43382467` and the built v2 configuration in `results/build-v2.json`. The v2 boot and single WMT Wi-Fi cycle were subsequently verified; see [the runtime](results/runtime-v2.json) and [cycle](results/trace-wmt-stop-v2-1.json) receipts.
+This note applies to the vendor's kernel and the built v2 configuration in `results/build-v2.json`. The v2 boot and single WMT Wi-Fi cycle were subsequently verified; see [the runtime](results/runtime-v2.json) and [cycle](results/trace-wmt-stop-v2-1.json) receipts.
 
 ## Use the instrumentation already present
 

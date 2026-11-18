@@ -34,10 +34,10 @@ offload path.
 ## Provenance and environment
 
 - Vendor kernel: public GPL tree at Gemian commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`, the same commit the
+  the vendor's kernel, the same commit the
   [audio RE](../2026-10-04-gemini-audio-re/README.md) cites. Links below use
   `V/` for
-  `https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/`.
+  `the vendor's kernel`.
 - Live Gemian configuration: the decompressed `/proc/config.gz` retained by the
   [A72 owner observer](../2026-07-23-gemian-a72-owner-observer/README.md),
   [`inputs/active-gemian.config`](../2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config),
@@ -50,7 +50,7 @@ offload path.
   `d086eab26f9dbfa824e8136336ac785aaf2ba6b8848b6633516d9d62945aec0e`. Only
   string-level observations are recorded; nothing is copied.
 - Mainline: Linux `7.1.3` as pinned in `kernel/manifest.json`.
-- LK: public MT6797 LK source at `f4988d74`, as the [LK record](../../docs/hardware/lk.md) cites.
+- LK: public MT6797 the vendor's LK, as the [LK record](../../docs/hardware/lk.md) cites.
 - Tools: `git grep`, `strings`, a short Python header walk, all in the RE VM.
 
 ## Safety assessment
@@ -71,11 +71,11 @@ the two retained binaries, and a header walk of the SCP image (magic
 
 - **Option.** `MTK_AUDIO_TUNNELING_SUPPORT` is "Audio playback through dsp …
   The decoding process is done in DSP"
-  ([`V/sound/soc/mediatek/Kconfig#L202-L208`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/Kconfig#L202-L208)).
+  (`Kconfig#L202-L208`).
   It builds `mt_soc_offload_common.o`
-  ([`V/sound/soc/mediatek/mt_soc_audio_6797/Makefile#L29-L38`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/Makefile#L29-L38))
+  (`Makefile#L29-L38`)
   and the `audio_ipi` MP3 task
-  ([`V/drivers/misc/mediatek/audio_ipi/common/tasks/Makefile`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/audio_ipi/common/tasks/Makefile)).
+  (`Makefile`).
   `mt_soc_offload_gdma.c` is in the 6797 directory but in no Makefile rule.
 - **Decoder.** The SCP, MediaTek's "tinysys" Cortex-M4 companion
   (`MTK_TINYSYS_SCP_SUPPORT`: "SCP is a MediaTek in-house DSP"). Messages go
@@ -88,7 +88,7 @@ the two retained binaries, and a header walk of the SCP image (magic
   (`AudDrv_OffloadCommon.h` L156-L163, receive handler L667-L690). No AAC.
 - **Memory.** The bitstream ring is the SCP reserve block `MP3_MEM_ID`,
   4 MiB inside the 16 MiB `scp_share` reservation
-  ([`V/drivers/misc/mediatek/scp/mt6797/scp_helper.c#L103-L107`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/scp/mt6797/scp_helper.c#L103-L107)).
+  (`scp_helper.c#L103-L107`).
   The last 32 KiB of it are kept as a DRAM fallback for PCM
   (`RESERVE_DRAMPLAYBACKSIZE`, `mt_soc_offload_common.c` L73-L75, L495-L513).
 - **AFE side.** The SCP's PCM plays through memif **DL3** to the I2S/DAC path
@@ -124,7 +124,7 @@ the two retained binaries, and a header walk of the SCP image (magic
   playback is deep idle or SODI, and only with the PCM buffer in AFE SRAM:
   a DRAM-backed buffer calls `AudDrv_Emi_Clk_On()`, which runs
   `disable_dpidle_by_bit(MT_CG_ID_AUDIO_AFE)` and `disable_soidle_by_bit(…)`
-  ([`V/…/mt_soc_audio_6797/AudDrv_Clk.c#L1868-L1882`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Clk.c#L1868-L1882)).
+  (`AudDrv_Clk.c#L1868-L1882`).
   Normal DL1 playback uses the same SRAM-first rule
   (`mt_soc_pcm_dl1.c` L254-L268). A 32 KiB SRAM buffer holds about 170 ms of
   48 kHz stereo S16, so the AP wakes several times a second.
@@ -150,7 +150,7 @@ the two retained binaries, and a header walk of the SCP image (magic
   a sensor hub or a task besides these. This matches the thermal record's
   finding that the SCP is a DVFS service.
   LK loads `scp1` or `scp2`, whichever is marked active
-  ([LK `mt_scp.c` L66-L134](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_scp.c#L66-L134)).
+  (LK `mt_scp.c` L66-L134).
   Both copies are identical.
 - **Firmware files.** `/system/vendor/firmware` holds no SCP or audio-DSP
   image. Its files are the nine SPM programs, the connectivity ROM patches, FM

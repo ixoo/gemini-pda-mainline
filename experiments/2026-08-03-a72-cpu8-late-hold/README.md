@@ -20,7 +20,7 @@ existing fail-closed down barriers prevent the prior notifier fault?
 
 ## Provenance and environment
 
-- Exact source: `59e00a9144d782e148332009a835b99c43382467`.
+- Exact source: the vendor's kernel.
 - Exact parent: the three-patch CPU8 held-online experiment.
 - Build backend: Buildbox only; no native VM kernel build.
 - Intended boot path: live-GPT-resolved non-primary `boot2` after all offline

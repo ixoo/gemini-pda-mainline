@@ -28,8 +28,8 @@
   `experiments/2026-09-06-mt6797-consys-dynamic-declaration/results/observation.json`
   SHA-256 `43a6aa8629e2b549fe95d8facc323c22029093caa3c2209ed15d8f0d41fdedf1`.
   Source selection is the public GPL-2.0 Planet/Gemini kernel repository
-  `https://github.com/lineage-geminipda/android_kernel_planet_mt6797` at exact
-  commit `c5b0be85017ad0c599725e8273842efdbecdd88a`, already authenticated by the
+  `the vendor's kernel` at exact
+  the vendor's kernel, already authenticated by the
   source links and raw-file hashes in
   `experiments/2026-09-05-mt6797-wifi-contract/OWNERSHIP.md` and
   `experiments/2026-09-05-mt6797-wifi-contract/results/conn-power-domain-contract.json`,

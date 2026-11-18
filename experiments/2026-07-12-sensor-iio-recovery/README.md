@@ -32,7 +32,7 @@ drivers.
 - Live model/properties: `MT6797X`, `ro.board.platform=mt6797`,
   `ro.mediatek.platform=MT6797`.
 - Vendor source: Planet MT6797 tree
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Mainline comparison: Linux 7.1.3 in the development VM.
 - Current 72-patch package boundary: [`results/mainline-sensors-current-72-package-20260714.txt`](results/mainline-sensors-current-72-package-20260714.txt).
 - Raw capture: `artifacts/device-inventory/20260714-sensors-live/sensors.txt`

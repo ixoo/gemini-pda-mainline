@@ -22,7 +22,7 @@ the external rail, isolation, SRAM-LDO, DCM, or other cluster preparation?
 
 ## Provenance and environment
 
-- Exact source: `59e00a9144d782e148332009a835b99c43382467`.
+- Exact source: the vendor's kernel.
 - Exact parent: the runtime-repeatable late CPU8 hold patch chain.
 - Build backend: Buildbox only; no native VM kernel build.
 - CPU9 stays disabled until source generation, mutation/static validation,

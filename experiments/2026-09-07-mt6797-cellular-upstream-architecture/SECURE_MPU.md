@@ -68,7 +68,7 @@ shared region 7 (`ccci_lk_load_img_plat.c:775–781`) and deliberately omits the
 lock request for image region 13 (`:356–364`). That is consistent with later
 host updates, but does not prove that those policies were executed or that no
 other agent locked either region. Source:
-[LK platform file at f4988d74](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/ccci_lk_load_img_plat.c),
+LK platform file the vendor's LK,
 SHA-256 `3490e14dd9d61428a58ca6927089b048b365a65948f334567092b5f31887efae`.
 
 ## Reproduction and validation

@@ -38,7 +38,7 @@ is treated as an alternative until population and IRQ wiring are demonstrated.
 
 - Live device: Gemian 3.18.41+ (`MT6797X`), read-only SSH capture.
 - Vendor source evidence: Gemian reference commit
-  `d388d350cb2dda8f23b99be6fa5db9628896e87f`.
+  the vendor's kernel.
 - Mainline comparison: prepared Linux `7.1.3` tree in the development VM.
 - Private capture: `artifacts/device-inventory/20260712-live/charger-power.txt`
   (Git-ignored; not a redistributable fixture).

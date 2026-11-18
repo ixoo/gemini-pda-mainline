@@ -12,9 +12,9 @@ particular role check or identifies the physical state of the left port.
 The selected kernel package is the [validated build](results/usb-chrdet-errors-build.json)
 at commit `0c02543ad35cb22fd8281ee5400aac0c01504c3d`, using prepared inputs
 `f1933271c1010008f17e61e6ca4524e627792247f69e9fbeaf5db6585b47315a`.
-The prepared `drivers/misc/mediatek/mu3d/drv/mt_usb.c` is SHA-256
+The prepared `mt_usb.c` is SHA-256
 `397bcde2601dd4b72a1921e809352bac089caade8e0df1a8f5dbb216de868268`;
-`drivers/misc/mediatek/xhci/xhci-mtk-driver.c` is
+`xhci-mtk-driver.c` is
 `f58a440ee6569f70f3986025670d81fbe861c7da2c6b4f5c306bc6f32c83c090`.
 These are private prepared-source identities, not newly published vendor source.
 

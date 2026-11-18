@@ -27,8 +27,8 @@ clock and control path. It says nothing about the receiver or an image.
 ## Provenance and environment
 
 - Linux 7.1.3 with the station series, profile `mt6797-a53-station-a72`.
-- Public vendor kernel `gemian/gemini-linux-kernel-3.18`, commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`.
+- Public vendor kernel `gemian/the vendor's kernel`, commit
+  the vendor's kernel.
 - Retained Gemian logs and the DTB of the retained vendor boot image, read privately;
   only the facts below are recorded.
 - The vendor camera library `libcam.halsensor.so`, SHA-256 prefix `6faba2ed96b8`,

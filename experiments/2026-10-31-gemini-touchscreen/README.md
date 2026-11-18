@@ -24,9 +24,8 @@ upstream compatible list does not cover it.
 
 ## Provenance and environment
 
-- Vendor kernel `planet-community/android_kernel_planetcom_mt6797`, commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`:
-  `drivers/input/touchscreen/mediatek/` (TPD wrapper),
+- Vendor kernel the vendor's kernel:
+  the vendor's `mediatek` code (TPD wrapper),
   `.../aeon_nt36xxx/`, and the board DTS touch/pinctrl nodes.
 - Mainline Linux 7.1.3: `drivers/input/touchscreen/novatek-nvt-ts.c` and its
   binding.

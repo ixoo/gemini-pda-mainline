@@ -40,11 +40,11 @@ The repeated delta48 remains a refusal, not a framing rule.
 ## A concrete alternative to more callback scanning
 
 The pinned public gen3
-[read OID](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c#L4423-L4493)
+read OID
 uses CMD_ID_ACCESS_REG as a query with a response for firmware-domain addresses,
 with separate special-address handling. Its
-[private OID dispatch](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_wext_priv.c#L1454-L1482)
-and [ABI definitions](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/include/gl_wext_priv.h)
+private OID dispatch
+and ABI definitions
 provide source to review; they do not authorize arbitrary queries, an unlock,
 a write path or bypassing a disabled interface. This is investigation of the
 existing stock implementation, not a new maintained userspace API.

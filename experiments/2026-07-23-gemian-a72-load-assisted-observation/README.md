@@ -34,8 +34,8 @@ predecessor and requests neither A72.
   and
   `b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d`.
 - Public source: initial policy decoding used
-  `gemian/gemini-linux-kernel-3.18` commit
-  `d388d350cb2dda8f23b99be6fa5db9628896e87f`. Later reconciliation showed
+  `gemian/the vendor's kernel` commit
+  the vendor's kernel. Later reconciliation showed
   that the active March 29 image is not the May 24 `gbp59e00a` installed
   package. The exact active public commit remains unresolved; `59e00a` is the
   chosen equivalent for verified observer-hook blobs, not exact active

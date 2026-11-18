@@ -19,7 +19,7 @@ The decision-changing difference is the wait. The vendor waits
 `WMT_LIB_RX_TIMEOUT` = 2000 ms for every WMT event, and its header notes that
 Bluetooth function-on alone can take about 830 ms on some phones. Source:
 `wmt_lib.h` line 70 in the public
-[vendor kernel at `c5b0be85`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_lib.h#L70).
+the vendor's kernel.
 The unique observation is whether a function-on event arrives within 2 s.
 
 ## Artifact

@@ -9,7 +9,7 @@ admitted by this assessment.
 
 The [receipt](results/startup-dependencies-review.json) pins seven source files
 against their complete Git objects at Gemian commit
-`59e00a9144d782e148332009a835b99c43382467`, six recorded compiler commands and
+the vendor's kernel, six recorded compiler commands and
 the retained resolved configuration. The package is the same compile-review
 artifact validated by the [compiler-input assessment](NATIVE_SOURCE_FEASIBILITY.md#recorded-compiler-command-follow-up-2026-09-09).
 These are source/build facts, not installed-binary or current-boot attribution.

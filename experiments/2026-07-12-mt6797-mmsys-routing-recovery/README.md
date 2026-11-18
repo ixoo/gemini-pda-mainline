@@ -20,7 +20,7 @@ path without inheriting the vendor aggregate `dispsys` ABI?
 ## Provenance and safety
 
 The static source is exact Gemian commit
-`d388d350cb2dda8f23b99be6fa5db9628896e87f`, principally MT6797
+the vendor's kernel, principally MT6797
 `ddp_path.c`, `ddp_reg.h`, and `ddp_dump.c`. The mainline comparison is the
 repository's checksum-verified Linux 7.1.3 tree.
 

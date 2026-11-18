@@ -8,7 +8,7 @@ shared ownership and independent recovery remain unresolved.
 
 The [receipt](results/dma-map-error-sources.json) pins the complete parent and
 child `ahb.c`, the two native fixture headers and the DMA API guide from Gemian
-revision `59e00a9144d782e148332009a835b99c43382467`. The guide requires checking
+the vendor's kernel. The guide requires checking
 `dma_map_single()` with `dma_mapping_error()` before using the returned address.
 Both inspected port functions omitted that check and passed the result to
 `DmaConfig()` and `DmaStart()`. Their `ULONG` address fields retain the full

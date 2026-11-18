@@ -40,11 +40,11 @@ upstream boundary.
 - Sanitized WMT configuration fields: [`results/wmt-config-summary.txt`](results/wmt-config-summary.txt).
 - Raw output, if regenerated, belongs only below a date-stamped, Git-ignored
   `artifacts/device-inventory/*-connectivity-live/` directory.
-- Generic vendor source: [Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/tree/c5b0be85017ad0c599725e8273842efdbecdd88a), especially
-  `arch/arm64/boot/dts/mt6797.dtsi` and `aeon6797_6m_n.dts`.
-- Earlier Gemian GPL reference tree: [commit
-  `d388d350cb2dda8f23b99be6fa5db9628896e87f`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/d388d350cb2dda8f23b99be6fa5db9628896e87f); it contains the public-facing
+- Generic vendor source: Planet MT6797 tree commit
+  the vendor's kernel, especially
+  `mt6797.dtsi` and `aeon6797_6m_n.dts`.
+- Earlier Gemian GPL reference tree: commit
+  the vendor's kernel; it contains the public-facing
   WCN callback declarations but not the proprietary connectivity driver body.
 - Mainline comparison: pinned Linux `7.1.3` in the development VM.
 

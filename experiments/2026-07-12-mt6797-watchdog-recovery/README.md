@@ -22,7 +22,7 @@ missing from the shared Linux device-tree node?
 
 - Live device: Gemian Linux `3.18.41+`, read-only SSH capture.
 - Vendor source evidence: Gemian reference commit
-  `d388d350cb2dda8f23b99be6fa5db9628896e87f`.
+  the vendor's kernel.
 - Mainline comparison: prepared Linux `7.1.3` tree in the development VM.
 - Private capture: `artifacts/device-inventory/20260712-live/watchdog.txt`
   (Git-ignored).

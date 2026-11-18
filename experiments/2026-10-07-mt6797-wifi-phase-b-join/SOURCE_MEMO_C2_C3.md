@@ -4,7 +4,7 @@ Status: resolved; implemented by proposals 0164 to 0167 (see the README).
 Concise resolution of the concrete source questions raised by the
 [reference run 3 recommendation](../2026-09-26-gemian-wifi-reference/README.md#run-3-against-mainline-proposal-0163-and-the-remaining-driver-work);
 read before the C2/C3 proposal diff. Sources are the pinned public vendor
-tree `59e00a91` (`drivers/misc/mediatek/connectivity/wlan/gen3`), the
+the vendor's kernel (the vendor's `gen3` code), the
 Debian `wpa` 2.4 upstream tarball the device's supplicant is built from, the
 mainline proposals 0153 to 0163 and `include/net/mac80211.h` of the pinned
 kernel 7.1.3. The reference ledger carries metadata (command and event

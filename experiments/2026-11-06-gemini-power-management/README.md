@@ -27,8 +27,8 @@ No device access, boot, build or register operation.
   `CONFIG_CMDLINE` and its `mt6797-gemini-pda-station.dtb`, decompiled.
 - Linux 7.1.3 with the station series (`patches/series-a53-station`), read for
   `dev_pm_ops`, runtime PM and wakeup calls in every driver the station binds.
-- The Gemian GPL kernel, commit `8cfe6596a503612e3332d9c26e292a19525a7f07`
-  ([tree](https://github.com/gemian/gemini-linux-kernel-3.18/tree/8cfe6596a503612e3332d9c26e292a19525a7f07)),
+- The Gemian GPL kernel, the vendor's kernel
+  (tree),
   read from Git objects in the RE VM, and the retained Gemian kernel config.
 - The retained `tee1` partition (the secure firmware with PSCI), disassembled
   privately in the RE VM; this record keeps only the conclusions.
@@ -189,7 +189,7 @@ vendor's SPM programs.
 ## How Gemian does it
 
 Evidence only; nothing from the vendor tree is reused. Paths are relative to
-`drivers/misc/mediatek/base/power/` in the Gemian tree unless stated.
+the vendor's `power` code in the Gemian tree unless stated.
 
 **System suspend is Linux-driven SPM, not firmware.** `spm_v2/mt_sleep.c`
 registers its own `suspend_ops` for `mem`. On entry the kernel:

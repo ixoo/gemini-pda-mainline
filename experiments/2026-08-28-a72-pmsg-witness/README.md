@@ -21,7 +21,7 @@ Gemian's separate pmsg ramoops ring when console-ramoops and USB are absent?
 ## Provenance and environment
 
 - Exact Gemian source commit:
-  `59e00a9144d782e148332009a835b99c43382467`.
+  the vendor's kernel.
 - Exact register-capsule parent patchset SHA-256:
   `71ef281aae8d0b99d0421b81bd3d61d82ab090125c4885977ba39d8280838469`.
 - Exact parent `arch/arm64/kernel/psci.c` SHA-256:

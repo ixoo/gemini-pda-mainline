@@ -94,8 +94,8 @@ slice at virtual address minus `0xffffffc000080000`.
 | `msdc_drv_probe` | `0xffffffc0009622a0` | `0xffffffc000962d28` | `cc1504f5ac6b58b9747b7ed9a4f36bd611dbbd440714123b8fcb0389d0e9089c` |
 
 Public vendor comparison is Planet's tree at
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, under
-`drivers/mmc/host/mediatek/mt6797/`: `sd.c` SHA-256
+the vendor's kernel, under
+the vendor's `mt6797` code: `sd.c` SHA-256
 `e8cc38b57f18b0a8c8e6476d3c11c333f999326297538d35e7f93585daf63cba`,
 and `msdc_io.c` SHA-256
 `b87966fb3bb7be7e9c7c273cc58e92e7c19ed6a3b09a503afbaedb529c890e07`.

@@ -2,7 +2,7 @@
 
 Analysis record, 2026-10-24. No device action. Sources: this driver's
 `hif.c`, `hif_pio.h`, `join-commands.h` and `mac.c`; the vendor gen3 driver
-in the public Gemian kernel tree (`drivers/misc/mediatek/connectivity/wlan/gen3`,
+in the public Gemian kernel tree (the vendor's `gen3` code,
 GPL-2.0, read-only); the sealed throughput logs of this experiment; the
 96Boards-hosted MT6797 register table. Firmware behaviour is stated only
 where the sealed logs show it.
@@ -3499,7 +3499,7 @@ out`, exit 255, no byte).
    not a data descriptor). No receive refusal was QoS.
 
 **The `0xc200` decode (the owner's, checked against the pinned source).**
-In the pinned gen3 `nic_rx.h` (`59e00a91`), descriptor bytes 10–11 are
+In the pinned gen3 `nic_rx.h` (the vendor's kernel), descriptor bytes 10–11 are
 `u2StatusFlag`. Bit 9 is `RX_STATUS_LLC_MIS`, and bits 14 and 15 are
 `RX_STATUS_AMPDU_SUB_FRAME` and `RX_STATUS_AMPDU_FORMAT`, so
 `0xc200 = 0xc000 | LLC_MIS`. The descriptor bytes give broadcast match
@@ -3542,7 +3542,7 @@ as security-relevant: each TID stays strictly ordered, and no PN at or
 below that TID's last is ever accepted.
 
 **The vendor's transmit routing (`nic_tx.h`, `nic_tx.c`, `que_mgt.c`
-at `59e00a91`).**
+the vendor's kernel).**
 
 - `NET_TC_NON_STAREC_NON_QOS_INDEX` exists ("BMC/non-associated
   frame"). In station mode, however, `qmDetermineStaRecIndex` sends every
@@ -3692,7 +3692,7 @@ its own change, predeclared as security-relevant in §30.
 The QoS framing is therefore not a suspect in later comparisons; a
 transmit dip is read against the TCP state first.
 
-**The vendor's status masks beside ours (`nic_rx.h`, `59e00a91`).**
+**The vendor's status masks beside ours (`nic_rx.h`, the vendor's kernel).**
 
 | Mask | Value | Rule |
 |---|---|---|
@@ -3708,7 +3708,7 @@ each one is refused and named (0290's `status=`), not silently
 admitted. Widening the predicate then follows the vendor masks bit by
 bit, never wholesale.
 
-**The rate codes, from source.** `wlan_def.h` (`59e00a91`, lines 51–98):
+**The rate codes, from source.** `wlan_def.h` (the vendor's kernel, lines 51–98):
 `TX_MODE_OFDM 0x40`, `TX_MODE_HT_MM 0x80`, OFDM codes 6M `0xB`, 9M `0xF`,
 12M `0xA`, 18M `0xE`, 24M `0x9`, 36M `0xD`, 48M `0x8`, 54M `0xC`, MCS7
 `0x7`. So `0x4b` is 6 Mbit/s, `0x4c` is 54 Mbit/s and `0x87` is HT MCS7,
@@ -3940,7 +3940,7 @@ per-TID replay work generalises. §31's stop boundary was not reached.
 
 **The two failed transmits are air losses.** The sampled transmit
 reports show `0/0x004c=747,3/0x004c=2`. Status 3 is
-`TX_RESULT_MPDU_ERROR` in the vendor's `wlan_lib.h` (`59e00a91`): a
+`TX_RESULT_MPDU_ERROR` in the vendor's `wlan_lib.h` (the vendor's kernel): a
 frame unacknowledged after its retries, at the fixed 54 Mbit/s.
 `expired=0 pid_faults=0 left_pages=0`. The old gate folded `tx_failed`
 into the ownership proof, so an air loss read as an ownership failure.
@@ -4261,7 +4261,7 @@ attributed to the records.
 **The change.** `CONFIG_MT6797_WMM_QOS_RECORDS=y` (off since boot P) and
 [0295](../../patches/proposals/0295-wifi-mt6797-declare-the-access-point-s-HT-in-the-post-association-records.patch)
 `CONFIG_MT6797_HT_RECORDS=y` in the lifecycle fragment, on boot W's tree.
-The fields follow the vendor structures (`nic_cmd_event.h`, `59e00a91`).
+The fields follow the vendor structures (`nic_cmd_event.h`, the vendor's kernel).
 Only the post-association records change, the ones the vendor AIS path
 also sends after association. The state-1 record before association
 stays legacy.
@@ -4571,7 +4571,7 @@ class of cause.**
   proposal, with this boot as its counter-evidence.
 
 **The block-ack control path, read from the vendor source before any
-further aggregation attempt (`59e00a91`).**
+further aggregation attempt (the vendor's kernel).**
 
 1. *Does the host send an ADDBA acceptance or per-TID control for the
    firmware to aggregate?* No. With `CFG_M0VE_BA_TO_DRIVER 0`, no host
@@ -4619,7 +4619,7 @@ measurement it was predeclared for.
 **Two declaration suspects, checked against the pinned source (owner,
 2026-10-25): neither holds.**
 
-- *The PHY type sets are OFDM | HT, not HT | VHT.* At `59e00a91`,
+- *The PHY type sets are OFDM | HT, not HT | VHT.* At the vendor's kernel,
   `wlan_def.h`'s `ENUM_PHY_TYPE_INDEX_T` is HR/DSSS 0, ERP 1, ERP-P2P 2,
   OFDM 3, HT 4, VHT 5, so `PHY_TYPE_BIT_OFDM` = `BIT(3)` = `0x08`,
   `PHY_TYPE_BIT_HT` = `0x10`, `PHY_TYPE_BIT_VHT` = `0x20`, and
@@ -4759,7 +4759,7 @@ established.
 
 ## 37. The receive interrupt, scoped (2026-10-25): the vendor's shape, ours, and the smallest bridge
 
-**The vendor's shape (`59e00a91`).**
+**The vendor's shape (the vendor's kernel).**
 
 - *The line.* The vendor device tree gives the WLAN HIF a line of its
   own: `wifi@180f0000` (the same window as our `wifi-hif`),
@@ -6177,7 +6177,7 @@ TX slot summary: phase=cleanup allocations=49690 completions=49690 pending=0 uno
 
 ## 49. Aggregation, re-read from the vendor source (2026-10-26): receive first, firmware-managed
 
-**The firmware facts** (pinned public source `59e00a91`; the owner's
+**The firmware facts** (the vendor's kernel; the owner's
 reverse engineering where marked):
 
 - *Block-ack is firmware-managed.* `CFG_M0VE_BA_TO_DRIVER` is 0, and

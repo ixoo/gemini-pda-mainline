@@ -19,7 +19,7 @@ output cannot independently certify bus success or mainline probe safety.
 
 ## Reviewed access path
 
-The pinned [Gemian source](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/bq25890.c)
+The pinned Gemian source
 and the retained primary kernel agree on these branches:
 
 - `store_bq25890_access()` treats an input length of at most three bytes as a

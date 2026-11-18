@@ -10,7 +10,7 @@ pin and was not used. Exact file hashes are in the
 
 ## Reviewed contract
 
-Source pin: `c5b0be85017ad0c599725e8273842efdbecdd88a`. Paths below are relative
+Source pin: the vendor's kernel. Paths below are relative
 to that archive. It is implementation evidence, not a hardware specification
 or permission to copy vendor code. Conclusions are limited to the reviewed
 MT6797 paths; absence here does not prove silicon has no freshness mechanism.
@@ -24,7 +24,7 @@ MT6797 paths; absence here does not prove silicon has no freshness mechanism.
 | Filter setting `0x492` | `mtk_tc.c:830` and :850 describe two out of four samples; the deployed mainline config uses this value. | Configuration evidence for filtering, not proof of live filter timing, sample ages or why this run rose. Do not disable filtering as an observational shortcut. |
 | Software scan timestamps | Existing snapshot owner brackets its normal bank scan. | Useful for request timing only. They do not acquire conversion timestamps. |
 
-All paths in the table are abbreviated relative to `drivers/misc/mediatek/`;
+All paths in the table are abbreviated relative to the vendor's `mediatek` code;
 subsequent `mtk_tc.c` references mean `thermal/mt6797/src/mtk_tc.c`.
 No raw ADC or calibration data is published. A source comment about a clock
 period or sample count is not a measured bound on hardware conversion age.

@@ -29,12 +29,11 @@ mainline board description?
   [live runtime snapshot](../2026-07-14-first-boot-probe-audit/results/live-runtime-snapshot-20260714.txt);
   its private UART payload is `artifacts/device-inventory/20260714-live/uart.txt`.
 - Vendor source: Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Mainline comparison: Linux `7.1.3` in the development VM.
 - Existing board candidate: patch `0020`, which enables only `uart0` and
   selects `serial0` at 921600 8N1.
-- Retained LK source audit: `dguidipc-gemini-lk-android8/lk`, commit
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`.
+- Retained LK source audit: the vendor's LK.
 
 ## Safety assessment
 

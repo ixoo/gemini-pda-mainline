@@ -69,7 +69,7 @@ Capability and download paths and the standalone observer are also unchanged.
 
 ## Why this is a comparison, not a certified explanation
 
-Public gen3 source pinned at `59e00a9144d782e148332009a835b99c43382467`,
+Public gen3 source the vendor's kernel,
 `nic/nic_rx.c:2826–2908`, non-enhanced `nicRxReadBuffer`, reads WRPLR once,
 chooses port0 if low nonzero else port1, reads the selected FIFO and checks RXD
 byte count, without a success post-peek. It too reads both halfwords while

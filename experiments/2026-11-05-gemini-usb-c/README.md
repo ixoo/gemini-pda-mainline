@@ -26,8 +26,8 @@ This record keeps the new evidence, the readings still needed and the proposal.
 
 No device access, boot, build or register operation. Sources:
 
-- Gemian GPL kernel, commit `8cfe6596a503612e3332d9c26e292a19525a7f07`
-  ([tree](https://github.com/gemian/gemini-linux-kernel-3.18/tree/8cfe6596a503612e3332d9c26e292a19525a7f07)),
+- Gemian GPL kernel, the vendor's kernel
+  (tree),
   read from Git objects in the RE VM.
 - Linux 7.1.3 as pinned in `kernel/manifest.json`, with the local series.
 - Public datasheets: onsemi [FUSB301](https://www.onsemi.com/download/data-sheet/pdf/fusb301-d.pdf)
@@ -49,7 +49,7 @@ Vendor lines below are cited at the pinned commit (`G:` = the Gemian tree URL ab
 ## New findings
 
 **N1. Gemian forces both Type-C controllers to Source-only.** Both
-`InitializeFUSB300()` (`G:drivers/misc/mediatek/usb_c/fusb302/usb_typec.c`
+`InitializeFUSB300()` (`G:usb_typec.c`
 line 60) and `InitializeFUSB301()` (`.../fusb301/usb_typec.c` line 55) write
 `0x01` to Modes, register `0x02`. In both onsemi datasheets the Modes register (FUSB301 table 6)
 has bit 0 = Source, bit 2 = Sink, reset value `0x04`, and the chip "will power
@@ -68,10 +68,10 @@ keyboards and mice can plug into the "USB ports". That describes the Android
 firmware, not Gemian.
 
 **N3. No USB PD anywhere.** The vendor Kconfig for both selected drivers says
-"Only supports CC detect, without PD" (`G:drivers/misc/mediatek/usb_c/Kconfig`
+"Only supports CC detect, without PD" (`G:Kconfig`
 lines 22, 33). The defconfig selects neither the ANX7418 nor the SiI7033
 Type-C/PD drivers, nor any TCPC option
-(`G:arch/arm64/configs/aeon6797_6m_n_defconfig` lines 186–199, 273–292). The
+(`G:aeon6797_6m_n_defconfig` lines 186–199, 273–292). The
 FUSB301 has no PD engine.
 
 **N4. Right-port video is SiI902x HDMI through a GPIO lane switch, not an
@@ -88,7 +88,7 @@ aren't built.
 this setting. Not observed on the unit.
 
 **N6. The left-port controller is built SuperSpeed-capable.**
-`G:drivers/misc/mediatek/mu3d/hal/mu3d_hal_hw.h` lines 27–31 define
+`G:mu3d_hal_hw.h` lines 27–31 define
 `SUPPORT_U3` with a SuperSpeed default. Whether the connector's SuperSpeed
 pairs, and an orientation mux, are fitted is unknown (R4).
 
@@ -756,7 +756,7 @@ with 0607 the swap no longer oopses. Built clean at `W=1`; not run.
 ### Gemian against mainline: the USB11 host path (2026-11-06)
 
 The owner asked for a full comparison before more guesses. Sources: Gemian
-GPL `drivers/misc/mediatek/usb11/` (`musbfsh_mt65xx.c`, `musbfsh_core.c`,
+GPL the vendor's `usb11` code (`musbfsh_mt65xx.c`, `musbfsh_core.c`,
 `musbfsh_host.c`, `musbfsh_regs.h`, `musbfsh_core.h`) at the pinned commit,
 against Linux 7.1.3's `musb/mediatek.c`, `musb_core.c`, `musb_host.c` and
 `phy-mtk-tphy.c` with the local series. The vendor build has

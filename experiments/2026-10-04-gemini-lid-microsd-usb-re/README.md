@@ -41,7 +41,7 @@ binary analysis), the [USB/Type-C recovery](../2026-07-12-usb-typec-recovery/REA
 ## Inputs
 
 Every vendor citation below is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`. Every mainline citation is Linux
+the vendor's kernel. Every mainline citation is Linux
 `7.1.3` as pinned in `kernel/manifest.json`. Exact URLs, sizes and SHA-256
 values are in [`source-inputs.json`](source-inputs.json); line numbers refer to
 those exact revisions. No vendor source, firmware or private capture is copied
@@ -51,14 +51,14 @@ Two caveats apply throughout:
 
 - The public board DTS (`aeon6797_6m_n.dts`) is a reference-design file. For
   USB-C it describes GPIO196/197 redrivers and GPIO251/252 FUSB340 switches
-  ([lines 1316–1468](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1316-L1468))
+  (lines 1316–1468)
   that no Gemini driver reads; the Gemini port glue lives in
   `aeon_gpio.dtsi` and the `aeon_gpio` helper instead (U3). The public `hall`
   and `switch` nodes carry no `interrupts` or `debounce` property; the live
   DTB does (L2). Where public DTS and live capture disagree, the live capture
   wins.
 - `cust_eint.dtsi` is a generated MT6735 reference file. Its `MSDC1_INS@5`
-  entry ([lines 29–34](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_eint.dtsi#L29-L34))
+  entry (lines 29–34)
   is not the Gemini card-detect line; the Gemini board uses GPIO67/EINT6 (S2).
 
 ## Part 1: verified facts
@@ -69,13 +69,13 @@ Two caveats apply throughout:
   low meaning closed.** `hall_work_handler()` reads `gpio_get_value()` and
   reports `SW_LID = (value == HALL_FCOVER_CLOSE)` on the shared `kpd_accdet_dev`
   input device
-  ([`hall.c` lines 94–122](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/hall/hall.c#L94-L122)),
+  (`hall.c` lines 94–122),
   where `HALL_FCOVER_OPEN = 1` and `HALL_FCOVER_CLOSE = 0`
-  ([`include/soc/mediatek/hall.h` lines 25–26](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/soc/mediatek/hall.h#L25-L26),
+  (`hall.h` lines 25–26,
   a 2019 Gemian addition). The pin is configured as GPIO mode with pull-up
-  ([`mt6797.dtsi` lines 4295–4310](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L4295-L4310)),
+  (`mt6797.dtsi` lines 4295–4310),
   and GPIO66's EINT function is EINT5
-  ([`mt6797-pinfunc.h` line 390](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L390)).
+  (`mt6797-pinfunc.h` line 390).
   Patch 0074's `GPIO_ACTIVE_LOW` plus `SW_LID` therefore encodes the vendor
   convention exactly; only the physical magnet polarity is unmeasured.
 - **L2. The vendor interrupt scheme is a level EINT whose polarity is flipped
@@ -83,12 +83,12 @@ Two caveats apply throughout:
   handler disables the IRQ and queues work; the work re-arms the line as
   level-low when the pin reads high and level-high when it reads low, then
   calls `gpio_set_debounce()` and `enable_irq()`
-  ([`hall.c` lines 123–139](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/hall/hall.c#L123-L139)).
+  (`hall.c` lines 123–139).
   The probe reads `debounce` and `interrupts` from the DT node and requests
   the IRQ with `IRQF_TRIGGER_NONE`
-  ([lines 241–256](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/hall/hall.c#L241-L256)).
+  (lines 241–256).
   The public `hall` node has neither property
-  ([`mt6797.dtsi` lines 4278–4283](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L4278-L4283));
+  (`mt6797.dtsi` lines 4278–4283);
   the live DTB supplies `interrupts = <66 8>` (level-low) and `debounce =
   <66 0xfa00>` (64,000 µs), per the
   [hall/lid record](../2026-07-12-hall-lid-switch-recovery/README.md#live-observations).
@@ -96,43 +96,43 @@ Two caveats apply throughout:
   or software debounce (M1); the vendor's polarity dance is not needed.
 - **L3. The probe samples the GPIO before it knows which GPIO it is.**
   `fcover_close_flag = gpio_get_value(hallgpiopin)` runs at
-  [line 239](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/hall/hall.c#L239)
+  line 239
   while `hallgpiopin` is assigned from the DT at line 245, so the initial
   Android switch state is GPIO0's level, and the work handler forces five
   initial reports (`initVal < 5`, lines 99–102) to paper over it. The earlier
   record's "state 0" observations at idle are therefore not polarity evidence.
 - **L4. Lid close drives keyboard policy in the vendor stack, not only an
   input event.** The hall driver runs a notifier chain
-  ([`hall.c` lines 61–91, 109](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/hall/hall.c#L61-L91));
+  (`hall.c` lines 61–91, 109);
   the AW9523 keyboard driver registers for it and on `HALL_FCOVER_CLOSE` puts
   the keyboard controller into its early-suspend path, resuming on open
-  ([`aw9523_key.c` lines 852–866, 929–930](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/aw9523/aw9523_key.c#L852-L866)),
+  (`aw9523_key.c` lines 852–866, 929–930),
   and its interrupt handler drops key interrupts while the lid is closed
-  ([lines 555–559](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/aw9523/aw9523_key.c#L555-L559)).
+  (lines 555–559).
   Under mainline this is userspace policy (`SW_LID` consumers such as logind);
   no kernel coupling is needed, but a closed-lid key storm is something a
   first lid test should watch for.
 - **L5. Suspend/wake policy is the PMIC keypad's, not the hall driver's.**
   Both the hall and toggle drivers call `kpd_wakeup_src_setting()` on
   suspend/resume
-  ([`hall.c` lines 288–316](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/hall/hall.c#L288-L316)),
+  (`hall.c` lines 288–316),
   which is the keypad driver's wake-source toggle
-  ([`kpd.c` lines 954, 970](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/keyboard/mediatek/kpd.c#L954)).
+  (`kpd.c` lines 954, 970).
   Neither driver calls `enable_irq_wake()` on its own EINT. Lid wake is thus
   not demonstrated by the vendor path; a mainline `wakeup-source` would be a
   new behavior, consistent with patch 0074 leaving it out.
 - **L6. The toggle input on GPIO93/EINT16 is a two-key pulse generator.**
   `switch.c` reads GPIO93, emits a 10 ms `KEY_F9` press for low and `KEY_F10`
   for high, updates switch class `switch`, and re-arms the level IRQ like L2
-  ([`switch.c` lines 102–133](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/input/switch/switch.c#L102-L133)).
+  (`switch.c` lines 102–133).
   The board DTS configures GPIO93 as GPIO with pull-up and labels the block
   `anti-tamper`
-  ([`aeon6797_6m_n.dts` lines 1747–1768](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1747-L1768));
+  (`aeon6797_6m_n.dts` lines 1747–1768);
   GPIO93's EINT function is EINT16
-  ([`mt6797-pinfunc.h` line 562](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L562)).
+  (`mt6797-pinfunc.h` line 562).
   No inspected file identifies the physical control. Both drivers are built
   (`CONFIG_MTK_HALL=y`, `CONFIG_MTK_TOGGLE_SWITCH=y`,
-  [defconfig lines 352–353](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L352-L353)).
+  defconfig lines 352–353).
 
 ### microSD (MSDC1)
 
@@ -140,25 +140,25 @@ Two caveats apply throughout:
   disabled.** `&mmc1` sets `bus-width = <4>`, `max-frequency = <200000000>`,
   `cap-sd-highspeed`, `sd-uhs-sdr12/25/50/104`, with `sd-uhs-ddr50` commented
   out, `host_function = MSDC_SD`
-  ([`aeon6797_6m_n.dts` lines 748–771](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L748-L771)).
+  (`aeon6797_6m_n.dts` lines 748–771).
   The SoC node is `msdc1@11240000`, GIC SPI 80 level-low, clock `INFRA_MSDC1`
-  ([`mt6797.dtsi` lines 44–50](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L44-L50)),
+  (`mt6797.dtsi` lines 44–50),
   matching the local patch 0018 node.
 - **S2. Card detect is GPIO67 in EINT6 mode, high means present, handled by
   the MMC core's GPIO card-detect path.** The node carries `cd_level =
   MSDC_CD_HIGH` (one byte) and `cd-gpios = <&pio 67 0>`
-  ([`aeon6797_6m_n.dts` lines 769–770](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L769-L770));
+  (`aeon6797_6m_n.dts` lines 769–770);
   `msdc_of_parse()` reads both
-  ([`msdc_io.c` lines 580–587](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c#L580-L587))
+  (`msdc_io.c` lines 580–587)
   and `msdc_dt_init()` calls `mmc_of_parse()`
-  ([line 615](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c#L615)),
+  (line 615),
   which in 3.18 requests the `cd-gpios` descriptor and its IRQ. `msdc_ops_get_cd()`
   then reads the raw level and applies `cd_level`
-  ([`sd.c` lines 4726–4768](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c#L4726-L4768)).
+  (`sd.c` lines 4726–4768).
   The MSDC1 probe selects a dedicated `insert_cfg` pin state that puts GPIO67
   in `EINT6` mode with Schmitt trigger and pull-up
-  ([`msdc_io.c` lines 739–757](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c#L739-L757);
-  [`aeon6797_6m_n.dts` lines 777–784](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L777-L784)).
+  (`msdc_io.c` lines 739–757;
+  `aeon6797_6m_n.dts` lines 777–784).
   This agrees with the retained-binary analysis in the
   [card-detect contract](../2026-07-12-mt6797-msdc-recovery/MICROSD_CONTRACT.md#card-detection).
   The local EINT patch 0005 maps GPIO67 to EINT6, so a mainline
@@ -168,25 +168,25 @@ Two caveats apply throughout:
   the stock kernel leaves VMCH on with an empty slot.** `msdc_sd_power()` for
   host 1 programs drive/TDSEL/RDSEL, then requests VMCH at 3.0 V and VMC at
   3.0 V
-  ([`msdc_io.c` lines 296–311](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c#L296-L311)).
+  (`msdc_io.c` lines 296–311).
   The probe first does an on/off pair "so that removable card slot won't keep
   power"
-  ([`sd.c` lines 5657–5665](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c#L5657-L5665)),
+  (`sd.c` lines 5657–5665),
   but a later board-specific addition turns VMCH back on unconditionally at
   the end of probe (`msdc_sd_power(host, 1)` with a `power on vmch` print,
-  [lines 5817–5820](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c#L5817-L5820)).
+  lines 5817–5820).
   Together with the off path never issuing a regulator disable
   ([power-state follow-up](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md)),
   this explains the live finding that VMCH and VMC read enabled at 3.0 V with
   no card and MSDC1 powered off. The PMIC DT ranges are VMCH 3.0–3.3 V and
   VMC 1.2–3.3 V
-  ([`mt6797.dtsi` lines 580–585, 725–730](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L580-L585)).
+  (`mt6797.dtsi` lines 580–585, 725–730).
 - **S4. The probe applies relative PMIC trim adjustments and the 1.8 V switch
   applies another.** For host 1 the probe reads `0xACE` (VMCH cal), subtracts
   5 modulo 32 and writes it back, then reads `0xAE2` (VMC cal) and adds 5
-  ([`sd.c` lines 5429–5460](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c#L5429-L5460));
+  (`sd.c` lines 5429–5460);
   the 1.8 V switch applies a further VMC cal write before requesting 1.8 V
-  ([`msdc_io.c` lines 199–222](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c#L199-L222)).
+  (`msdc_io.c` lines 199–222).
   The source comments call the VMCH step "default change to 0 mV" and the VMC
   step "default not +100 mV". The retained-binary analysis confirms the same
   arithmetic and that upstream `regmap_update_bits()` on the voltage masks
@@ -196,7 +196,7 @@ Two caveats apply throughout:
 - **S5. After power-on the vendor checks VMCH over-current and powers off on
   OC.** `msdc_set_power_mode` reads `MT6351_PMIC_OC_STATUS_VMCH` 10 ms after
   enabling and disables power if set
-  ([`sd.c` lines 1237–1250](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c#L1237-L1250)).
+  (`sd.c` lines 1237–1250).
   Mainline has no equivalent; the MT6351 OC status bit is a cheap read-only
   diagnostic for a first card test.
 
@@ -208,11 +208,11 @@ Two caveats apply throughout:
   `CONFIG_USB_XHCI_MTK=y`, `CONFIG_USB_MTK_DUALMODE=y`,
   `CONFIG_USB_C_SWITCH_FUSB301=y`, `CONFIG_USB_C_SWITCH_FUSB302=y`,
   `CONFIG_USB_GADGET_VBUS_DRAW=500`
-  ([defconfig lines 274–292, 464](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L274-L292)).
+  (defconfig lines 274–292, 464).
   The SoC nodes are `usb1@11200000` (`mediatek,mt6797-usb11`, SPI 73), the
   combined `usb3@11270000` (SPI 127 MUSB, SPI 126 xHCI) and `usb3_xhci` with
   the `eint_usb_iddig@181` child on EINT186
-  ([`mt6797.dtsi` lines 2921–2956](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L2921-L2956)).
+  (`mt6797.dtsi` lines 2921–2956).
   The [USB recovery record](../2026-07-12-usb-typec-recovery/README.md#observations)
   observed exactly this at runtime: a USB1 root hub, `musb-mtu3d` bound, and
   `usb3_xhci` unbound. The local DT names the MTU3 port the left connector
@@ -221,17 +221,17 @@ Two caveats apply throughout:
   itself state (H6).
 - **U2. MTU3 device-side cable detection is the PMIC's, not the controller's.**
   `mu3d_hal_is_vbus_exist()` returns `upmu_get_rgs_chrdet()` / `upmu_is_chr_det()`
-  ([`mt_usb.c` lines 237–252](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/mu3d/drv/mt_usb.c#L237-L252))
+  (`mt_usb.c` lines 237–252)
   and `usb_cable_connected()` connects the gadget only for BC1.1 `STANDARD_HOST`
   or `CHARGING_HOST` with VBUS present
-  ([lines 256–292](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/mu3d/drv/mt_usb.c#L256-L292)).
+  (lines 256–292).
   These are the `CHRDET` and BC1.1 facts of the charging record (F4, F6). It
   also means the vendor never relies on the T-PHY's own VBUS/session sensing,
   which is consistent with the forced B-session the local patch 0077 needed.
 - **U3. Host-port VBUS and the SuperSpeed/HDMI mux are driven by one board
   callback keyed on the FUSB301A's ID output, using GPIO94, GPIO70, GPIO71 and
   GPIO72.** The `fusb302/`-directory driver matches `mediatek,fusb301a`
-  ([`usb_typec.c` line 331](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/usb_c/fusb302/usb_typec.c#L331)),
+  (`usb_typec.c` line 331),
   writes mode `0x01` and reads the device ID at probe (lines 54–61), takes its
   interrupt and GPIO from the `mediatek,fusb301a-pin` node (lines 192–212),
   and in its work function reads the ID GPIO: ID low means attached, then
@@ -242,15 +242,15 @@ Two caveats apply throughout:
   `sw7226_en` (GPIO72) for "usb1 OTG mode"; detach or an invalid CC restores
   GPIO70 high, GPIO71 low, GPIO72 low, GPIO94 low, and the level IRQ polarity
   is flipped as in L2
-  ([lines 96–167](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/usb_c/fusb302/usb_typec.c#L96-L167)).
+  (lines 96–167).
   The pin states are plain GPIO outputs
-  ([`aeon_gpio.dtsi` lines 181–243](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi#L181-L243));
+  (`aeon_gpio.dtsi` lines 181–243);
   GPIO94's alternate function 1 is the SoC `USB_DRVVBUS`
-  ([`mt6797-pinfunc.h` line 570](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L570)),
+  (`mt6797-pinfunc.h` line 570),
   which the vendor does not use. The USB11 host driver's own VBUS hook is
   disabled: `mt65xx_usb11_vbus()` is `#if 0` and `board_set_vbus` is commented
   out
-  ([`musbfsh_mt65xx.c` lines 1253–1263, 1298](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/usb11/mt6797/musbfsh_mt65xx.c#L1253-L1263)).
+  (`musbfsh_mt65xx.c` lines 1253–1263, 1298).
   So in the stock kernel GPIO94 is the only software VBUS control for the
   host port, and it is raised for *any* attached partner, including a Type-C
   host (CC1/CC2 present, no role check). What GPIO94 switches electrically
@@ -261,7 +261,7 @@ Two caveats apply throughout:
   `fusb301/`-directory driver (`mediatek,fusb301`, `FUSB301_0`) writes mode
   `0x01`, requests an IRQ from a `mediatek,fusb301-eint` node whose public
   definition has no `interrupts` property, and its work function is empty
-  ([`usb_typec.c` lines 49–56, 93–100, 118–150](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/usb_c/fusb301/usb_typec.c#L93-L100)).
+  (`usb_typec.c` lines 49–56, 93–100, 118–150).
   This matches the live `request_irq` `-EINVAL` in the
   [USB recovery record](../2026-07-12-usb-typec-recovery/README.md#type-c-ports-and-board-switching).
   The device-port FUSB301 therefore only puts the chip in its default mode;
@@ -270,16 +270,16 @@ Two caveats apply throughout:
 - **U5. The xHCI ID-pin path is a software state machine on EINT186 that
   refuses host mode when VBUS is already above 4 V.** `mtk_xhci_eint_iddig_init()`
   takes the IRQ from the `mediatek,usb_iddig_bi_eint` node
-  ([`xhci-mtk-driver.c` lines 710–726](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/xhci/xhci-mtk-driver.c#L710-L726)),
+  (`xhci-mtk-driver.c` lines 710–726),
   requests it `IRQF_TRIGGER_LOW` with `enable_irq_wake()` (lines 685–699), and
   `mtk_xhci_mode_switch()` on ID-in checks `battery_meter_get_charger_voltage()
   > 4000` to choose `IDPIN_IN_DEVICE` (do nothing) over `IDPIN_IN_HOST`
   (load xHCI, enable charger OTG boost)
-  ([lines 174–184, 613–627](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/xhci/xhci-mtk-driver.c#L613-L627)).
+  (lines 174–184, 613–627).
   Host load enables the charger boost through `bq25890_otg_en()`
-  ([lines 425–460](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/xhci/xhci-mtk-driver.c#L425-L460),
+  (lines 425–460,
   owned by the VBUS record). GPIO181's function 1 is the SoC `IDDIG`
-  ([`mt6797-pinfunc.h` line 967](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L967));
+  (`mt6797-pinfunc.h` line 967);
   the live EINT map places EINT186 on GPIO181's alternate mode and EINT106 on
   its GPIO mode ([resource map](../../docs/hardware/mt6797-live-resource-map.md)),
   and the local patch 0005 maps GPIO181 to EINT106. Two different lines thus
@@ -288,12 +288,12 @@ Two caveats apply throughout:
   observed on the MTU3 port.
 - **U6. GPIO237 is a `usb_det` input the board helper only initialises.**
   `aeon_gpio.dtsi` defines `usb_det_low` as GPIO237 input with pull-down
-  ([lines 245–253](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi#L245-L253))
+  (lines 245–253)
   and the helper selects it at probe
-  ([`aeon_gpio.c` line 163](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpio/aeon_gpio.c#L163)).
+  (`aeon_gpio.c` line 163).
   None of the nineteen vendor files inspected here reads it afterwards; the
   public board DTS also muxes GPIO237 as `SPI1_CS_B`
-  ([`aeon6797_6m_n.dts` lines 1612–1625](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1612-L1625)).
+  (`aeon6797_6m_n.dts` lines 1612–1625).
   This is a bounded negative (not a whole-tree search); the pin is recorded
   so that a later VBUS-sense hypothesis does not rediscover it.
 

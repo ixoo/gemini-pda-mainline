@@ -25,7 +25,7 @@ bring-up, and post-`CPU_ON` Linux clock policy.
 ## Provenance and environment
 
 - Public vendor kernel source: Gemian Linux 3.18 commit
-  [`d388d350cb2dda8f23b99be6fa5db9628896e87f`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/d388d350cb2dda8f23b99be6fa5db9628896e87f),
+  the vendor's kernel,
   inspected read-only in recovery VM `gemini-pda-build-recovery-20260717`.
 - Later reconciliation separated the active March 29 boot image from the
   different May 24 `gbp59e00a` package installed in the filesystem. The active
@@ -35,7 +35,7 @@ bring-up, and post-`CPU_ON` Linux clock policy.
   `b53d191dc41d3f7364b0fa62b4bc920b1d013a1942b2e6b06727263fc56fcf4d`,
   and `231d8a2ffe7afac3a4cc62c27d0eb6fe8bd9165ebd096e3e3346dd6df35c18f4`.
   Its exact public source commit remains unresolved. Public commit
-  `59e00a9144d782e148332009a835b99c43382467` is the chosen observer-source
+  the vendor's kernel is the chosen observer-source
   equivalent, not exact active provenance: the observer-hook blobs are
   identical across the relevant March/April public lineage and agree with the
   active binary, while the active private image also contains the
@@ -94,7 +94,7 @@ No code was executed on the device and no kernel code was changed. Inputs were:
 
 ## Procedure
 
-1. Pin and hash each relevant public Gemian source file at commit `d388d350`.
+1. Pin and hash each relevant public Gemian source file the vendor's kernel.
 2. Reconstruct the vendor Linux external-buck sequence, its delays, DCM
    transition, CPU-on ordering, and incomplete CPU-off path.
 3. Analyze the immutable secure-firmware payload offline to identify the
@@ -142,7 +142,7 @@ March 29 boot image is not the May 24 package whose version contains
 `gbp59e00a`. Its exact public source commit remains unresolved. Commit
 `59e00a` is instead a chosen equivalent for the verified observer-hook blobs;
 its active HPS action-end printk agrees with the active binary, unlike later
-`d388d350`, where that block is commented. The equivalent source identifies
+the vendor's kernel, where that block is commented. The equivalent source identifies
 owner-safe observer locations for the DA9214 transaction, TOPRGU reset,
 protected B/CCI clock tuple, raw and mapped PSCI results, secondary completion,
 MP2 DCM, and the last-A72 offline transition. HPS action-end increments local

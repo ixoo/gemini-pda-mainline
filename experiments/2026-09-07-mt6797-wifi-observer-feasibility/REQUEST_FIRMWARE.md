@@ -10,7 +10,7 @@ before accepting the ON worker's successful return.
 ## Causal path and records
 
 The pinned native
-[Wi-Fi function callback](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c)
+Wi-Fi function callback
 invokes the registered WLAN probe synchronously. The AHB probe calls
 `wlanProbe()`, whose firmware mapping and `wlanAdapterStart()` precede creation
 of its WLAN threads. The earlier source-pinned mapping witness carries the

@@ -25,7 +25,7 @@ regulator, power domains, reset, and safe OPPs.
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
 - Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Vendor source: Gemian MT6797 tree commit
-  `d388d350cb2dda8f23b99be6fa5db9628896e87f`.
+  the vendor's kernel.
 - Mainline comparison: Linux `7.1.3` in the development VM.
 - Sanitized summary: [`results/runtime-summary.txt`](results/runtime-summary.txt).
 - Vendor ELF/source contract: [`results/mali-vendor-analysis.txt`](results/mali-vendor-analysis.txt).
@@ -105,7 +105,7 @@ sharing: memory-usage counters and runtime policy values are device-specific.
   platform DVFS policy layer, not part of the Mali job/MMU register model.
 - The pinned public tree contains generic Arm Mali Midgard/Kbase `mali-r12p0`
   plus the configured `mali-r12p1` tree. The exact MT6797 platform files are
-  present under `platform/mt6797/`: `mtk_config_platform.c`, the SPM sources,
+  present under the vendor's `mt6797` code: `mtk_config_platform.c`, the SPM sources,
   and the matching Kbase core call to `mtk_platform_init()`. The vendor ELF
   correlates with these source-level hooks, including
   `mtk_debug_mfg_reset` and the `mtk_get_gpu_pmu_*` callback shims. Treat the

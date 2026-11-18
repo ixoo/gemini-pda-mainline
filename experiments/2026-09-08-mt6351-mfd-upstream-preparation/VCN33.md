@@ -9,13 +9,13 @@ on the strength of register names alone.
 ## Pinned source
 
 The inspected public Gemian tree is commit
-[`8cfe6596a503612e3332d9c26e292a19525a7f07`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/8cfe6596a503612e3332d9c26e292a19525a7f07).
+the vendor's kernel.
 Files were read from retained Git objects in the RE VM. This is a source
 identity, not proof that its connectivity implementation is running on the PDA.
 It differs from the Planet source revision used by the July regulator audit.
 Its register header does match that audit's complete header SHA-256.
 
-| Path below `drivers/misc/mediatek/` | SHA-256 |
+| Path below the vendor's `mediatek` code | SHA-256 |
 | --- | --- |
 | `power/mt6797/pmic.c` | `c08786d5ad44006d1fdc0f885e43f6ca1e9398f9c6e5e14c4ec6fe167e3d143c` |
 | `include/mt-plat/mt6797/include/mach/upmu_hw.h` | `e376d2835dd32812b52caf6a51139cc7fd541de18eaad0f30ecf8194f70cebbe` |

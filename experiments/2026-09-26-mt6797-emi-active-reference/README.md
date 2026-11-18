@@ -24,7 +24,7 @@ variable after saving the response, so its outer exit status is not a valid
 SSH receipt. The confirming SSH command exited zero and reproduced every
 byte in the same verified boot.
 The retained Gemian source comparator at commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07` shows that
+the vendor's kernel shows that
 `emi_mpu_show()` reads region registers through `mt_emi_reg_read()`; the latter
 uses the EMI read service for MPU registers or MMIO for other offsets. The
 source comparator has not been byte-matched to this running kernel.
@@ -86,7 +86,7 @@ the vendor wrapper's unchecked return behavior.
 
 ## Region-23 producer and CONNSYS master label
 
-A follow-up inspection of the [pinned public MT6797 EMI driver](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c), checksum
+A follow-up inspection of the pinned public MT6797 EMI driver, checksum
 `39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2`,
 found that its `protect_ap_region()` deliberately requests region 23 across
 DRAM with packed permission `0xba8b68`; the live sysfs readout matches that
@@ -135,9 +135,9 @@ domain in bits 3:1. Global security control is at `0x11000014`. The
 describes per-transfer security/domain setup and reset to defaults after a DMA
 transfer. This governs **AP-DMA's own memory transactions**; it does not
 identify WLAN firmware fetches by the CONSYS master. The pinned selected
-[gen3 HIF DMA source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/ahb_pdma.c)
+gen3 HIF DMA source
 maps only the HIF channel window beginning at `0x11000080`; its
-[header](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/hif/ahb_sdioLike/include/hif_pdma.h)
+header
 defines local offset `0x20` as the destination address. Neither inspected file
 sets the global HIF0 security/domain register. Their SHA-256 values are
 `83c23a5582be2dcaa385359b7cd0f82af0ec9d6a4e102ea6faea57f59d75b480`

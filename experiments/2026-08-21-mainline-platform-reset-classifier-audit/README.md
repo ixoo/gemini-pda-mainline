@@ -30,9 +30,9 @@ available after LK hands control to Linux.
 - Exact retained preloader: SHA-256
   `25319ce877bd17b204fa264645aebf4583ec10ae2f05f6d8a7fff5efe4c06246`.
 - Public Planet LK: commit
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`.
+  the vendor's LK.
 - Public Gemian kernel: commit
-  `d388d350cb2dda8f23b99be6fa5db9628896e87f`.
+  the vendor's kernel.
 - The retained preloader was inspected read-only in the managed analysis VM.
   No firmware bytes or private paths are committed.
 - One bounded read-only Gemian probe tested whether the preloader classifier

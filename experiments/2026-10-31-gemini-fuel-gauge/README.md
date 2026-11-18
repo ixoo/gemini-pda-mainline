@@ -24,10 +24,9 @@ bootloader and kernel do not apply the same calibration.
 
 ## Provenance and environment
 
-- Vendor kernel `planet-community/android_kernel_planetcom_mt6797`, commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`: `battery_meter_fg_20.c`,
+- Vendor kernel the vendor's kernel: `battery_meter_fg_20.c`,
   `battery_common_fg_20.c`, `power/mt6797/battery_meter_hal.c`, DT battery node.
-- LK `dguidipc/gemini-lk-android8`, commit `f4988d74`: `platform/mt6797/mt_battery.c`.
+- The vendor's LK: `mt_battery.c`.
 - MT6351 PMIC datasheet v12 (table 2-16, section 3.2.10, FGADC register chapter).
 - Retained private Gemian boot logs (gauge init and periodic telemetry).
 - Prior record: [2026-10-04 charging reverse engineering](../2026-10-04-gemini-charging-re/README.md)

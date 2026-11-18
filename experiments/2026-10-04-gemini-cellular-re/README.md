@@ -43,7 +43,7 @@ candidate or device state.
 ## Inputs
 
 Every vendor citation is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`, the commit the charging record
+the vendor's kernel, the commit the charging record
 used. Every mainline citation is Linux `7.1.3` as pinned in
 `kernel/manifest.json`. Exact URLs, sizes and SHA-256 values are in
 [`source-inputs.json`](source-inputs.json). Line numbers refer to those exact
@@ -65,17 +65,17 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   DRAM; the kernel only verifies that it happened.** The vendor driver's start
   routine loads firmware with `request_firmware` only when
   `modem_run_env_ready()` is false
-  ([`modem_cldma.c` lines 2066–2070](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/modem_cldma.c#L2066-L2070));
+  (`modem_cldma.c` lines 2066–2070);
   that flag is set per modem when the LK tag table reports a zero load error
-  ([`ccci_util_lib_fo.c` lines 741–742 and 1090–1093](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/ccci_util/ccci_util_lib_fo.c#L741-L742)).
+  (`ccci_util_lib_fo.c` lines 741–742 and 1090–1093).
   The [Gemian handoff observation](../2026-09-07-mt6797-cellular-upstream-architecture/GEMIAN_HANDOFF.md)
   recorded exactly that: `ccci,modem_info_v2` in `/chosen`, loaded flags `0x5`,
   zero errors, and the saved log taking the "ready" branch that skips image
   load. The kernel-side fallback names are `modem_<postfix>.img` then
   `modem_1_<type>_n.img` over the type table
-  ([`ccci_util_lib_load_img.c` lines 58–75 and 761–796](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/ccci_util/ccci_util_lib_load_img.c#L761-L796));
+  (`ccci_util_lib_load_img.c` lines 58–75 and 761–796);
   `CONFIG_MTK_MD1_SUPPORT=12`
-  ([defconfig line 243](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L243))
+  (defconfig line 243)
   is index 12 of that table, `ulwctg`, matching the `ulwctg` the retained
   header reports. `modem_3_3g_n.img` in the vendor firmware directory
   ([firmware inventory](../../docs/hardware/firmware.md)) is therefore the
@@ -97,11 +97,11 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
 - **F3. The second modem domain (MD3, CDMA2000) is configured and alive on the
   stock kernel but is not needed for the Gemini's markets.** `CONFIG_MTK_MD3_SUPPORT=2`,
   `CONFIG_MTK_C2K_LTE_MODE=2` (SRLTE) and `CONFIG_MTK_ECCCI_C2K=y`
-  ([defconfig lines 244–245, 257](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L244-L245));
+  (defconfig lines 244–245, 257);
   the AP–C2K CCIF node carries its own `SCP_SYS_C2K` clock and 4 MiB shared
-  memory ([`mt6797.dtsi` lines 1973–1986](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L1973-L1986)).
+  memory (`mt6797.dtsi` lines 1973–1986).
   The runtime data MD1 receives advertises C2K presence
-  (`FEATURE_C2K_ALWAYS_ON`, [`modem_cldma.c` lines 3084–3104](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/modem_cldma.c#L3084-L3104)),
+  (`FEATURE_C2K_ALWAYS_ON`, `modem_cldma.c` lines 3084–3104),
   but only on the v1 handshake; MT6797 uses v2 (F9). Whether MD1 firmware
   tolerates MD3 never starting is unknown (H6).
 
@@ -113,10 +113,10 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   sets `VSLEEP_EN` for hardware sleep control, writes `VSRAM_MD` and `VMODEM`
   to 1.0 V (`VOSEL_ON` `0x50`/`0x40`), waits 300 µs and hands the three
   `VOSEL_CTRL` bits to hardware mode
-  ([`cldma_platform.c` lines 555–577](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/cldma_platform.c#L555-L577)).
+  (`cldma_platform.c` lines 555–577).
   The power-off path disables them in reverse (lines 542–553). The public DT
   marks `vmodem` and `vmd1` `regulator-always-on` with a 0.6–1.39 V range
-  ([`mt6797.dtsi` lines 439–456](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L439-L456)).
+  (`mt6797.dtsi` lines 439–456).
   The local [MT6351 regulator patch 0015](../../patches/v7.1.3/0015-regulator-mt6351-add-regulator-driver.patch)
   already models `buck-vmodem` (`CON0 0x0628`, `CON2 0x062c`), `buck-vmd1`
   (`0x063c`/`0x0640`) and `buck-vsram-md`, so the register numbers agree with
@@ -129,10 +129,10 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   `RST_B`, `PWR_ON`, `PWR_ON_2ND`), toggles an "LTE LS ISO" bit in
   `C2K_SPM_CTRL`, and polls `SPM_PWR_STATUS`/`_2ND` bit 0; `MD_PWRON_BY_CPU`
   is defined, so the CPU and not the SPM microcode performs the on sequence
-  ([`mt_spm_mtcmos.c` lines 1121–1154 and 1636–1725](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_spm_mtcmos.c#L1636-L1725),
-  [`mt_spm.h` lines 110, 127, 176–177](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/mt_spm.h#L110)).
+  (`mt_spm_mtcmos.c` lines 1121–1154 and 1636–1725,
+  `mt_spm.h` lines 110, 127, 176–177).
   The driver reaches it as the clock `scp-sys-md1-main`
-  ([`cldma_platform.c` lines 157, 804–806](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/cldma_platform.c#L804-L806)).
+  (`cldma_platform.c` lines 157, 804–806).
   Mainline's `mtk-scpsys.c` MT6797 table has VDEC, VENC, ISP, MM, AUDIO,
   MFG_ASYNC and MJC only
   ([`mtk-scpsys.c` lines 755–813](https://github.com/gregkh/linux/blob/v7.1.3/drivers/pmdomain/mediatek/mtk-scpsys.c#L755-L813),
@@ -145,11 +145,11 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   power-budget manager, writes `0x29` into the low byte of
   `INFRA_AO_MD_SRCCLKENA` (infra AO `0x1F0C`; `0x29` sets bits 0, 3 and 5,
   which the vendor comment attributes to MD1 and VRF18 control), and only then initialises the PLLs
-  ([`cldma_platform.c` lines 791–853](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/cldma_platform.c#L791-L853)).
+  (`cldma_platform.c` lines 791–853).
   Before that it calls `clk_buf_set_by_flightmode(false)` (line 803), the
   PMIC DCXO clock-buffer control in
-  [`mt_clkbuf_ctl.c` line 423](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_clkbuf_ctl.c#L423)
-  (`FEATURE_RF_CLK_BUF`, [`ccci_config.h` line 64](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/ccci_config.h#L64)).
+  `mt_clkbuf_ctl.c` line 423
+  (`FEATURE_RF_CLK_BUF`, `ccci_config.h` line 64).
   Mainline has no MT6351 clock-buffer provider; the Wi-Fi audit found the same
   gap for CONSYS, so this is a shared connectivity/modem dependency.
 - **F7. `md1_pll_init()` is a fixed register script on the modem's own clock
@@ -162,19 +162,19 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   (`0x30302020`, `0x00002030`, `0x30203031`), busy-waits for `R_PLL_STS` and
   `R_FLEXCKGEN_STS0..2` ready bits, and writes a magic word to
   `MD_GLOBAL_CON_DUMMY`
-  ([`cldma_platform.c` lines 588–789](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/cldma_platform.c#L588-L789),
-  window bases at [`modem_reg_base.h` lines 49–61](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/modem_reg_base.h#L49-L61)).
+  (`cldma_platform.c` lines 588–789,
+  window bases at `modem_reg_base.h` lines 49–61).
   Several of the waits are unbounded `while` loops. The MD windows live in
   the `0x2xxxxxxx` modem-view aperture that the AP reaches only after the
   MTCMOS is on ("do NOT touch MD register before this",
-  [`modem_cldma.c` line 2145](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/modem_cldma.c#L2145)).
+  `modem_cldma.c` line 2145).
   None of these registers has a mainline clock or syscon description.
 - **F8. Release is one write, and the modem watchdog is disabled first.**
   `md_cd_power_on()` ends by writing the `WDT_MD_MODE` key into the MD RGU
   (`0x200f0100`) and the L1 RGU (`0x26010000`); `md_cd_let_md_go()` then
   writes `1` to `MD_BOOT_VECTOR_EN` (`0x20000024`)
-  ([`cldma_platform.c` lines 843–844 and 860–870](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/cldma_platform.c#L860-L870),
-  [`modem_reg_base.h` lines 26, 44–47](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/modem_reg_base.h#L26)).
+  (`cldma_platform.c` lines 843–844 and 860–870,
+  `modem_reg_base.h` lines 26, 44–47).
   Boot progress is visible from the AP in `MD1_CFG_BOOT_STATS0/1`
   (`0x10201300`/`0x10201304`, `md_cd_dump_md_bootup_status`, lines 360–380),
   which is the read-only witness a first experiment should use (H1).
@@ -186,27 +186,27 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   (`ENABLE_CLDMA_AP_SIDE`), power on (F4–F7), first-stage MPU, release (F8),
   enable the watchdog and CCIF interrupts, reset and start CLDMA, then wait
   for handshake 1.** Lines 2143–2200 of
-  [`modem_cldma.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/modem_cldma.c#L2143-L2200);
+  `modem_cldma.c`;
   CLDMA block reset uses `INFRA_RST0/1_REG_AO/PD` bits (lines 69–99 of
   `cldma_platform.c`). The FSM then polls for `CCCI_EVENT_HS1` and
   `CCCI_EVENT_HS2` with a 10 s budget in 10 ms steps and resets the budget
   while a file-system request is in flight
-  ([`ccci_fsm.c` lines 166–256](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_fsm.c#L166-L256),
-  [`ccci_fsm.h` lines 95–96](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_fsm.h#L95-L96)).
+  (`ccci_fsm.c` lines 166–256,
+  `ccci_fsm.h` lines 95–96).
   Handshake 1 is the modem's control message with `data[1] == 0`
   (`MD_INIT_START_BOOT`) and `reserved == 0x5555FFFF` (`MD_INIT_CHK_ID`) on
   the control channel; handshake 2 is `MD_NORMAL_BOOT` (also value 0, without
   the check id)
-  ([`port_ctlmsg.c` lines 27–41](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/port_ctlmsg.c#L27-L41),
-  [`ccci_core.h` lines 789–799](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_core.h#L789-L799)).
+  (`port_ctlmsg.c` lines 27–41,
+  `ccci_core.h` lines 789–799).
   MT6797 selects handshake version 2 (`AP_MD_HS_V2`,
-  [`ccci_modem.c` line 501](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_modem.c#L501)):
+  `ccci_modem.c` line 501):
   the AP's reply to HS1 is a small "feature query" structure carrying the
   runtime-data addresses inside shared memory (in modem view, AP physical
   minus the AP-to-MD offset), the MPU start and total size, and a version
   flag; the feature negotiation itself then happens through that shared
   runtime region
-  ([`modem_cldma.c` lines 2898–2952](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/modem_cldma.c#L2898-L2952)).
+  (`modem_cldma.c` lines 2898–2952).
   The v1 structure (lines 2954–3110) documents what those features are:
   platform string `MT6797E1`, boot mode, exception and shared-memory bases,
   32 kHz-less flag, random seed, SBP code, sequence-check flags, wall-clock
@@ -214,7 +214,7 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
 - **F10. Reaching HS2 needs a userspace file server; reaching HS1 does not.**
   The FSM keeps resetting its timeout while `fs_ongoing` is set, which the
   CCCI file-system port raises on each modem request
-  ([`ccci_fsm.c` lines 232–233 and 464–467](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/ccci_fsm.c#L232-L233)).
+  (`ccci_fsm.c` lines 232–233 and 464–467).
   The stock userspace serves those requests with `ccci_fsd` and starts the
   modem with `ccci_mdinit`; the RIL stack is `mtkrild`/`gsm0710muxd` under
   Gemian's `ofono` ([vendor userspace](../../docs/hardware/vendor-userspace.md)).
@@ -225,10 +225,10 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
 - **F11. Exception, watchdog and wake paths are separate interrupts.** The
   `mdcldma` node carries `GIC_SPI 265` (CLDMA, level high), `GIC_SPI 147`
   (AP CCIF, level low) and `GIC_SPI 266` (MD watchdog, falling edge)
-  ([`mt6797.dtsi` lines 1790–1792](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L1790-L1792)).
+  (`mt6797.dtsi` lines 1790–1792).
   The CCIF ISR acknowledges `APCCIF_RCHNUM` into `APCCIF_ACK` and only
   schedules work for `D2H_EXCEPTION_INIT`, peer wake-up, sequence error and
-  CCB wake-up bits ([`modem_cldma.c` lines 1916–1946](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/modem_cldma.c#L1916-L1946));
+  CCB wake-up bits (`modem_cldma.c` lines 1916–1946);
   the watchdog ISR raises an `MD_WDT` exception (lines 1742–1772). The six
   register windows and eleven clocks the node requests are in F13.
 
@@ -240,12 +240,12 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   sets `by_pass_setting` when `modem_run_env_ready()` is true, and otherwise
   programs the MD1 ROM/DSP region (id `MPU_REGION_ID_MD1_ROM`) from the
   header's region table and the shared region (`MPU_REGION_ID_MD1_SMEM`)
-  ([`ccci_platform.c` lines 362–420](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/ccci_platform.c#L362-L420));
+  (`ccci_platform.c` lines 362–420);
   `SET_EMI_STEP_BY_STAGE` and `ENABLE_EMI_PROTECTION` are on
-  ([`ccci_config.h` lines 70–72](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/ccci_config.h#L70-L72)).
+  (`ccci_config.h` lines 70–72).
   The MT6797 EMI MPU has 24 region register pairs (`EMI_MPUA`…`EMI_MPUH3`)
   plus permission words
-  ([`emi_mpu.h` lines 17–47](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h#L17-L47)).
+  (`emi_mpu.h` lines 17–47).
   On this device the saved log already showed region 7 and two region-13
   requests issued on the ready path ([handoff](../2026-09-07-mt6797-cellular-upstream-architecture/GEMIAN_HANDOFF.md)),
   and the [secure MPU record](../2026-09-07-mt6797-cellular-upstream-architecture/SECURE_MPU.md)
@@ -256,7 +256,7 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   windows (`0x10014000`, `0x10015000` AO; `0x10219000`, `0x1021a000` PDN;
   `0x10209000`, `0x1020a000` CCIF), three interrupts (F11), `cldma_capability
   = 6`, `md_smem_size = 0x100000`, and eleven clocks
-  ([`mt6797.dtsi` lines 1782–1818](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L1782-L1818)).
+  (`mt6797.dtsi` lines 1782–1818).
   Ten of the clocks are infracfg gates that mainline's `clk-mt6797.c` already
   provides under the same names: `CLK_INFRA_CCIF_AP`, `CLK_INFRA_CCIF_MD`,
   `CLK_INFRA_AP_C2K_CCIF_0/1` and `CLK_INFRA_MD2MD_CCIF_0..5`
@@ -275,7 +275,7 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   (F2, [handoff](../2026-09-07-mt6797-cellular-upstream-architecture/GEMIAN_HANDOFF.md)).
   The vendor `ccci_util_cfg` node fixes the three shared-memory sizes at
   2 MiB each with layout version 1
-  ([`mt6797.dtsi` lines 4118–4123](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L4118-L4123)),
+  (`mt6797.dtsi` lines 4118–4123),
   matching the observed 2 MiB AP–MD1 region.
 
 ### SIM
@@ -284,11 +284,11 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   muxing, the two SIM LDOs and an optional hot-plug EINT description.** The
   MT6797 pin table routes `MD1_SIM1_SCLK/SRST/SIO` and `MD1_SIM2_*` to GPIO
   126–128 and 155–157 (either slot on either pad group by function number)
-  ([vendor `mt6797-pinfunc.h` lines 713–726, 874–887](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L713-L726);
+  (vendor `mt6797-pinfunc.h` lines 713–726, 874–887;
   the mainline copy carries the same functions,
   [`mt6797-pinfunc.h` lines 692 and 854](https://github.com/gregkh/linux/blob/v7.1.3/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L692)).
   `VSIM1`/`VSIM2` are MT6351 LDOs with a 1.7–3.1 V range
-  ([`mt6797.dtsi` lines 558–569](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L558-L569));
+  (`mt6797.dtsi` lines 558–569);
   the live Gemian baseline shows both disabled at the PMIC while the modem is
   idle ([baseline lines 613–614](../../docs/hardware/gemini-gemian-baseline.md)),
   and the local regulator patch already lists `ldo-vsim1`/`ldo-vsim2`
@@ -297,7 +297,7 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   (`IPC_RPC_GET_EINT_ATTR_OP`) by looking up DT nodes named
   `MD1_SIM1_HOT_PLUG_EINT`…`MD1_SIM4_HOT_PLUG_EINT` and reading their
   `interrupts`, `debounce`, `sockettype`, `dedicated` and `src_pin` properties
-  ([`port_rpc.c` lines 164–270 and 821](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/port_rpc.c#L164-L270)).
+  (`port_rpc.c` lines 164–270 and 821).
   Neither the public SoC DTS, board DTS nor `cust_eint.dtsi` defines such a
   node, and the only SIM-related pin functions are the modem-owned
   `MD_INT0/1_C2K_UIM0/1_HOT_PLUG_IN` lines (pinfunc lines 263, 669, 673).
@@ -314,10 +314,10 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   `I03/I04 → O17/O18` (ADC to modem PCM TX) and `I14 → O03/O04/O28/O29`
   (modem PCM RX to DAC and recording paths), enables the I2S ADC/DAC and then
   `SetModemPcmConfig(MODEM_1, …)`/`SetModemPcmEnable(MODEM_1, true)`
-  ([`mt_soc_pcm_voice_md1.c` lines 293–315](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_voice_md1.c#L293-L315)),
+  (`mt_soc_pcm_voice_md1.c` lines 293–315),
   where `MODEM_1` writes `PCM2_INTF_CON` (`0x53C`) and `MODEM_2` writes
   `PCM_INTF_CON1` (`0x530`)
-  ([`mt_soc_afe_control.c` lines 2049–2074](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c#L2049-L2074)).
+  (`mt_soc_afe_control.c` lines 2049–2074).
   Mainline's MT6797 AFE has `MT6797_DAI_PCM_1`, `MT6797_DAI_PCM_2` and
   `MT6797_DAI_HOSTLESS_SPEECH`
   ([`mt6797-afe-common.h` lines 25–31](https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/mediatek/mt6797/mt6797-afe-common.h#L25-L31)),
@@ -339,9 +339,9 @@ the public board DTS adds no modem, SIM or antenna node at all (F15, F19).
   parallel interface, GPIO 192 onward and 212 onward), `RFIC0_BSI_CK/EN/D0-2`
   (baseband serial interface, GPIO 183–187, shared with `SPM_BSI_*`) and
   `ANT_SEL0..7` as alternate functions
-  ([vendor pinfunc lines 975–1016, 1106, 240–298](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L975-L1016)),
+  (vendor pinfunc lines 975–1016, 1106, 240–298),
   the public board pinctrl selects none of them
-  ([`aeon_gpio.dtsi`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi)),
+  (`aeon_gpio.dtsi`),
   and the only AP-side RF-adjacent action in the CCCI driver is the clock
   buffer of F6 (`ccci_set_bsi_bpi_SRAM_cfg` exists behind
   `FEATURE_BSI_BPI_SRAM_CFG`, which `ccci_config.h` does not define). The
@@ -464,7 +464,7 @@ beyond what the hypothesis names.
    validate the descriptor decoding for H4 without a new protocol document.**
    Test: Gemian read of the CCCI dump prefix already used in the handoff
    observation, extended to the queue dump `cldma_dump_register()` prints at
-   boot ([`cldma_platform.c` lines 916–964](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/eccci/mt6797/cldma_platform.c#L916-L964));
+   boot (`cldma_platform.c` lines 916–964);
    no modem node is opened. Confidence: medium; the dump is a ring snapshot,
    not a trace.
 6. **H6. MD1 boots to HS2 with MD3 never started.** The runtime data v2 does

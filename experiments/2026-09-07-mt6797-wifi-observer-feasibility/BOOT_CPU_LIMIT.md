@@ -16,8 +16,8 @@ boot-limit cause remains an inference. The
 [historical LK handoff](../../docs/hardware/gemini-gemian-baseline.md#boot-handoff-and-storage-boundary)
 and the freshly checked source explain a narrow candidate correction.
 
-At LK revision `f4988d74bb70a0a15d7f362f412afba7e7fcda46`, the non-FPGA
-[default command line](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/include/platform/mt_reg_base.h)
+At the vendor's LK, the non-FPGA
+default command line
 ends in `maxcpus=5`. The pinned `mt_boot.c` appends the boot image's command
 line afterward, then passes the resulting string as bootargs. Its append
 function adds a space and the complete string, without removing repeated keys;

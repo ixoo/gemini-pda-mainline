@@ -17,8 +17,8 @@ model proves a packet exchange occurred on Gemini.
 ## Exact selected source
 
 All references below use Planet commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a` and the selected
-`drivers/misc/mediatek/connectivity/wlan/gen3/` path. The inspected C files
+the vendor's kernel and the selected
+the vendor's `gen3` code path. The inspected C files
 have GPL version 2 notices. The model is independently written from their
 field layout and behavior; no vendor implementation or packet bytes are
 copied into the repository.
@@ -31,8 +31,8 @@ constructor writes command ID 1, queue `0x8000`,
 packet type `0xa0`, its sequence and a zero reserved byte. A nearby structure
 comment says `0x20`; the assigned constant and constructor are the stronger
 evidence, so the model refuses `0x20`.
-[Header and constants](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_init_cmd_event.h#L51),
-[selected constructor](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L2401).
+Header and constants,
+selected constructor.
 
 For MT6797, the eight-byte event header precedes a **twenty-byte** result
 body, for 28 logical bytes total. The generic branch has a shorter result
@@ -40,21 +40,21 @@ body and must not be substituted. The header declares event packet type
 `0xe000`, event ID and sequence. The MT6797 body carries status, reserved
 bytes, PSE FID, a key-index byte and a source-descriptor structure. The model
 does not interpret or emit those diagnostic values.
-[MT6797 event/result layout](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic_init_cmd_event.h#L124).
+MT6797 event/result layout.
 
 The selected configuration enables download acknowledgements. The verifier
 requires event ID 1, the outstanding command's sequence and status zero;
 all nonzero statuses fail. It does not compare the result's diagnostic
 source descriptor with the command or require response reserved bytes to be
 zero. These fields therefore do not become invented validity gates here.
-[ACK selection](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h#L492),
-[reply verifier](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L2769).
+ACK selection,
+reply verifier.
 
 PDA payload transfers use queue `0xc000` with a different construction path;
 they are not DOWNLOAD_CONFIG commands. The model explicitly distinguishes
 and refuses that queue. It does not invent an ACK per PDA chunk, decode a
 PDA payload, or reuse the earlier gen2 DOWNLOAD_BUF framing.
-[PDA transfer construction](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L2512).
+PDA transfer construction.
 
 ## Logical-record boundary and stricter model checks
 
@@ -66,8 +66,8 @@ The RX helper obtains a length from the receive port. In its optional
 extra-read mode it reads additional bus bytes and copies only the reported
 packet length to the response buffer. The model does not accept those extra
 bytes or try to infer where a logical record begins.
-[TX helper](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c#L2259),
-[RX helper](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c#L3615).
+TX helper,
+RX helper.
 
 | Check | Basis and behavior |
 | --- | --- |

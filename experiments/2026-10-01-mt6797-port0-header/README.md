@@ -6,7 +6,7 @@ both before and after the query. The packet was not read. Its kind remains
 unknown; the reported length alone does not prove its identity or cause.
 
 Pinned Planet gen3 `nicRxWaitResponse()` at revision
-`c5b0be85017ad0c599725e8273842efdbecdd88a` selects the WRPLR half and
+the vendor's kernel selects the WRPLR half and
 WRDR data port separately. `nic_rx.c` SHA-256
 `a844bdf75065a152e78d30c789aabb398b0d0f336d30d6ffd028793bf091412b`
 uses `ALIGN_4(length + 4)` for an RX read. Its RX descriptor defines the

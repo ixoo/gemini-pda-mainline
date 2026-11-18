@@ -37,7 +37,7 @@ and EEPROM paths are.
 ## Inputs
 
 Every vendor citation below is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`, the same commit the
+the vendor's kernel, the same commit the
 [charging record](../2026-10-04-gemini-charging-re/README.md) used. Every
 mainline citation is Linux `7.1.3` as pinned in `kernel/manifest.json`.
 libcamera citations are the `libcamera-org/libcamera` GitHub mirror of the
@@ -53,7 +53,7 @@ board files do not always describe the live Gemian image: the public
 sit on `i2c2`/`i2c3` (F8), and the public defconfig's sensor list names two
 source directories that the public commit does not carry (F3). Where the public
 tree and the live capture disagree, the live capture wins. Second, the prior
-camera record used a different vendor checkout (Planet commit `c5b0be85…`);
+camera record used a different vendor checkout (Planet commit `the vendor's kernel…`);
 the camera files inspected here hash identically where both records cite them
 (`kd_camera_hw.c`, `kd_sensorlist.h`, `kd_imgsensor.h`, `camera_isp.h`,
 `mt6797.dtsi`, `aeon6797_6m_n.dts`), so the two records describe the same
@@ -75,10 +75,10 @@ vendor code.
 - **F2. The vendor proc names map to sockets, not to physical positions:
   `AEON_CAMERA0` is the MAIN socket and `AEON_CAMERA1` is the SUB socket.**
   `MAIN_CAM_PROC_NAME "AEON_CAMERA0"` / `SUB_CAM_PROC_NAME "AEON_CAMERA1"` at
-  [`kd_sensorlist.c` lines 78–79](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c#L78-L79);
+  `kd_sensorlist.c` lines 78–79;
   the strings start as `KDIMGSENSOR_NOSENSOR` (lines 86–87) and are overwritten
   with the driver name only when a sensor on that socket is found
-  ([lines 2173–2175](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c#L2173-L2175)).
+  (lines 2173–2175).
   Combined with the live `camera0=non_sensor`, `camera1=sp5509mipirawsls`
   ([live repeat](../2026-07-13-camera-recovery/results/live-camera-repeat-20260714.txt)),
   the development unit has an SP5509-class sensor on the **SUB** socket and
@@ -89,11 +89,11 @@ vendor code.
 - **F3. The public sensor list differs from the live binary, and the extra
   entries are the alternative 5 MP parts.** The defconfig selects
   `CONFIG_CUSTOM_KERNEL_IMGSENSOR="sp5506_mipi_raw sp5509_mipi_raw_sls st55a_mipi_raw sp5509_main_mipi_raw"`
-  ([line 189](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L189)).
+  (line 189).
   `kd_sensorlist.h` registers `SP5506_MIPI_RAW` with the **OV5675** ID and
   init function and `ST55A_MIPI_RAW` with the **S5K5E2YA** ID and init
   function
-  ([lines 168–186](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.h#L168-L186)),
+  (lines 168–186),
   which is why the live `kallsyms` carried `OV5675_MIPI_RAW_SensorInit` and
   `S5K5E2YA_MIPI_RAW_SensorInit`. The `sp5506_mipi_raw/` and `st55a_mipi_raw/`
   directories are absent from this public commit (fetch returned 404), so the
@@ -106,11 +106,11 @@ vendor code.
 - **F4. The SLS sensor identity transaction is the Hynix Hi-556's.** The
   vendor defines `SP5509_SENSOR_ID_SLS 0x556` and `SP5509_MAIN_SENSOR_ID
   0x557`
-  ([`kd_imgsensor.h` lines 259–261](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/inc/kd_imgsensor.h#L259-L261));
+  (`kd_imgsensor.h` lines 259–261);
   the SLS driver reads register `0x0f16`
-  ([`sp5509mipiraw_Sensor.c` lines 1171–1174](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.c#L1171-L1174))
+  (`sp5509mipiraw_Sensor.c` lines 1171–1174)
   and the "main" variant returns the same register plus one
-  ([`sp5509mainmipiraw_Sensor.c` lines 1167–1170](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_main_mipi_raw/sp5509mainmipiraw_Sensor.c#L1167-L1170)),
+  (`sp5509mainmipiraw_Sensor.c` lines 1167–1170),
   so both tables match a chip that answers `0x0556`. Upstream
   `drivers/media/i2c/hi556.c` defines `HI556_REG_CHIP_ID 0x0f16` and
   `HI556_CHIP_ID 0x0556`
@@ -119,7 +119,7 @@ vendor code.
   are therefore accurate about the silicon.
 - **F5. The vendor SLS register programming is the upstream Hi-556 sequence
   with one PLL difference.** Side by side (vendor `sensor_init` from
-  [line 518](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.c#L518);
+  line 518;
   upstream tables from
   [line 125](https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/i2c/hi556.c#L125)):
 
@@ -137,7 +137,7 @@ vendor code.
 
   The only systematic difference is `0x0f30`, and the vendor runs the sensor
   from a **24 MHz** MCLK (`.mclk = 24`,
-  [line 247](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.c#L247))
+  line 247)
   while upstream requires **19.2 MHz** (`HI556_MCLK 19200000`, line 23, enforced
   at [lines 1349–1352](https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/i2c/hi556.c#L1349-L1352)).
   A 24 MHz PLL variant is therefore the one register-table change a mainline
@@ -149,7 +149,7 @@ vendor code.
   2083 (30 fps class), 640 × 480 at frame length 520 (120 fps class),
   1296 × 972, I2C write IDs `0x40` then `0x50` (7-bit `0x20`/`0x28`) at
   300 kHz
-  ([lines 244–250](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.c#L244-L250)).
+  (lines 244–250).
   Upstream hi556 is also 2-lane only
   ([lines 24, 1233–1234](https://github.com/gregkh/linux/blob/v7.1.3/drivers/media/i2c/hi556.c#L1233-L1234))
   with a single 437 MHz link frequency (line 22), i.e. 174.8 Mpixel/s at 10
@@ -172,7 +172,7 @@ vendor code.
   The vendor SLS table is: MCLK on; reset low; power-down low; DOVDD 1.8 V;
   AVDD 2.8 V; DVDD 1.2 V; 10 ms steps; reset high; power-down high; AFVDD
   commented out
-  ([`kd_camera_hw.c` lines 193–204](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.c#L193-L204)).
+  (`kd_camera_hw.c` lines 193–204).
   Upstream has no power-down GPIO, so a DT description must either tie PDN
   high through pinctrl or add a small `powerdown-gpios` handling. libcamera's
   sensor property table has no `hi556` entry (it has `hi846` and `ov5675`;
@@ -183,19 +183,19 @@ vendor code.
 
 - **F8. The SUB socket is on I2C3 (`0x11014000`); the MAIN socket is on
   I2C2.** `SUPPORT_I2C_BUS_NUM1 2` / `SUPPORT_I2C_BUS_NUM2 3`
-  ([`kd_sensorlist.c` lines 125–131](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c#L125-L131)),
+  (`kd_sensorlist.c` lines 125–131),
   and `DUAL_CAMERA_SUB_SENSOR` switches `gI2CBusNum` to `SUPPORT_I2C_BUS_NUM2`
   before `SensorOpen()`
-  ([lines 1259–1262](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c#L1259-L1262)).
+  (lines 1259–1262).
   The vendor `i2c3` node is `0x11014000`
-  ([`mt6797.dtsi` lines 2610–2620](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L2610-L2620)),
+  (`mt6797.dtsi` lines 2610–2620),
   matching the live `3-0036 camera_sub` wrapper. Upstream `mt6797.dtsi` has
   the same `i2c3@11014000` node, disabled, with pins `GPIO74 SCL3_0` /
   `GPIO75 SDA3_0`
   ([lines 173–177, 408–421](https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi#L408-L421)).
   The public `cust_i2c.dtsi` (`camera_main@10`, `camera_main_af@0c`,
   `camera_sub@3c` under `&i2c0`,
-  [lines 11–27](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_i2c.dtsi#L11-L27))
+  lines 11–27)
   is a stale generated file and does not describe the live wrappers. No
   Gemini DT patch in `patches/v7.1.3/` enables `i2c3` today.
 - **F9. The front camera's rails are MT6351 LDOs: `vcama` 2.8 V, `vcamd`
@@ -203,19 +203,19 @@ vendor code.
   `_hwPowerOn()` maps `AVDD`→`vcama`, `DVDD`→`vcamd`, `DOVDD`→`vcamio`,
   `AFVDD`→`vcamaf`, obtained with `regulator_get()` on the `kd_camera_hw1`
   device
-  ([`kd_sensorlist.c` lines 3886–3898, 3947–3990](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c#L3947-L3990)),
+  (`kd_sensorlist.c` lines 3886–3898, 3947–3990),
   whose node binds `vcama-supply` → `ldo_vcama`, `vcamd-supply` → `ldo_vcamd`,
   `vcamaf-supply` → `ldo_vldo28`, `vcamio-supply` → `ldo_vcamio`
-  ([`mt6797.dtsi` lines 3868–3874](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3868-L3874)).
+  (`mt6797.dtsi` lines 3868–3874).
   For the SUB socket (`pinSetIdx == 1`) the AVDD/DVDD/DOVDD steps take the
   regulator branch because the `CUST_SUB_*` entries of `PowerCustList` are
   `GPIO_UNSUPPORTED`
-  ([`kd_camera_hw.c` lines 111–124, 528–538, 570–585](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.c#L528-L538)),
+  (`kd_camera_hw.c` lines 111–124, 528–538, 570–585),
   and the 1.2 V DVDD request is rewritten to 1.21 V (lines 573–576) because
   the vendor `vcamd` range is 900000–1210000 µV
-  ([`mt6797.dtsi` lines 602–606](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L602-L606)).
+  (`mt6797.dtsi` lines 602–606).
   The `GPIO73`/`GPIO254` `cam_ldo_vcama`/`cam_ldo_vcamd` pin states
-  (board DTS [lines 1189–1215](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1189-L1215))
+  (board DTS lines 1189–1215)
   are only reached through `mtkcam_gpio_set()` when a `PowerCustList` entry is
   `GPIO_SUPPORTED`, which holds only for `MAIN2_AVDD`/`MAIN2_DVDD`
   (lines 120–121, 457–497); the prior record's "rail GPIO73/GPIO254" belongs
@@ -227,23 +227,23 @@ vendor code.
   `GPIO29`; its MCLK is SENINF1's timing generator on pad `CMMCLK1`
   (`GPIO31`).** `kdCISModulePowerOn()` sets `pinSetIdx = 1` for the SUB
   socket
-  ([`kd_camera_hw.c` lines 812–832](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.c#L812-L832)),
+  (`kd_camera_hw.c` lines 812–832),
   which selects the `cam1_rst*`/`cam1_pnd*` pinctrl states (lines 243–246,
   301–324) defined on `GPIO33` and `GPIO29`
-  (board DTS [lines 1133–1159](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1133-L1159));
+  (board DTS lines 1133–1159);
   the MAIN socket uses `GPIO32`/`GPIO28` (lines 1105–1131). The SUB socket's
   MCLK step calls `ISP_MCLK2_EN()` (line 659), which sets bits 31 and 29 of
   `SENINF1_BASE + 0x0600`
-  ([`camera_isp.c` lines 11660–11682](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c#L11660-L11682));
+  (`camera_isp.c` lines 11660–11682);
   the MAIN socket's `ISP_MCLK1_EN()` does the same on SENINF0. The MT6797 pin
   table has `CMMCLK0 = GPIO30`, `CMMCLK1 = GPIO31`, `CMMCLK2 = GPIO36`,
   `CMMCLK3 = GPIO35`
-  ([`mt6797-pinfunc.h` lines 115, 119, 150, 159](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/include/dt-bindings/pinctrl/mt6797-pinfunc.h#L115-L119)).
+  (`mt6797-pinfunc.h` lines 115, 119, 150, 159).
   SENINF1 → `CMMCLK1` → `GPIO31` is the natural pairing but the pad mapping is
   not stated in source (inference; H2). The MCLK source clock is the
   `TOP_MUX_CAMTG` mux, parented to `UNIVPLL_D26` for the "48 MHz group" or
   `UNIVPLL2_D2` for the "52 MHz group" by `kdSetSensorMclk()`
-  ([`kd_sensorlist.c` lines 3798–3812](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/kd_sensorlist.c#L3798-L3812);
+  (`kd_sensorlist.c` lines 3798–3812;
   clock handles at `mt6797.dtsi` lines 3876–3879); the division from that
   group to 24 MHz is a SENINF TG register field the kernel does not program
   (see F13). Upstream `mt6797-clk.h` has `CLK_TOP_MUX_CAMTG` (11),
@@ -256,7 +256,7 @@ vendor code.
   lists IMGSYS, DIP, CAMSYS, CAMTOP, CAM A/B, CAMSV and SENINF windows. The
   same vendor `mt6797.dtsi` also gives: `smi_larb6@15001000` IRQ 245,
   `dpe@15028000` IRQ 261, `fd@1502b000` IRQ 259
-  ([lines 3566–3625](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3566-L3625)),
+  (lines 3566–3625),
   `smi_larb2@1a001000` IRQ 258 (lines 3794–3797), the `camtop/cama/camb`
   `_set`/`_inner`/`_clr` aliases at `0x1a00b000`–`0x1a01d000` (lines
   3818–3861) and two MIPI RX analog windows `csi0@10217000` and
@@ -264,13 +264,13 @@ vendor code.
   hardware bases it hands to userspace: `CAM_A 0x1a004000`, `CAMSV_0
   0x1a050000`, `DIP_A 0x15022000`, `UNI_A 0x1a003000`, `SENINF 0x1a040000`,
   `MIPI_RX 0x10217000`, `GPIO 0x10002000`
-  ([`camera_isp.h` lines 37–49](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h#L37-L49)).
+  (`camera_isp.h` lines 37–49).
 - **F12. Clock, power-domain and IOMMU providers: partly upstream, partly
   local, nothing camera-specific missing at provider level.** The vendor
   `imgsys_config` node consumes 14 clocks: `SCP_SYS_DIS`, `MM_SMI_COMMON`,
   `SCP_SYS_ISP`, `IMG_LARB6`, `IMG_DIP`, `IMG_DPE`, `IMG_FDVT`, `CAM_LARB2`,
   `CAM_CAMSYS`, `CAM_CAMTG`, `CAM_SENINF`, `CAM_CAMSV0/1/2`
-  ([`mt6797.dtsi` lines 3531–3565](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3531-L3565)).
+  (`mt6797.dtsi` lines 3531–3565).
   Upstream 7.1.3 provides `clk-mt6797-img.c` (`IMG_FDVT/DPE/DIP/LARB6`,
   [lines 23–26](https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797-img.c#L23-L26))
   and `MT6797_POWER_DOMAIN_ISP` (2) / `_MM` (3) in `mt6797-power.h`, but **no
@@ -295,7 +295,7 @@ vendor code.
   userspace, not in the GPL kernel.** `ISP_mmap()` maps the `SENINF`
   (`0x1a040000`, 16 KiB), `MIPI_RX` (`0x10217000`, 8 KiB) and `GPIO`
   (`0x10002000`) windows into the calling process
-  ([`camera_isp.c` lines 9051–9105](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c#L9051-L9105)).
+  (`camera_isp.c` lines 9051–9105).
   The kernel itself only `of_iomap`s `seninf0`–`seninf3`
   (lines 11358–11399) to toggle the MCLK enable bits (F10) and to back up and
   restore registers across suspend (lines 9798 onward). That backup table
@@ -335,16 +335,16 @@ vendor code.
 - **F15. The only compiled lens driver is DW9714AF at 7-bit `0x0c`; the
   front module is probably fixed focus.** Defconfig: `CONFIG_MTK_LENS=y`,
   `CONFIG_MTK_LENS_DUMMYLENS_SUPPORT=y`, `CONFIG_MTK_LENS_DW9714AF_SUPPORT=y`
-  ([lines 204–208](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L204-L208)).
+  (lines 204–208).
   Both `MAINAF` and `SUBAF` character drivers list the same DW9714AF entry
-  ([`main_lens.c` lines 70–81](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lens/main/main_lens.c#L70-L81),
-  [`sub_lens.c` lines 68–76](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lens/sub/sub_lens.c#L68-L76));
+  (`main_lens.c` lines 70–81,
+  `sub_lens.c` lines 68–76);
   `DW9714AF.c` uses 8-bit slave `0x18` shifted to 7-bit `0x0c`
-  ([lines 29, 55–57](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/lens/main/common/dw9714af/DW9714AF.c#L29)),
+  (lines 29, 55–57),
   which is exactly the live `3-000c SUBAF` wrapper on the front camera's bus.
   However the wrapper is a static DT client, the SLS power table never
   enables `AFVDD` (F7), and the vendor "main" table does
-  ([`kd_camera_hw.c` line 216](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/camera_hw/kd_camera_hw.c#L216)),
+  (`kd_camera_hw.c` line 216),
   so the front module is described as fixed focus and the AF rail/driver
   belong to the rear accessory socket. Upstream has `dw9714.c` and the
   `dongwoon,dw9714` binding (`vcc-supply`, optional `powerdown-gpios`;
@@ -352,19 +352,19 @@ vendor code.
   so if an actuator is ever found, no new driver is needed.
 - **F16. There is no flash LED driver: the vendor builds `dummy_flashlight`.**
   `CONFIG_MTK_FLASHLIGHT=y`, `CONFIG_CUSTOM_KERNEL_FLASHLIGHT="dummy_flashlight"`
-  ([defconfig lines 193–194](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L193-L194)).
+  (defconfig lines 193–194).
   The dummy driver's open/release/ioctl return success and do nothing
-  ([`dummy_flashlight.c` lines 130–160](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/flashlight/src/mt6797/dummy_flashlight/dummy_flashlight.c#L130-L160));
+  (`dummy_flashlight.c` lines 130–160);
   `kd_flashlightlist.c` reports `FLASHLIGHT_NONE` to userspace and installs
   `strobeInit_dummy` for every socket
-  ([lines 283–318, 339–344](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/flashlight/src/mt6797/kd_flashlightlist.c#L283-L318)).
+  (lines 283–318, 339–344).
   Board pin states for flash enable/torch/PWM in `aeon_gpio.dtsi` are all
   commented out
-  ([lines 88–139](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon_gpio.dtsi#L88-L139));
+  (lines 88–139);
   the only concrete flash pin is a `hwen` state on `GPIO90`
-  ([board DTS lines 1470–1503](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1470-L1503)),
+  (board DTS lines 1470–1503),
   and the public `strobe_main@63` client on `i2c2`
-  ([`cust_i2c.dtsi` lines 68–70](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_i2c.dtsi#L68-L70))
+  (`cust_i2c.dtsi` lines 68–70)
   has no compiled driver (the flashlight Makefile adds only generic strobe
   objects plus the dummy directory). With F1 ("no flash"), there is nothing
   to port.
@@ -372,7 +372,7 @@ vendor code.
   public.** `CONFIG_MTK_CAM_CAL=y`, `CONFIG_CUSTOM_KERNEL_CAM_CAL_DRV="BRCB032GWZ_3 GT24c32a cat24c16"`
   (defconfig lines 190–191) and a `cam_cal_drv` node with `main_bus = <2>`,
   `sub_bus = <3>`
-  ([`mt6797.dtsi` lines 4266–4269](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L4266-L4269));
+  (`mt6797.dtsi` lines 4266–4269);
   the `cam_cal` source directory is absent from the public commit (404).
   Whether the front module carries an EEPROM is unknown. Mainline raw capture
   does not need it; lens shading and colour data would live in a libcamera
@@ -403,7 +403,7 @@ streaming as an identity probe.
    order:
    (a) **Gemian read, zero new transactions:** the SLS driver prints
    `sp5509 i2c write id: 0x%x, ReadOut sensor id: 0x%x` on success
-   ([lines 1210–1215](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/imgsensor/src/mt6797/sp5509_mipi_raw_sls/sp5509mipiraw_Sensor.c#L1210-L1215));
+   (lines 1210–1215);
    one `dmesg`/`logcat` read after the stock camera app has been opened once
    settles the populated write ID (`0x40` → `0x20`, or `0x50` → `0x28`) and
    confirms `0x556` on this unit. This is the cheapest decision-changing

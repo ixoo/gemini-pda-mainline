@@ -47,10 +47,10 @@ the only mainline STP traffic so far.
 ## Inputs
 
 Every vendor citation below is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`, the commit the
+the vendor's kernel, the commit the
 [charging record](../2026-10-04-gemini-charging-re/README.md) used. The eight
 GPS-relevant files were also fetched from the Planet tree at
-`c5b0be85017ad0c599725e8273842efdbecdd88a` (the Wi-Fi audit's pin) and are
+the vendor's kernel (the Wi-Fi audit's pin) and are
 byte-identical, so the Wi-Fi audit's line numbers in the shared WMT files
 remain valid. Every mainline citation is Linux `7.1.3` as pinned in
 `kernel/manifest.json`. Exact URLs, sizes and SHA-256 values are in
@@ -75,19 +75,19 @@ not from disassembly performed here.
   regulator of its own in the device tree.** `mt6797.dtsi` describes it with
   two property-less pseudo-nodes, `gps { compatible = "mediatek,gps"; }` and
   `gps_emi { compatible = "mediatek,gps_emi-v1"; }`
-  ([lines 4088–4094](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L4088-L4094)).
+  (lines 4088–4094).
   Every hardware resource GNSS uses belongs to `consys@18070000`
-  ([lines 3759–3773](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3759-L3773):
+  (lines 3759–3773:
   four windows, BGF/WDT interrupts, `SCP_SYS_CONN`, VCN18/VCN28/VCN33-BT/VCN33-Wi-Fi)
   and to the BTIF block. The live capture shows the same two nodes bound
   ([2026-07-13 rerun](../2026-07-12-connectivity-wmt-recovery/results/live-connectivity-rerun-20260713.txt)).
 - **F2. `/dev/gps` (driver `gps`, compatible `mediatek,gps`) touches no
   hardware; it is a 4 KiB userspace-to-userspace mailbox plus sysfs state.**
   Its hardware hooks are null (`mt3326_gps_hw = { .ext_power_on = NULL, .ext_power_off = NULL }`,
-  [`gps.c` lines 164–167](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/gps.c#L164-L167)),
+  `gps.c` lines 164–167),
   so `mt3326_gps_power()` only logs (lines 200–251). `write()` copies at most
   4096 bytes into one shared `dat_buf` and `read()` hands them back
-  ([lines 111–118, 798–883](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/gps.c#L798-L883)).
+  (lines 111–118, 798–883).
   The sysfs files `pwrctl`, `suspend`, `status`, `state`, `pwrsave` and
   `rdelay` (lines 704–721) record the daemon's state machine and restart
   reasons ("TTFF", "monitor", "force", lines 184–195). This is the NMEA hand-off
@@ -98,19 +98,19 @@ not from disassembly performed here.
   calls `mtk_wcn_stp_send_data(buf, len, GPS_TASK_INDX)` and `GPS_read()` calls
   `mtk_wcn_stp_receive_data(buf, len, GPS_TASK_INDX)`, sleeping on a wait
   queue that the STP core wakes through `GPS_event_cb`
-  ([`stp_chrdev_gps.c` lines 136–280, 537–543](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/stp_chrdev_gps.c#L136-L280)).
+  (`stp_chrdev_gps.c` lines 136–280, 537–543).
   There is no framing, parsing or protocol knowledge in the kernel: the payload
   is opaque to it. `GPS_TASK_INDX` is 2
-  ([`stp_exp.h` line 47](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/include/stp_exp.h#L47))
+  (`stp_exp.h` line 47)
   and the per-task receive ring is 16 KiB (`MTKSTP_BUFFER_SIZE`, line 60).
 - **F4. Opening `/dev/stpgps` is what powers the receiver; closing it powers it
   down.** `GPS_open()` calls `mtk_wcn_wmt_func_on(WMTDRV_TYPE_GPS)`, registers a
   reset callback, requires `mtk_wcn_stp_is_ready()`, registers the event
   callback for task 2 and takes a wakeup source named `gpswakelock`;
   `GPS_close()` reverses this with `mtk_wcn_wmt_func_off(WMTDRV_TYPE_GPS)`
-  ([lines 446–525](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/stp_chrdev_gps.c#L446-L525)).
+  (lines 446–525).
   `WMTDRV_TYPE_GPS` is 2
-  ([`wmt_exp.h` line 115](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/include/wmt_exp.h#L115)).
+  (`wmt_exp.h` line 115).
   The ioctls (lines 47–56, 283–400) only expose chip hardware/firmware
   version, the co-clock flag, a firmware-assert trigger and wakelock
   take/give; no ioctl configures the receiver.
@@ -119,7 +119,7 @@ not from disassembly performed here.
   bits.** STP full-mode frames carry the task in bits 6:4 of the second header
   byte: TX builds `(type << 4) | (length >> 8)` and RX parses
   `(byte & 0x70) >> 4`
-  ([`stp_core.c` lines 1156–1161, 1743, 2754–2759](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c#L2754-L2759)).
+  (`stp_core.c` lines 1156–1161, 1743, 2754–2759).
   A GPS frame therefore has `0x2n` in that byte, where WMT has `0x4n`. When the
   GPS ring is full the STP core discards the GPS queue instead of back-pressuring
   the peer (`mtk_wcn_stp_flush_rx_queue(GPS_TASK_INDX)`, lines 1373–1383); no
@@ -128,12 +128,12 @@ not from disassembly performed here.
   present.** `gps_emi.c` would map a 1 MiB region at `gConEmiPhyBase + 1 MiB`,
   protect it as EMI MPU region 20 and copy `/vendor/firmware/MNL.bin` into it on
   ioctl 1
-  ([lines 44–47, 77–149](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/gps_emi.c#L77-L149)).
+  (lines 44–47, 77–149).
   It is gated by `CONFIG_MTK_GPS_EMI`
-  ([`gps/Makefile` lines 30–32](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/Makefile#L30-L32)),
+  (`Makefile` lines 30–32),
   which the defconfig does not set (it sets `MTK_COMBO`, `CONSYS_6797`,
   `MTK_COMBO_BT/ANT/GPS/WIFI` and `MTK_GPS_SUPPORT`,
-  [lines 246–253](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L246-L253)).
+  lines 246–253).
   The live device-node list has `/dev/stpgps` and `/dev/gps` but no
   `/dev/gps_emi`, the firmware inventory has no `MNL.bin`, and the Gemian v8
   configuration audit recorded `CONFIG_MTK_GPS_EMI=n`
@@ -148,7 +148,7 @@ not from disassembly performed here.
   initialization; GPS gets no shortcut.** `opfunc_func_on()` calls
   `opfunc_pwr_on()` whenever the WMT type itself is not yet `FUNC_ON`, then the
   per-function `func_on`
-  ([`wmt_core.c` lines 1168–1176, 1216–1218](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c#L1168-L1176)).
+  (`wmt_core.c` lines 1168–1176, 1216–1218).
   `opfunc_pwr_on` is the sequence the Wi-Fi audit mapped (hardware power, BTIF
   STP init, mode negotiation, ROM patch download, calibration, coexistence).
   The chip is powered off again only when BT, GPS, FM, Wi-Fi, LPBK, ANT and
@@ -158,24 +158,24 @@ not from disassembly performed here.
   that owner rather than re-power the block.
 - **F8. The GPS-specific "on" is one five-byte WMT command.** `wmt_func_gps_on`
   calls `wmt_func_gps_pre_on` (F9) and then `wmt_core_func_ctrl_cmd(WMTDRV_TYPE_GPS, TRUE)`
-  ([`wmt_func.c` lines 397–403, 533–570](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c#L533-L570)).
+  (`wmt_func.c` lines 397–403, 533–570).
   That command is type `0x01`, opcode `OPCODE_FUNC_CTRL` = 6, SDU length 2,
   flag byte = driver type, parameter = 1 for on / 0 for off, i.e. on the wire
   `01 06 02 00 02 01` for GPS on and `01 06 02 00 02 00` for GPS off; the
   expected event is five bytes, type `0x02`, opcode 6, SDU length 1, status 0
-  ([`wmt_core.c` lines 395–497](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c#L395-L497);
-  constants at [`wmt_core.h` lines 85–89, 337–338, 349](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h#L337-L349)).
+  (`wmt_core.c` lines 395–497;
+  constants at `wmt_core.h` lines 85–89, 337–338, 349).
   It is the same opcode the vendor uses for BT and FM; only the flag byte
   differs. A missing event is treated as a firmware fault (lines 437–451).
 - **F9. The GPS "pre-control" reduces, on this chip and configuration, to one
   host GPIO write.** `wmt_func_gps_pre_ctrl()` does two things
-  ([lines 405–519](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c#L405-L519)):
+  (lines 405–519):
   (a) GPS/modem sync: `WMT_CTRL_GPS_SYNC_SET` routes to `wmt_plat_gps_sync_ctrl`,
   whose non-legacy-GPIO branch is empty on MT6797
-  ([`wmt_plat_alps.c` lines 623–658](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c#L623-L658)),
+  (`wmt_plat_alps.c` lines 623–658),
   and the chip-side `ic_pin_ctrl(WMT_IC_PIN_GSYNC)` explicitly skips chip ID
   `0x0279` ("mt6797 can not access reg:0x80050078 and no need to do GPS SYNC",
-  [`wmt_ic_soc.c` lines 1503–1522](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c#L1503-L1522));
+  `wmt_ic_soc.c` lines 1503–1522);
   (b) LNA: with `wmt_gps_lna_enable = 0` (the retained `WMT_SOC.cfg`,
   [sanitized fields](../2026-07-12-connectivity-wmt-recovery/results/wmt-config-summary.txt))
   it takes the "host pin used for gps lna" branch and issues
@@ -186,20 +186,20 @@ not from disassembly performed here.
   returned to the low "init" state when it is off or when CONSYS powers
   down.** `wmt_ctrl_gps_lna_set` maps 1 to `PIN_STA_OUT_H` and 0 to
   `PIN_STA_DEINIT`
-  ([`wmt_ctrl.c` lines 1009–1024](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c#L1009-L1024)).
+  (`wmt_ctrl.c` lines 1009–1024).
   On MT6797 `wmt_plat_gps_lna_ctrl` selects the consys pinctrl states
   `gps_lna_state_oh` (out high), `gps_lna_state_ol` (out low) or
   `gps_lna_state_init` (init and deinit)
-  ([`wmt_plat_alps.c` lines 691–743](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c#L691-L743)).
+  (`wmt_plat_alps.c` lines 691–743).
   The board DTS defines all three on `PINMUX_GPIO69__FUNC_GPIO69`: init is
   output-low with bias disabled and slew 0, the runtime states are output
   high/low with slew 1
-  ([`aeon6797_6m_n.dts` lines 1275–1312](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L1275-L1312));
+  (`aeon6797_6m_n.dts` lines 1275–1312);
   the live DTB carries the same four state names
   ([runtime summary](../2026-07-12-connectivity-wmt-recovery/results/runtime-summary.txt)).
   CONSYS power-on also puts the pin in the init state and power-off deinits it
   (`mtk_wcn_consys_hw_gpio_ctrl`,
-  [`mtk_wcn_consys_hw.c` lines 757–795](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L757-L795)).
+  `mtk_wcn_consys_hw.c` lines 757–795).
   Whether an LNA is physically populated is still not shown by any capture; the
   software contract is "GPIO69 high while GNSS is on". In the local pinctrl
   driver GPIO69 is a plain GPIO with EINT49 and `I2S0_LRCK` as its alternate
@@ -211,18 +211,18 @@ not from disassembly performed here.
   is 0 (lines 539–549, 594–605); the retained `WMT_SOC.cfg` has
   `co_clock_flag = 0`, so that branch is dead on this device. `GPS_PALDO` and
   `FM_PALDO` both resolve to `mtk_wcn_consys_hw_vcn28_ctrl`
-  ([`wmt_plat_alps.c` lines 877–897](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c#L877-L897),
-  [`mtk_wcn_consys_hw.c` lines 975–1003](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L975-L1003)).
+  (`wmt_plat_alps.c` lines 877–897,
+  `mtk_wcn_consys_hw.c` lines 975–1003).
   Instead, because `co_clock_type == 0`, CONSYS power-on itself sets
   `RG_VCN28_ON_CTRL = 1` (hardware control) and enables VCN28 at 2.8 V right
   after VCN18, and power-off clears the control bit and disables it
-  ([lines 311–322, 724–733](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L311-L322)).
+  (lines 311–322, 724–733).
   This matches the Gemian observations already in the
   [Wi-Fi contract](../../docs/hardware/mt6797-wifi.md) (VCN28 `0x0a0c` mode bit
   following 1→0→1 across a radio cycle) and means VCN28 is a GNSS prerequisite
   that the Wi-Fi power-on must provide anyway. The vendor comment calls VCN28
   the "fm/gps" rail; the co-clock enum names TCXO (0), TSX, DCXO and VCTCXO
-  types ([header lines 270–276](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h#L270-L276)),
+  types (header lines 270–276),
   so `co_clock_flag = 0` declares a GNSS TCXO rather than a shared crystal.
 - **F12. CONSYS power-on writes the connectivity analog front-end (ANA_WBG/AFE)
   registers, including two GPS receive registers, before releasing the MCU.**
@@ -230,8 +230,8 @@ not from disassembly performed here.
   `0x180B6000 + 0x100` and writes `RCK_01` (`+0x20` = `0x180B0160`),
   `WBG_GPS_01` (`+0x50` = `0xB8925421`), `WBG_GPS_02` (`+0x54` = `0x00006401`),
   the BT RX/TX and WF RX/TX registers, then dumps 64 words
-  ([`mtk_wcn_consys_hw.c` lines 451–490](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L451-L490);
-  values at [header lines 138–159](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h#L138-L159)).
+  (`mtk_wcn_consys_hw.c` lines 451–490;
+  values at header lines 138–159).
   The extra `GPS_SINGLE` write (`+0x14 |= 0x1000`) is under
   `CONFIG_MTK_GPS_REGISTER_SETTING`, which the defconfig does not set. The
   2026-07-12 design record noted this AFE block
@@ -244,14 +244,14 @@ not from disassembly performed here.
   `WMT_CTRL_BGW_DESENSE_CTRL` sends a command number to the WMT launcher
   daemon (`wmt_dev_send_cmd_to_daemon`), and userspace answers with a 14-byte
   de-sense packet through `WMT_IOCTL_SEND_BGW_DS_CMD` (opcode `WMT_OPID_BGW_DS`)
-  ([`wmt_func.c` lines 556–563](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c#L556-L563),
-  [`wmt_ctrl.c` lines 627–635](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c#L627-L635),
-  [`wmt_dev.c` lines 1097–1135](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/linux/wmt_dev.c#L1097-L1135)).
+  (`wmt_func.c` lines 556–563,
+  `wmt_ctrl.c` lines 627–635,
+  `wmt_dev.c` lines 1097–1135).
   The packet contents come from the proprietary launcher and are not in the
   public source. Single-radio GNSS tests do not trigger this path.
 - **F14. Only four `WMT_SOC.cfg` keys are set on this device, and three of them
   concern GNSS.** The parser accepts a long key list
-  ([`wmt_conf.c` lines 95–136](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_conf.c#L95-L136));
+  (`wmt_conf.c` lines 95–136);
   the retained 80-byte file sets `coex_wmt_ant_mode=1`, `wmt_gps_lna_pin=0`,
   `wmt_gps_lna_enable=0`, `co_clock_flag=0`
   ([sanitized fields](../2026-07-12-connectivity-wmt-recovery/results/wmt-config-summary.txt)).

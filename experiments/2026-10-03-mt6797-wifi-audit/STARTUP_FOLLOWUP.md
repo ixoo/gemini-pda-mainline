@@ -26,7 +26,7 @@ BTIF register or failure-lifetime contract; no candidate is admitted.
 The private v8 boot log records two successful patch-download fragment summaries,
 then `wmt_stp_init_coex` configuration lookup and co-clock disabled. The
 [v8 build receipt](../2026-09-26-gemian-wifi-reference/results/build-v8.json)
-pins Gemian commit `59e00a9144d782e148332009a835b99c43382467`; the inspected
+pins the vendor's kernel; the inspected
 WMT source at that revision matches the vendor source byte for byte.
 
 Under that selected source path, a calibration-script failure returns before
@@ -44,7 +44,7 @@ Do not repeat that consumed trace to answer a different question.
 
 ## Next work
 
-Review the pinned `drivers/misc/mediatek/btif/common/mtk_btif.c`, `btif_plat.c`,
+Review the pinned `mtk_btif.c`, `btif_plat.c`,
 `btif_dma_plat.c` and headers for PIO initialization, FIFO/status semantics,
 clock/reset/IRQ ownership and DMA exclusion. Map the remaining hardware power
 steps and STP mandatory framing/parser before implementing the isolated query.

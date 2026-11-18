@@ -5,7 +5,7 @@ prevents invalid reads from being published to `wlanAdapterStart()`. It follows
 the existing [read-capture patch](FIRMWARE_READ_HOOKS.md), preserving those
 historical bytes and their results. The [source receipt](results/firmware-read-safety-sources.json)
 pins both complete `gl_kal.c` inputs against Gemian revision
-`59e00a9144d782e148332009a835b99c43382467`.
+the vendor's kernel.
 
 The native parent accepts a negative, short, zero or oversized read as success,
 converts its signed return to the published unsigned length, and can call the

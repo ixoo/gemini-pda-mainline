@@ -9,7 +9,7 @@
   attribution; Orchestrator integrates; Sol Medium independently reviews the
   frozen result.
 - **Scope:** Planet commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`. Begin with the exact predecessor
+  the vendor's kernel. Begin with the exact predecessor
   identities in `experiments/2026-09-06-mt6797-wlan-common-lifetime-source-attribution/`
   for WLAN/WMT makefiles, defconfig, gen3 config, `gl_init.c`, AHB HIF,
   `wmt_exp.c`, `wmt_func.c`, `wmt_core.c` and callback headers. Follow only the

@@ -9,7 +9,7 @@ runtime firmware allocations unsafe?
 ## Evidence and method
 
 The audit uses the public Android 8 LK source at
-`$HOME/src/reference/dguidipc-gemini-lk-android8`, the locally retained vendor
+a local checkout of the vendor's LK, the locally retained vendor
 boot image, and the DTB produced by the current patch series. It reads source
 text and decodes the candidate DTB only; it does not boot, flash, or write the
 device. The repeatable check is

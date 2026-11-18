@@ -108,7 +108,7 @@ The [AFE source join](results/afe-source-join.json) independently checks the
 same selected platform source and header hashes as the PA review and extracts
 eleven active, ordered writes within `0x180b6000 + 0x100`. This resolves the
 revision difference between the [GNSS finding](../2026-10-04-gemini-gps-re/README.md)
-and the current Wi-Fi reference: the stage exists in `59e00a91` too. It runs
+and the current Wi-Fi reference: the stage exists in the vendor's kernel too. It runs
 after the chip-ID poll and MCU ACR update, before MCU reset release. A future
 CONSYS implementation must place it there rather than append it to GNSS-on
 or to a running WMT session.

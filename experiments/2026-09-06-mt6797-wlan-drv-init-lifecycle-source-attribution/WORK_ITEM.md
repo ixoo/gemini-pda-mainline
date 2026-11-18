@@ -2,7 +2,7 @@
 
 - **Outcome:** close or sharply bound the selected built-in caller chain for
   `mtk_wcn_wlan_gen3_init()` and `mtk_wcn_wlan_gen3_exit()` at Planet commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`, beginning with the exact
+  the vendor's kernel, beginning with the exact
   `common_detect/drv_init/Makefile` required by the accepted predecessor. This
   is source reachability only; it is not runtime equivalence, resource
   ownership, firmware success or safe radio enablement.
@@ -15,7 +15,7 @@
   complete frozen result. The owner is not alone in the worktree and must not
   revert or edit concurrent work.
 - **Frozen first input:** fetch the complete regular file
-  `drivers/misc/mediatek/connectivity/common/common_detect/drv_init/Makefile`
+  `Makefile`
   first. Only after its exact object selection is frozen may the owner fetch
   the demonstrated lifecycle producer/caller sources. Directory filenames or
   predecessor inventory metadata alone are not selection evidence.

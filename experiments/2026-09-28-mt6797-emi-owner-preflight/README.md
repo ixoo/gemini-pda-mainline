@@ -18,8 +18,8 @@ software-lock byte.
 
 The live Gemian `/proc/config.gz` selects `CONFIG_MTK_COMBO_GPS=y` and
 `CONFIG_MTK_GPS=y`, but has `CONFIG_MTK_GPS_EMI` disabled. In the exact pinned
-Gemian source commit `59e00a9144d782e148332009a835b99c43382467`,
-`drivers/misc/mediatek/connectivity/gps/gps_emi.c` (SHA-256
+the vendor's kernel,
+`gps_emi.c` (SHA-256
 `1809b36948cdb333a3a2fa291a9addb589f5f65382ceaa96ae6b20c6ff5aa530`)
 contains an EMI region-20 request behind that disabled option. Its write to
 the shared `0x10001340` remap register is also inside `#if 0`. Thus this

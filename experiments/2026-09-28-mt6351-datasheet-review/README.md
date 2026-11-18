@@ -70,7 +70,7 @@ there is no scaling stage in those operations.
 | VPA / 10 | 0.6625 V | 1.000 V | Step differs by a factor of eight. |
 
 These are host arithmetic comparisons, not measured outputs. A fresh read of
-the [pinned Gemian PMIC source](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic.c#L1643-L1664)
+the pinned Gemian PMIC source
 reproduced SHA-256
 `c08786d5ad44006d1fdc0f885e43f6ca1e9398f9c6e5e14c4ec6fe167e3d143c`,
 matching the existing [VCN33 source ledger](../2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md).

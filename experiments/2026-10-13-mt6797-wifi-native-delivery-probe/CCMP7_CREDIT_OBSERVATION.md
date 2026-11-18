@@ -14,7 +14,7 @@ The cached WHCR/WHISR and port history cannot identify which half of a
 CPU/FFA credit pair is missing or which of branch 1's three failure sites ran.
 
 The pinned public gen3
-[credit allocator](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c#L384-L525)
+credit allocator
 accumulates per-queue TX-done and FFA counts separately. Its optional extra-
 TX-done path can distribute available FFA against outstanding use, recording
 pre-used pages so a later queue count does not refund them twice.

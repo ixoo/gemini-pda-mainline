@@ -8,7 +8,7 @@ validation receipts are preserved and do not validate the corrected pools.
 pieces for the existing protocol and PIO primitive: boot-INIT page debit and
 the selected CMD_RESULT receive span. It does not read counters or replenish
 credits. [Six pinned source identities](results/init-bounds-sources.json)
-reuse Planet `c5b0be85017ad0c599725e8273842efdbecdd88a` and selected gen3.
+reuse the vendor's kernel and selected gen3.
 No backend, retained-input or runtime configuration access was performed.
 Build-selection facts below are source macro selections, not a newly
 verified running binary or live configuration.

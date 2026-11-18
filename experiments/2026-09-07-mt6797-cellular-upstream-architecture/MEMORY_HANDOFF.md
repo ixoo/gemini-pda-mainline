@@ -17,7 +17,7 @@ reservations or secure-firmware state. The implementation stop in the
 [architecture review](README.md#exact-stop-and-discriminator) remains. No driver,
 binding, mapping, firmware load or device action is admitted.
 
-Source revision is `c5b0be85017ad0c599725e8273842efdbecdd88a` in the public
+Source revision is the vendor's kernel in the public
 Planet kernel repository. [The receipt](results/memory-handoff-sources.json)
 pins complete file hashes and the line ranges behind the following findings.
 This is a read-only Git-object audit using the existing Buildbox cache, with

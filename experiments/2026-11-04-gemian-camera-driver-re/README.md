@@ -30,8 +30,8 @@ camera code, no DT node, no boot candidate and no device action.
 - Live unit identity used by the earlier read-only captures: Gemian
   `3.18.41+`, `AEON_CAMERA1 = sp5509mipirawsls`, `AEON_CAMERA0 = non_sensor`.
 - Public GPL source compared: Gemian kernel
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`, principally
-  `drivers/misc/mediatek/imgsensor/`, `drivers/misc/mediatek/cameraisp/`, and
+  the vendor's kernel, principally
+  the vendor's `imgsensor` code, the vendor's `cameraisp` code, and
   the `sp5509_mipi_raw_sls` sensor directory; Linux 7.1.3 for the mainline
   boundary.
 - Retained 64-bit Gemian userspace extraction from 2026-07-12. The exact

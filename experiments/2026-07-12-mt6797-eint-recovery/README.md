@@ -50,7 +50,7 @@ not require materializing proprietary source into the workspace.
 
 ## Evidence
 
-- Gemian reference commit: `d388d350cb2dda8f23b99be6fa5db9628896e87f`.
+- Gemian reference commit: the vendor's kernel.
 - Vendor DT declares `mediatek,mt-eic` at `0x1000b000 + 0x1000`, parent GIC
   SPI170 level-high, 192 channels, four optional direct routes (SPIs
   206–209), and ten debounce timing entries.

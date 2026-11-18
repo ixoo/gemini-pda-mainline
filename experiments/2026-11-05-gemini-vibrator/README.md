@@ -25,18 +25,17 @@ owner feels each pulse and the LDO reads disabled afterwards.
 ## What the sources establish
 
 All vendor references are to Gemian's GPL kernel,
-[gemini-linux-kernel-3.18](https://github.com/gemian/gemini-linux-kernel-3.18)
-at `8cfe6596a503`.
+the vendor's kernel.
 
 | Fact | Kind | Source |
 | --- | --- | --- |
-| The Gemini board DT has one `mediatek,vibrator` node, `vib_timer = <25>`, `vib_limit = <9>`, `vib_vol = <5>` | vendor DT | `arch/arm64/boot/dts/aeon6797_6m_n.dts` |
+| The Gemini board DT has one `mediatek,vibrator` node, `vib_timer = <25>`, `vib_limit = <9>`, `vib_vol = <5>` | vendor DT | `aeon6797_6m_n.dts` |
 | The board DT is shared by the Gemini variants; there is no per-variant vibrator node | vendor DT | same file |
 | Gemian's running config has `CONFIG_MTK_VIBRATOR=y` | owner's unit | [active Gemian config](../2026-07-23-gemian-a72-owner-observer/inputs/active-gemian.config) |
-| `vib_vol = 5` selects 2.8 V: VIBR's table is 1.2, 1.3, 1.5, 1.8, 2.0, 2.8, 3.0, 3.3 V | vendor source | `drivers/misc/mediatek/power/mt6797/pmic.c` (`mt6351_VCAM_AF_voltages`, used for `vibr`) |
+| `vib_vol = 5` selects 2.8 V: VIBR's table is 1.2, 1.3, 1.5, 1.8, 2.0, 2.8, 3.0, 3.3 V | vendor source | `pmic.c` (`mt6351_VCAM_AF_voltages`, used for `vibr`) |
 | Gemian's boot log on this unit reports `vibr: 1200 <--> 3300 mV at 2800 mV` | observed, retained private Gemian boot log | |
-| At init the driver writes `RG_VIBR_VOSEL` once; on and off only write `RG_VIBR_EN` | vendor source | `drivers/misc/mediatek/vibrator/mt6797/vibrator.c`, `vibrator_drv.c` |
-| `RG_VIBR_EN` is bit 1 of `LDO_VIBR_CON0` (`0x0a3a`); `RG_VIBR_VOSEL` is bits 10:8 of `VIBR_ANA_CON0` (`0x0ae6`) | vendor header | `drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/upmu_hw.h` |
+| At init the driver writes `RG_VIBR_VOSEL` once; on and off only write `RG_VIBR_EN` | vendor source | `vibrator.c`, `vibrator_drv.c` |
+| `RG_VIBR_EN` is bit 1 of `LDO_VIBR_CON0` (`0x0a3a`); `RG_VIBR_VOSEL` is bits 10:8 of `VIBR_ANA_CON0` (`0x0ae6`) | vendor header | `upmu_hw.h` |
 | Status bits: `EN_STATUS_VIBR` is bit 15 of `EN_STATUS2` (`0x0210`), `OC_STATUS_VIBR` bit 0 of `OCSTATUS1` (`0x0212`) | vendor header | same |
 | No PWM, GPIO, current limit or trim write is involved. `vib_timer` and `vib_limit` are timing: a request between 10 and 24 ms is stretched to 25 ms; any request is capped at 15 s | vendor source | `vibrator_drv.c` |
 | LK pulses the motor for 200 ms at power-on, outside charging and alarm modes | LK source | [LK behaviour](../../docs/hardware/lk.md) |

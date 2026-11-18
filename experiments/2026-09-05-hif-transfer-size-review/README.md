@@ -16,7 +16,7 @@ selected kernel profile, backend or device action follows from this acceptance.
 ## Source contract cross-check
 
 Read and hash-verified four decisive public files at Planet pin
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, against the author's published
+the vendor's kernel, against the author's published
 [source ledger](https://github.com/ixoo/gemini-pda-mainline/blob/b3e056c7f661ebd4533061d39c62d6bbb2b7efda/experiments/2026-09-05-mt6797-wifi-contract/results/hif-dma-sources.json):
 
 | File under gen3 `os/linux/hif/ahb_sdioLike/` | SHA-256 | Decisive observation |

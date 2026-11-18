@@ -50,8 +50,8 @@ An ordinary sysfs device-ancestry/driver/resource inventory is the first
 discriminating device observation. It should report ambiguity or missing
 ancestry honestly, and must not perform SDIO enumeration transactions,
 unbinding, MMIO, firmware loading, or radio control.
-[top-level selector](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/Makefile#L27),
-[selected gen3 HIF](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile#L92).
+top-level selector,
+selected gen3 HIF.
 
 ## Current Linux compatibility check
 
@@ -140,10 +140,10 @@ source-visible section-download and pending-error-query operations for a
 comparative protocol audit. The later top-level selection check established
 gen3 as the applicable source branch; gen2 format checks are not sufficient
 for the retained MTKE image.
-[loader source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/common/wlan_lib.c),
-[container declarations](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/include/wlan_lib.h),
-[command declarations](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/include/nic_cmd_event.h),
-[MT6797 PDMA](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen2/os/linux/hif/ahb/mt6797/ahb_pdma.c).
+loader source,
+container declarations,
+command declarations,
+MT6797 PDMA.
 
 Linux-firmware HEAD resolved to
 [`e981caea6ed33c48d25b7dbf473327dbd01df163`](https://kernel.googlesource.com/pub/scm/linux/kernel/git/firmware/linux-firmware/+/e981caea6ed33c48d25b7dbf473327dbd01df163)
@@ -195,14 +195,14 @@ path can be hashed directly without checking out a source tree.
 | Linux: `drivers/net/wireless/ti/wlcore/sdio.c` | `9ca02f7e280d742700189b74dcabda994f6e82b6101c3173e67415f2680a3ba3` |
 | Linux: `drivers/net/wireless/marvell/mwifiex/sdio.c` | `db506c01557ea2f45050e047ba6bc2ed967de71e0be0a68edc20f69213996ccb` |
 | Linux: `drivers/bluetooth/btmtksdio.c` | `30abe2f50dd5113a288ed72b956eaf6194713edb4fe95e3647d0796c53243634` |
-| Planet: `drivers/misc/mediatek/connectivity/wlan/gen2/Makefile` | `4c374760e32142a31ea7e020ec2a251d04d18600f2e735f8ad4dc3de52a52807` |
-| Planet: `drivers/misc/mediatek/connectivity/wlan/gen2/common/wlan_lib.c` | `4be5fdfece362df656330bd5ca64fb102d8f69de6ed076d7bc0f3677d0645a6e` |
-| Planet: `drivers/misc/mediatek/connectivity/wlan/gen2/include/wlan_lib.h` | `d447217c4daec8597b795c49d57250db6b1f88e5b47574a52c2e12ef0a97a5e1` |
-| Planet: `drivers/misc/mediatek/connectivity/wlan/gen2/include/nic_cmd_event.h` | `89a6c97e17a6fd3b78ffa14eb0a8c5dedcf442dd0c12ecbd6f457fb44a1de269` |
-| Planet: `drivers/misc/mediatek/connectivity/wlan/gen2/os/linux/hif/ahb/ahb.c` | `62fbadbbac5f3062a23435cf66f39b2286bc6d15807da8cf2a299914467a5e42` |
-| Planet: `drivers/misc/mediatek/connectivity/wlan/gen2/os/linux/hif/ahb/mt6797/ahb_pdma.c` | `b2db0e01ccae1ad21da8236adb49b7edfe82152df82e665eecf0f4cdd7273046` |
-| BPI 5.15: `drivers/misc/mediatek/connectivity/wlan/gen2/Makefile` | `ee00462e601049381d1d093317642e821ba1dc81a547bedbaf75d898c3a3d922` |
-| BPI 5.15: `drivers/misc/mediatek/connectivity/wlan/gen2/os/linux/hif/ahb/ahb.c` | `d58e67f83fb05cae794f4732a119ec02ae2dcf071d7f0773c546b36af7e8953c` |
+| Planet: `Makefile` | `4c374760e32142a31ea7e020ec2a251d04d18600f2e735f8ad4dc3de52a52807` |
+| Planet: `wlan_lib.c` | `4be5fdfece362df656330bd5ca64fb102d8f69de6ed076d7bc0f3677d0645a6e` |
+| Planet: `wlan_lib.h` | `d447217c4daec8597b795c49d57250db6b1f88e5b47574a52c2e12ef0a97a5e1` |
+| Planet: `nic_cmd_event.h` | `89a6c97e17a6fd3b78ffa14eb0a8c5dedcf442dd0c12ecbd6f457fb44a1de269` |
+| Planet: `ahb.c` | `62fbadbbac5f3062a23435cf66f39b2286bc6d15807da8cf2a299914467a5e42` |
+| Planet: `ahb_pdma.c` | `b2db0e01ccae1ad21da8236adb49b7edfe82152df82e665eecf0f4cdd7273046` |
+| BPI 5.15: `Makefile` | `ee00462e601049381d1d093317642e821ba1dc81a547bedbaf75d898c3a3d922` |
+| BPI 5.15: `ahb.c` | `d58e67f83fb05cae794f4732a119ec02ae2dcf071d7f0773c546b36af7e8953c` |
 | BPI 5.15: `arch/arm/boot/dts/mt7623.dtsi` | `070dfe2fbd1cf517b65ad8647c001ee0c3249b88458d013edf2f7be47be18630` |
 | BPI 6.12: `README.md` | `e174a19ec5e57f54dc69a049dcdea74327414df33c34e4a390f3f2e1a1e9acba` |
 | abbradar: `Makefile` | `90d76ecc6330e8fc1da014739d45b177bd2b417557d170e50431c1aaff63f4e4` |

@@ -86,10 +86,10 @@ a cluster faster than the firmware did. The LL cluster never needs one.
   config, station DTB and every module identical to the A2 package
   (`clk-mt6797-mcusys.ko` `8163e541…`, `cpufreq-dt.ko` `2c451b82…`); boot
   image station-work-86 (boot2 `a101d944…`).
-- Vendor source: Gemian Linux 3.18 [`59e00a91`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467),
-  `drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c` (`set_cur_freq`,
+- Vendor source: Gemian Linux 3.18 the vendor's kernel,
+  `mt_cpufreq.c` (`set_cur_freq`,
   `adjust_posdiv`, `adjust_clkdiv`, `set_cur_volt_extbuck`), `mt_dcm.c`
-  (sync DCM), and `drivers/misc/mediatek/freqhopping/mt6797/mt_freqhopping.c`
+  (sync DCM), and `mt_freqhopping.c`
   (`mt_fh_hal_dfs_armpll`, `mt_fh_hal_hopping_mcu`, `mt_fh_hal_init`,
   `mt6797_0x1001AXXX_lock`).
 

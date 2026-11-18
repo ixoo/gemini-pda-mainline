@@ -111,18 +111,17 @@ overlap by this item. No lowest/highest-region-wins rule is assumed.
 ## Frozen corpus and search inventory
 
 All six fetched source files are from
-[`lineage-geminipda/android_kernel_planet_mt6797`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/tree/c5b0be85017ad0c599725e8273842efdbecdd88a),
-commit `c5b0be85017ad0c599725e8273842efdbecdd88a`. Paths below are relative to
+the vendor's kernel. Paths below are relative to
 that repository. No other public revision was examined.
 
 | Path | Bytes | SHA-256 |
 | --- | --- | --- |
-| `drivers/misc/mediatek/emi_mpu/mt6797/emi_mpu.c` | 93439 | `39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2` |
-| `drivers/misc/mediatek/include/mt-plat/mt6797/include/mach/emi_mpu.h` | 9747 | `a59c8a9a3e6fbb6889d131e23a413597f7bf5f188d82c4e953a66ce2a5aed68d` |
-| `drivers/misc/mediatek/devapc/mt6797/devapc.c` | 29835 | `be1dae42f431ea8729a3101db7baa465df00769fec432a590f335f311ae18514` |
-| `drivers/misc/mediatek/devapc/mt6797/devapc.h` | 4132 | `e12e80f10623c753626c9ae5f4b7efbd14036e9ad95fd7bca96a5b4c873f70b7` |
-| `drivers/misc/mediatek/eccci/mt6797/ccci_platform.c` | 38764 | `d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156` |
-| `drivers/misc/mediatek/eccci/mt6797/ccci_platform.h` | 2915 | `ea9bbefef867f8a097428bb2fc3bf336b767b4f1064dc2f554e1dfc11cb48fa7` |
+| `emi_mpu.c` | 93439 | `39921d80191b674940246425123b52fa140262a7e17022f90f02dd88389932b2` |
+| `emi_mpu.h` | 9747 | `a59c8a9a3e6fbb6889d131e23a413597f7bf5f188d82c4e953a66ce2a5aed68d` |
+| `devapc.c` | 29835 | `be1dae42f431ea8729a3101db7baa465df00769fec432a590f335f311ae18514` |
+| `devapc.h` | 4132 | `e12e80f10623c753626c9ae5f4b7efbd14036e9ad95fd7bca96a5b4c873f70b7` |
+| `ccci_platform.c` | 38764 | `d7092013b0fa14b12c37e96a973c3179c565c1a1e1ebef3a6c27ec38b566a156` |
+| `ccci_platform.h` | 2915 | `ea9bbefef867f8a097428bb2fc3bf336b767b4f1064dc2f554e1dfc11cb48fa7` |
 
 Two unresolved branches each received at most two bounded search passes;
 focused line reads and identity rechecks below refine those passes, not a

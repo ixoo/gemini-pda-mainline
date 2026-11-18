@@ -40,7 +40,7 @@ it is not evidence of absent Image entry.
 - Runtime-proven control: current Image plus Stage-27 DTB, documented by the
   [LK handoff DTB control](../2026-08-16-mainline-lk-handoff-dtb-control/README.md).
 - Public Planet LK source-contract reference commit
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`; it is not claimed to be
+  the vendor's LK; it is not claimed to be
   byte-identical to the installed loader.
 - No kernel compilation is needed. No native VM build is permitted or run.
 

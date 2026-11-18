@@ -19,8 +19,8 @@ multimedia clients can submit safe CMDQ packets on MT6797?
 
 ## Provenance and environment
 
-- Exact Gemian GPL tree: commit `d388d350`, principally
-  `drivers/misc/mediatek/cmdq/v2/` and `arch/arm64/boot/dts/mt6797.dts`.
+- Exact Gemian GPL tree: the vendor's kernel, principally
+  the vendor's `v2` code and `arch/arm64/boot/dts/mt6797.dts`.
 - Mainline comparison: checksum-verified Linux 7.1.3 prepared by the
   repository workflow.
 - Live target: Gemini PDA running its current Gemian kernel; unique device

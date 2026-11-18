@@ -8,7 +8,7 @@ It does not prove a rail leak, a reached race, or current-device execution.
 The [receipt](retained-callbacks.json) pins the retained Image, reconstructed
 ELF, four analyzed regions and decoded offsets. The entire ELF kernel section
 matches the Image. Private disassembly remains in the RE VM. The three source
-files read from Gemian commit `8cfe6596a503612e3332d9c26e292a19525a7f07`
+files read from the vendor's kernel
 match the original Planet-source audit's whole-file hashes exactly. This is a
 later, separately scoped audit; the original frozen inputs and verdicts remain
 unchanged. Matching source files do not attest the whole source build.

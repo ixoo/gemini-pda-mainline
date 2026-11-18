@@ -29,7 +29,7 @@ separation of modem/Bluetooth voice links.
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
 - Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Vendor DTS: Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`, `arch/arm64/boot/dts/mt6797.dtsi`.
+  the vendor's kernel, `mt6797.dtsi`.
 - Mainline comparison: Linux `7.1.3` in the development VM.
 - Sanitized summary: [`results/runtime-summary.txt`](results/runtime-summary.txt).
 - Fresh bounded read-only capture: private

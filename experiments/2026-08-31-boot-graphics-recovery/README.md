@@ -33,15 +33,15 @@ boot.
   Android-v0 logical `boot` image. No root-filesystem or boot-image content is
   committed.
 - Public LK source: Planet Gemini Android 8 LK commit
-  [`f4988d74bb70a0a15d7f362f412afba7e7fcda46`](https://github.com/dguidipc/gemini-lk-android8/tree/f4988d74bb70a0a15d7f362f412afba7e7fcda46).
+  the vendor's LK.
   The Gemini target selects `BOOT_LOGO := fhd`, Pump Express graphics, and a
   270-degree physical rotation in
-  [`k97v1_64_bsp.mk`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/project/k97v1_64_bsp.mk).
+  `k97v1_64_bsp.mk`.
   The exact resource order comes from
-  [`lk/dev/logo/rules.mk`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/dev/logo/rules.mk).
+  `rules.mk`.
   MediaTek's outer-header field names and sizes are defined in the same pinned
   tree's
-  [`partition.h`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/include/platform/partition.h#L43-L73).
+  `partition.h`.
 - Earlier authentication evidence:
   [`boot-authentication-check-20260715.txt`](../2026-07-15-display-console-write/results/boot-authentication-check-20260715.txt).
 - Forum search boundary: all OESF Gemini sections were searched for `boot
@@ -192,15 +192,15 @@ animation content in every other slot consistent with the table above.
 - The retained LK contains a real conditional image-authentication path. The
   pinned source calls the security library only when the selected policy says
   verification is required:
-  [`img_auth_stor.c`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/img_auth_stor.c#L46-L85).
+  `img_auth_stor.c`.
   In the public policy tables, logo verification is skipped for SBC-disabled
   locked and unlocked states and for SBC-enabled unlocked state; SBC-enabled
   plus locked requires it. See
-  [`config1`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/include/platform/sec_policy_config1.h#L58-L65),
-  [`config2`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/include/platform/sec_policy_config2.h#L58-L65),
-  [`config3`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/include/platform/sec_policy_config3.h#L58-L65),
+  `config1`,
+  `config2`,
+  `config3`,
   and
-  [`config4`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/include/platform/sec_policy_config4.h#L58-L65).
+  `config4`.
 - The earlier MediaTek download session reported SBC disabled, and the stock
   logo has no appended authentication trailer. This supports, but does not
   prove at runtime, the inference that this named device would not require an

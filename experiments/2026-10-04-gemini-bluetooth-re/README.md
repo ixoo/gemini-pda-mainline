@@ -39,10 +39,9 @@ unchanged.
 ## Inputs
 
 Vendor connectivity citations are public GPL files at
-`lineage-geminipda/android_kernel_planet_mt6797` commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, the revision the Wi-Fi audit
+the vendor's kernel, the revision the Wi-Fi audit
 pinned. Every Bluetooth-relevant file cited from it was hashed against the
-Gemian v8 source commit `59e00a9144d782e148332009a835b99c43382467`:
+Gemian v8 the vendor's kernel:
 `stp_chrdev_bt.c`, `wmt_func.c`, `wmt_core.c`, `psm_core.c`, `stp_btif.c`,
 `btif_plat.c` and `mtk_wcn_consys_hw.c` are byte-identical; `stp_core.c`
 differs only in the parser braces the full-STP note already records. Gemian's
@@ -64,27 +63,27 @@ stock Gemini does on the wire, not as reusable code.
 
 - **F1. Bluetooth is one of the CONSYS WMT functions, numbered 0.**
   `WMTDRV_TYPE_BT = 0`, `FM = 1`, `GPS = 2`, `WIFI = 3`, `WMT = 4`
-  ([`wmt_exp.h` lines 112–127](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/include/wmt_exp.h#L112-L127)).
+  (`wmt_exp.h` lines 112–127).
   The STP task that carries its traffic is `BT_TASK_INDX = 0` (GPS 2, Wi-Fi 3,
   WMT 4, STP 5, nine tasks in total;
-  [`stp_exp.h` lines 45–55](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/include/stp_exp.h#L45-L55)).
+  `stp_exp.h` lines 45–55).
   There is no Bluetooth register block, interrupt, reset line or GPIO on the
   AP side: the vendor `mt6797.dtsi` has no Bluetooth node at all, only the
   shared `consys@18070000`, `btif@1100c000` and the two AP-DMA channels
-  ([lines 2350–2360, 2511–2517, 3759–3773](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/boot/dts/mt6797.dtsi#L3759-L3773)).
+  (lines 2350–2360, 2511–2517, 3759–3773).
   The board DTS adds nothing for Bluetooth.
 - **F2. Bluetooth-on is the five-byte WMT function-control command with the
   BT PA LDO switched on first.** `wmt_func_bt_on()` runs
   `WMT_CTRL_SOC_PALDO_CTRL(BT_PALDO, PALDO_ON)`, then
   `wmt_core_func_ctrl_cmd(WMTDRV_TYPE_BT, TRUE)`; on failure it switches the
   LDO back off and triggers a firmware assert
-  ([`wmt_func.c` lines 293–331](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c#L293-L331)).
+  (`wmt_func.c` lines 293–331).
   `wmt_core_func_ctrl_cmd()` builds type `CMD`, opcode `OPCODE_FUNC_CTRL = 6`,
   SDU `[type, on/off]`, so the wire bytes are `01 06 02 00 00 01` for BT on
   and `01 06 02 00 00 00` for BT off, and it waits for a five-byte event
   `02 06 01 00 00`
-  ([`wmt_core.c` lines 395–480](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c#L395-L480);
-  header and opcode in [`wmt_core.h` lines 85–87, 349](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_core.h#L349)).
+  (`wmt_core.c` lines 395–480;
+  header and opcode in `wmt_core.h` lines 85–87, 349).
   BT-off reverses the order: function-control off, then PA LDO off
   (lines 333–370). The same function-control opcode with type 2 is the GPS-on
   the GPS record documents; mainline `btmtk.h` names it `BTMTK_WMT_FUNC_CTRL = 0x6`
@@ -93,31 +92,31 @@ stock Gemini does on the wire, not as reusable code.
   separate from the Wi-Fi one on this platform.** `mtk_wcn_consys_hw_bt_paldo_ctrl()`
   does `regulator_set_voltage(reg_VCN33_BT, 3300000, 3300000)` and
   `regulator_enable()`; off is `regulator_disable()`
-  ([`mtk_wcn_consys_hw.c` lines 897–935](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L897-L935);
+  (`mtk_wcn_consys_hw.c` lines 897–935;
   handle from `regulator_get(&pdev->dev, "vcn33_bt")`, line 254, matching
   `vcn33_bt-supply` on the consys node). `CONSYS_BT_WIFI_SHARE_V33` is 0
   and `CONSYS_PMIC_CTRL_ENABLE` is 1
-  ([header lines 39–40](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/include/mtk_wcn_consys_hw.h#L39-L40)),
+  (header lines 39–40),
   so the shared-counter variant is compiled out. The local
   [VCN33 contract](../2026-09-08-mt6351-mfd-upstream-preparation/VCN33.md)
   already notes that one voltage selector serves both LDOs. The common
   power-on also switches both PA LDOs on around RF calibration and off again
   afterwards
-  ([`wmt_ic_soc.c` lines 1168–1186](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c#L1168-L1186)),
+  (`wmt_ic_soc.c` lines 1168–1186),
   which the Wi-Fi audit's finding 2 records.
 - **F4. Function-on triggers the whole common power-on if WMT is not already
   on.** `opfunc_func_on()` checks `eDrvStatus[WMTDRV_TYPE_WMT]` and calls
   `opfunc_pwr_on()` first, which is the sequence the Wi-Fi audit mapped
   (hardware power, BTIF open, STP mode negotiation, ROM patch download, RF
   calibration, coexistence)
-  ([`wmt_core.c` lines 1134–1177](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c#L1134-L1177)).
+  (`wmt_core.c` lines 1134–1177).
   Bluetooth has no firmware of its own: the two retained `ROMv3_patch_*`
   files are the only patch inputs and the ROM applicability review attributes
   both to the installed pair. Bluetooth-specific firmware configuration is
   limited to the `coex_bt` WMT command (`01 10 0B 00 02 ...`, six bytes filled
   from `WMT_SOC.cfg` keys `coex_bt_rssi_*`/`coex_bt_pwr_*`) in the
   coexistence table
-  ([`wmt_ic_soc.c` lines 156–166, 837–846, 1827–1832](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c#L837-L846)),
+  (`wmt_ic_soc.c` lines 156–166, 837–846, 1827–1832),
   plus the shared antenna setting `coex_wmt_ant_mode=1` already read from
   the live configuration
   ([config summary](../2026-07-12-connectivity-wmt-recovery/results/wmt-config-summary.txt)).
@@ -131,50 +130,50 @@ stock Gemini does on the wire, not as reusable code.
   Bluedroid character device writes the user buffer straight into
   `mtk_wcn_stp_send_data(o_buf, count, BT_TASK_INDX)` and reads with
   `mtk_wcn_stp_receive_data(i_buf, count, BT_TASK_INDX)`
-  ([`stp_chrdev_bt.c` lines 175–215, 222–315](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/bt/stp_chrdev_bt.c#L175-L215)).
+  (`stp_chrdev_bt.c` lines 175–215, 222–315).
   The STP core recognizes HCI Reset on the way out (`01 03 0c 00`) and its
   Command Complete on the way in (`04 0e 04 01 03 0c 00`) purely for timing
   logs
-  ([`stp_core.c` lines 1319–1325, 2683–2688](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c#L2683-L2688)),
+  (`stp_core.c` lines 1319–1325, 2683–2688),
   which confirms the H:4 indicator byte is part of the payload. Per-packet
   size is bounded by the chrdev's 2048-byte buffers (line 73).
 - **F6. The STP frame around it is the full-mode frame the Wi-Fi work already
   decoded, with task 0 in header byte 1.** TX builds
   `header[1] = (type << 4) | (length >> 8)` and RX parses `(byte & 0x70) >> 4`
-  ([`stp_core.c` lines 1126, 1158, 1743, 2083](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c#L1126)),
+  (`stp_core.c` lines 1126, 1158, 1743, 2083),
   so a Bluetooth frame has `0x0n` where WMT has `0x4n` and GPS `0x2n`. The
   sequence/ACK bits, length-sum header checksum and CRC-16 trailer are those
   of the [full-STP note](../2026-10-03-mt6797-wifi-audit/FULL_STP.md). BTIF
   full mode is `MTKSTP_BTIF_FULL_MODE` in the supported-protocol mask
-  ([`stp_core.h` line 89](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/include/stp_core.h#L89);
+  (`stp_core.h` line 89;
   `mtk_wcn_stp_is_btif_fullset_mode()`, `stp_core.c` lines 3090–3096).
 - **F7. The STP core has two delivery paths for BT frames, selected by a
   "bluez" flag.** With `mtk_wcn_stp_set_bluez(1)` an in-order BT frame is
   handed to the registered `mtk_wcn_sys_if_rx()` callback directly and ACKed,
   bypassing the ring buffer; otherwise it is queued to `ring[0]` and the BT
   event callback wakes the chrdev reader
-  ([`stp_core.c` lines 1286–1330, 3313–3322](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c#L1286-L1330)).
+  (`stp_core.c` lines 1286–1330, 3313–3322).
   Bluedroid's `/dev/stpbt` uses the ring (`BT_open` calls `set_bluez(0)`,
   lines 375–410); Gemian's BlueZ driver uses the direct path (F15).
 - **F8. Bluetooth traffic drives the chip's sleep/wake protocol, and the wake
   is a BTIF register pulse, not a byte.** Every non-WMT send passes through
   the power-saving monitor: if the chip is asleep the data is held and WMT is
   asked to wake it
-  ([`stp_core.c` lines 2596–2680](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c#L2596-L2680)).
+  (`stp_core.c` lines 2596–2680).
   Sleep is the WMT command `01 03 01 00 01` (event `02 03 02 00 00 01`) after
   `STP_PSM_IDLE_TIME_SLEEP = 30` ms idle
-  ([`wmt_core.c` lines 167–174, 1399–1459](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c#L167-L174);
-  [`psm_core.h` lines 63–65](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/include/psm_core.h#L63-L65)).
+  (`wmt_core.c` lines 167–174, 1399–1459;
+  `psm_core.h` lines 63–65).
   In BTIF full-set mode the wake is `WMT_CTRL_SOC_WAKEUP_CONSYS`
   (lines 1460–1467), which reaches `hal_btif_raise_wak_sig()`: clear the
   `BTIF_WAK` bit, wait 64–96 µs (longer than one 32 kHz period), set it again
-  ([`btif_plat.c` lines 1088–1110](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/btif/common/btif_plat.c#L1088-L1110);
-  path via [`stp_btif.c` lines 197–212](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/linux/stp_btif.c#L197-L212)
-  and [`mtk_btif_exp.c` lines 358–373](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/btif/common/mtk_btif_exp.c#L358-L373)),
+  (`btif_plat.c` lines 1088–1110;
+  path via `stp_btif.c` lines 197–212
+  and `mtk_btif_exp.c` lines 358–373),
   followed by the wake event `02 03 02 00 00 03`. The single-byte `0xFF` wake
   is the SDIO/UART variant only. Power saving is enabled by default
   (`gPsEnable` gates `mtk_wcn_stp_psm_enable(gPsIdleTime)`,
-  [`wmt_lib.c` lines 85, 643–649](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_lib.c#L643-L649)),
+  `wmt_lib.c` lines 85, 643–649),
   and the BT stack can turn it off through `COMBO_IOCTL_BT_SET_PSM`
   (`stp_chrdev_bt.c` lines 60, 342–348). The
   [BTIF mandatory-mode review](../2026-10-03-mt6797-wifi-audit/BTIF_MANDATORY.md#revision-matched-resources-and-wake-boundary)
@@ -184,7 +183,7 @@ stock Gemini does on the wire, not as reusable code.
   Hardware Error event.** The chrdev registers a WMT reset-message callback;
   after `WMTRSTMSG_RESET_END` the next read returns `04 10 01 00` once and
   then blocks until reopen
-  ([`stp_chrdev_bt.c` lines 90, 96–130, 230–260](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/bt/stp_chrdev_bt.c#L230-L260)).
+  (`stp_chrdev_bt.c` lines 90, 96–130, 230–260).
   Close sends BT function-control off (lines 412–426). Observed on Gemian:
   `hci_stp_close` called `wmt_func_bt_off`, releasing the BT vote, and the
   later WLAN-off reached common power-off
@@ -196,13 +195,13 @@ stock Gemini does on the wire, not as reusable code.
   Gemian.** Vendor DT: `btif@1100c000` (`0x1000`, SPI 130 level-low, clocks
   `INFRA_BTIF` and `INFRA_AP_DMA`), `btif_tx@11000a00` (SPI 116) and
   `btif_rx@11000a80` (SPI 117), each `0x80`
-  ([`mt6797.dtsi` lines 2350–2360, 2511–2517](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/boot/dts/mt6797.dtsi#L2511-L2517)).
+  (`mt6797.dtsi` lines 2350–2360, 2511–2517).
   The 2026-07-14 live capture shows `mtk_btif` bound with TX/RX DMA interrupt
   counts growing between two reads (44 983/25 764 after 38 880/21 806)
   ([repeat capture lines 31–59](../2026-07-12-connectivity-wmt-recovery/results/live-connectivity-repeat-20260714.txt)).
   `CONFIG_MTK_BTIF=y`, `CONFIG_MTK_COMBO=y`, `CONFIG_MTK_COMBO_CHIP_CONSYS_6797=y`
   and `CONFIG_MTK_COMBO_BT=y` are set
-  ([defconfig lines 242–251](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/configs/aeon6797_6m_n_defconfig#L242-L251)).
+  (defconfig lines 242–251).
   The register, FIFO (16 TX / 8 RX bytes), PIO and DMA contract is in the
   [BTIF mandatory-mode review](../2026-10-03-mt6797-wifi-audit/BTIF_MANDATORY.md)
   and is not repeated.
@@ -210,7 +209,7 @@ stock Gemini does on the wire, not as reusable code.
   `CONFIG_BT` does not appear in `aeon6797_6m_n_defconfig` (only the
   `CONFIG_MTK_COMBO_BT` chrdev), so the stock Android path is Bluedroid in
   userspace over `/dev/stpbt` (major 192, class `stpbt`;
-  [`stp_chrdev_bt.c` lines 36–37, 460–463](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/bt/stp_chrdev_bt.c#L36-L37)).
+  `stp_chrdev_bt.c` lines 36–37, 460–463).
   The Android vendor libraries that drive it (`libbluetooth_mtk.so` and
   relatives) are in the retained image
   ([userspace summary line 16](../2026-07-12-connectivity-wmt-recovery/results/userspace-summary.txt))
@@ -222,10 +221,10 @@ stock Gemini does on the wire, not as reusable code.
 ### Gemian's BlueZ driver: the one stock-like HCI path that is readable
 
 - **F12. Gemian runs an in-kernel BlueZ HCI device over STP.** The Gemian
-  tree adds `drivers/misc/mediatek/connectivity/drv_bt/` built as
+  tree adds the vendor's `drv_bt` code built as
   `hci_stp.o` under `CONFIG_MTK_COMBO_BT_HCI`
-  ([`connectivity/Makefile` lines 31–33](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/Makefile#L31-L33),
-  [`drv_bt/Makefile`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/drv_bt/Makefile)).
+  (`Makefile` lines 31–33,
+  `Makefile`).
   The 2026-09-26 v8 reference boot had `hci0 UP RUNNING` and its function
   trace recorded `hci_stp_open -> wmt_func_bt_on` and
   `hci_stp_close -> wmt_func_bt_off`
@@ -235,12 +234,12 @@ stock Gemini does on the wire, not as reusable code.
   initialization runs inside open.** `hci_stp_init()` allocates one
   `hci_dev`, sets `bus = HCI_UART`, the four callbacks and
   `HCI_QUIRK_RESET_ON_CLOSE`, and registers it
-  ([`hci_stp.c` lines 1489–1537](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/drv_bt/linux/hci_stp.c#L1489-L1537)).
+  (`hci_stp.c` lines 1489–1537).
   `hci_stp_open()` calls `mtk_wcn_wmt_func_on(WMTDRV_TYPE_BT)` (F2, F4),
   requires `mtk_wcn_stp_is_ready()`, runs the vendor init script (F14), then
   registers the direct RX callback, sets the bluez flag (F7) and
   `HCI_RUNNING`; failure turns BT off again
-  ([lines 1273–1340](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/drv_bt/linux/hci_stp.c#L1273-L1340)).
+  (lines 1273–1340).
   Send prepends nothing: the H:4 type byte is already `bt_cb(skb)->pkt_type`
   and the frame goes to `mtk_wcn_stp_send_data(skb->data, skb->len, BT_TASK_INDX)`
   from a transmit thread (`HCI_STP_TX = HCI_STP_TX_THRD`, header line 86;
@@ -256,14 +255,14 @@ stock Gemini does on the wire, not as reusable code.
   (`01 09 10 00`), Set BD_ADDR (`0xFC1A`, 6 bytes), Set Radio (`0xFC79`,
   6 bytes), Set TX power offset (`0xFC93`, 3 bytes), Set Sleep (`0xFC7A`,
   7 bytes), HCI Reset
-  ([`hci_stp.c` lines 113–201, 233–243](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/drv_bt/linux/hci_stp.c#L233-L243)).
+  (`hci_stp.c` lines 113–201, 233–243).
   Each command waits for an exact Command Complete, 100 ms per command and
   600 ms for Reset (`hci_stp.h` lines 112–113). The parameters come from a
   `btradio_conf_data` read from `/data/BT.cfg`, else `/data/bluetooth/BT.cfg`,
   else compiled defaults, which the driver then writes back as the internal
   file (lines 105–106, 361–420, 831–990). The default radio bytes are
   `07 80 00 06 05 07`, sleep `03 40 1F 40 1F 00 04`, TX offset `FF FF FF`
-  ([`bt_conf.h` lines 36–44](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/drv_bt/include/bt_conf.h#L36-L44)).
+  (`bt_conf.h` lines 36–44).
   A larger 23-command table (link-key type, unit key, encryption, PCM codec,
   OSC/LPO, PTA, de-sense, sleep-control register writes) is compiled out
   (lines 205–231); its comment attributes the active list to the vendor's
@@ -288,7 +287,7 @@ stock Gemini does on the wire, not as reusable code.
   CVSD MCU read/write, packet indicator), windows at `0x10001000`
   (infracfg), `0x18000000` (CONSYS "PKV") and `0x18080000` (CONSYS SRAM
   bank 2), and SPI 286
-  ([`mt6797.dtsi` lines 822–830](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/arch/arm64/boot/dts/mt6797.dtsi#L822-L830)).
+  (`mt6797.dtsi` lines 822–830).
   Voice samples are exchanged through CONSYS shared SRAM, which is why the
   compiled-out PCM/codec HCI commands in F14 are "not used" on this board.
 

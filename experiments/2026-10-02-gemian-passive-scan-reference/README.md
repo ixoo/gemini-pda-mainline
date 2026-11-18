@@ -41,10 +41,10 @@ capture was obtained.
 
 All three results identify their information elements as originating from probe
 responses. The pinned public vendor
-[AIS scan source](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/ais_fsm.c)
+AIS scan source
 maps an empty-SSID online/ordinary scan to active wildcard scanning when
 `CFG_SUPPORT_AIS_PASSIVE_SCAN` is disabled. Its pinned
-[configuration](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/config.h)
+configuration
 disables that option. Exact running-binary equivalence is not established.
 This supplies a concrete source-level reason to doubt passive equivalence;
 probe-response metadata alone does not identify who transmitted a probe.

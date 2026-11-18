@@ -25,14 +25,13 @@ source and independent documentation without new device work.
 
 ## Provenance and environment
 
-- Vendor kernel `planet-community/android_kernel_planetcom_mt6797`, commit
-  `8cfe6596a503612e3332d9c26e292a19525a7f07`:
-  `drivers/misc/mediatek/aw9523/aw9523_key.{c,h}`,
+- Vendor kernel the vendor's kernel:
+  the vendor's `aw9523_key.{c,h}` code,
   `drivers/input/hall/hall.c`, the MT6797 DTS key/hall nodes.
 - Planet community keyboard documentation:
-  `planet-community/planet-psion-kpd-driver` (`docs/key-matrix.md`,
+  the vendor's Android tree (`docs/key-matrix.md`,
   `docs/hardware-overview.md`, `docs/device-comparison.md`).
-- LK `dguidipc/gemini-lk-android8` commit `f4988d74`: `platform/mt6797/mtk_key.c`,
+- LK the vendor's the vendor's LK: `mtk_key.c`,
   `mt_pmic.c`, `mt_boot.c`.
 - Retained private preloader and LK images; Gemian configuration
   (`CONFIG_MTK_HALL=y`, `CONFIG_AW9523_HALL` enabled in the driver, FB gating

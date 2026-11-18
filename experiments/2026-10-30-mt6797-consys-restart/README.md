@@ -28,10 +28,9 @@ and observable?
 
 ## What the vendor driver does
 
-Source: the public Gemian kernel, gemian/gemini-linux-kernel-3.18 at
-`8cfe6596a503612e3332d9c26e292a19525a7f07`. `C/` stands for
-`drivers/misc/mediatek/connectivity/common/common_main/` and `W/` for
-`drivers/misc/mediatek/connectivity/wlan/gen3/`. The running Gemian config
+Source: the public Gemian kernel, gemian/the vendor's kernel. `C/` stands for
+the vendor's `common_main` code and `W/` for
+the vendor's `gen3` code. The running Gemian config
 builds the SOC (MT6797) CONSYS, the gen3 WLAN driver over the AHB HIF, and
 CCF power control.
 

@@ -49,7 +49,7 @@ investigated in their own 2026-10-04 threads and are only referenced here.
 ## Inputs
 
 Every vendor citation below is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`, the same commit the charging record
+the vendor's kernel, the same commit the charging record
 used. Every mainline citation is Linux `7.1.3` as pinned in
 `kernel/manifest.json`. Exact paths, sizes and SHA-256 values are in
 [`source-inputs.json`](source-inputs.json). The vendor `mt_gpufreq.c` and the
@@ -78,14 +78,14 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   (`MFG_BG3D`, `INFRA_MFG_VCG`, the six SCPSYS MFG handles, `TOP_MUX_MFG_52M`,
   `TOP_UNIVPLL2_D8`, `INFRA_DVFS_SPM1`, `INFRA_I2C_GPUPM`, `INFRA_AP_DMA`); it has
   no supply, reset, OPP or IOMMU property
-  ([`mt6797.dtsi` lines 3049–3083](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3049-L3083)).
+  (`mt6797.dtsi` lines 3049–3083).
   The defconfig selects `CONFIG_MTK_GPU_SUPPORT=y`, `CONFIG_MTK_GPU_VERSION="mali
   midgard r12p1"` and `CONFIG_MTK_GPU_COMMON_DVFS_SUPPORT=y`
-  ([`aeon6797_6m_n_defconfig` lines 195–197](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L195-L197)).
+  (`aeon6797_6m_n_defconfig` lines 195–197).
   In the r12p1 MT6797 platform `Kbuild`, `MTK_GPU_APM`, `MTK_GPU_DPM` and
   `MTK_GPU_OCP` are commented out and `MTK_GPU_SPM` depends on
   `CONFIG_MTK_GPU_SPM_DVFS_SUPPORT`, which the defconfig does not set
-  ([`Kbuild` lines 6–9](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/Kbuild#L6-L9)).
+  (`Kbuild` lines 6–9).
   Consequence: the active vendor path is the plain one, in which the Kbase
   platform callbacks sequence power and the separate `mt_gpufreq` driver owns
   frequency and voltage; every `#ifdef MTK_GPU_SPM`/`APM`/`OCP` block in the
@@ -112,20 +112,20 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
 - **F3. The active vendor MTCMOS driver is `clk-mt6797-pg.c`; the legacy
   `mt_spm_mtcmos.c` is dead code.** The base power `Makefile` has
   `mt_spm_mtcmos.o` commented out
-  ([line 42](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/Makefile#L42)),
+  (line 42),
   and that legacy file's `spm_mtcmos_ctrl_mfg()` uses the MT8173-era
   `SPM_MFG_PWR_CON 0x214` with status bit 4
-  ([`mt_spm_mtcmos.c` lines 1117, 1560–1625](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_spm_mtcmos.c#L1560-L1625)),
+  (`mt_spm_mtcmos.c` lines 1117, 1560–1625),
   which does not match MT6797 and must not be used as evidence. The CCF
   power-gate driver defines `MFG_ASYNC_PWR_CON 0x334`, `MFG_PWR_CON 0x338`,
   `MFG_SRAM_CON 0x33c`, `MFG_CORE0..3_PWR_CON 0x340–0x34c`, status bits
   13/12/11/10/9/8, MFG SRAM power-down bits 1:0 with ack bits 17:16, and core
   SRAM power-down bit 8 (in each core's own `PWR_CON`) with ack bits 20–23 in
   `MFG_SRAM_CON`
-  ([`clk-mt6797-pg.c` lines 139–145, 206–211, 231–240](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/clk/mediatek/clk-mt6797-pg.c#L139-L145);
-  routines at [lines 933–1013](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/clk/mediatek/clk-mt6797-pg.c#L933-L1013)
-  for core3, [1258–1342](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/clk/mediatek/clk-mt6797-pg.c#L1258-L1342)
-  for MFG and [1344–1405](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/clk/mediatek/clk-mt6797-pg.c#L1344-L1405)
+  (`clk-mt6797-pg.c` lines 139–145, 206–211, 231–240;
+  routines at lines 933–1013
+  for core3, 1258–1342
+  for MFG and 1344–1405
   for MFG_ASYNC). Local
   [patch 0047](../../patches/v7.1.3/0047-pmdomain-mediatek-add-MT6797-MFG-domains.patch)
   encodes exactly these offsets, masks and the async → mfg → core0..3
@@ -146,15 +146,15 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
 - **F5. MFG bus protection is performed by the vendor Mali platform driver,
   not by the MTCMOS driver, and the local patches omit it.** In the power-gate
   driver the MFG protect/unprotect code is commented out
-  ([`clk-mt6797-pg.c` lines 453–456](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/clk/mediatek/clk-mt6797-pg.c#L453-L456)).
+  (`clk-mt6797-pg.c` lines 453–456).
   The Kbase platform code instead defines `MFG_PROT_MASK = BIT(21) | BIT(23)`
   and calls `spm_topaxi_protect()`, which sets or clears those bits in
   `INFRA_TOPAXI_PROTECTEN` (`0x10001220`) and polls `INFRA_TOPAXI_PROTECTSTA1`
   (`0x10001228`): protection is asserted once at platform init, asserted before
   every power-off, and released 100 µs after the last MFG clock enable on
   every power-on
-  ([`mtk_config_platform.c` lines 42, 301–302, 389, 727](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_config_platform.c#L281-L302);
-  [`clk-mt6797-pg.c` lines 169–171, 400–440](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/clk/mediatek/clk-mt6797-pg.c#L400-L440)).
+  (`mtk_config_platform.c` lines 42, 301–302, 389, 727;
+  `clk-mt6797-pg.c` lines 169–171, 400–440).
   Mainline SCPSYS implements the same mechanism through `bus_prot_mask` and
   `mtk_infracfg_set_bus_protection()` on the same offsets
   ([`infracfg.h` lines 442–443](https://github.com/gregkh/linux/blob/v7.1.3/include/linux/soc/mediatek/infracfg.h#L442-L443),
@@ -167,7 +167,7 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
 - **F6. The 52 MHz pre-clock is reproduced; its parent and the `INFRA_MFG_VCG`
   gate are not.** Every MFG power gate names `mfg_52m_sel` as its `pre_clk`,
   prepared before and released after each switch
-  ([`clk-mt6797-pg.c` lines 2417–2440, 2530–2535](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/clk/mediatek/clk-mt6797-pg.c#L2530-L2535));
+  (`clk-mt6797-pg.c` lines 2417–2440, 2530–2535);
   local [patch 0050](../../patches/v7.1.3/0050-pmdomain-mediatek-use-MT6797-MFG-52MHz-preclock.patch)
   does the same through `CLK_MFG_52M`. In addition the Mali platform init
   re-parents `mfg_52m_sel` to `univpll2_d8` (`mtk_config_platform.c` lines
@@ -184,11 +184,11 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
 - **F7. The vendor programs GPU SRAM LDO controls in INFRACFG_AO that mainline
   never touches.** `mt_gpufreq_ext_ic_init()` maps `GPU_LDO_BASE 0x10001000`
   and writes `0xfc0 = 0x0f0f0f0f`, `0xfc4 = 0x0f0f0f0f`, `0xfbc = 0xff`
-  ([`mt_gpufreq.c` lines 211, 2712–2725](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c#L2712-L2725));
+  (`mt_gpufreq.c` lines 211, 2712–2725);
   the Mali platform init writes `0xfd8 = 0x88888888`, `0xfe4 = 0x8` (vendor
   comment "RG_GPULDO_RSV_H_0-8 = 0x8"), `0xfc0 = 0xfc4 = 0x0f0f0f0f`,
   `0xfc8 = 0x0f`
-  ([`mtk_config_platform.c` lines 707–712](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_config_platform.c#L707-L712));
+  (`mtk_config_platform.c` lines 707–712);
   and every GPU power-on writes `0xfbc = 0x1ff` before enabling VGPU while
   every power-off writes `0xfbc = 0` after disabling it (lines 285, 404). The
   vendor's debug dump labels the `0x10001fc0` window "LDO" (lines 148–175).
@@ -199,10 +199,10 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   where `async_value` is `0xa` if the DVFS table's top frequency is ≥ 780 MHz
   and `0x5` otherwise, then writes `0xffffffff` to `0x3e0`, `0x3e4`, `0x3e8`,
   `0x3ec`, `0x3f0` ("enable PMU")
-  ([`mtk_config_platform.c` lines 313–320, 684](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_config_platform.c#L313-L320)).
+  (`mtk_config_platform.c` lines 313–320, 684).
   Power-off writes `MFG_DEBUG_SEL (0x180) = 3` and waits up to 100 000 µs for
   `MFG_DEBUG_A (0x184)` bit 2 (idle) before touching clocks
-  (lines 358–366; [`mtk_kbase_spm.h` lines 71–73](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_kbase_spm.h#L71-L73)).
+  (lines 358–366; `mtk_kbase_spm.h` lines 71–73).
   The `MFG_BG3D` gate at set/clear/status `0x4`/`0x8`/`0x0` is unchanged from the
   clock/power record and is what local
   [patch 0048](../../patches/v7.1.3/0048-clk-mediatek-add-MT6797-MFGSYS.patch) exposes.
@@ -212,7 +212,7 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   1 µs later, clears `MTK_WDT_SWSYS_RST_MFG_RST = 0x0004` through
   `mtk_wdt_swsysret_config()` and is called once from `mtk_platform_init()`,
   after the LDO and mux writes and before bus protection is asserted
-  ([`mtk_config_platform.c` lines 271–278, 724–727](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_config_platform.c#L271-L278)).
+  (`mtk_config_platform.c` lines 271–278, 724–727).
   The `0x0c` G3D-config reset write (`3` then `0`) exists only under
   `MTK_MT6797_DEBUG` and has no caller in the normal path (lines 243–248).
   Mainline `mtk_wdt` registers a TOPRGU reset controller only for compatibles
@@ -233,11 +233,11 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   field (bits 26:24) changes, `mfg_sel` is first switched to `clk_sub_parent`
   (`clk26m`), the PLL is written, 20 µs elapse, and the mux returns to
   `clk_main_parent` (`mfgpll_ck`)
-  ([`mt_gpufreq.c` lines 1489–1543](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c#L1489-L1543);
-  [`mt_gpufreq.h` lines 20–24](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.h#L20-L24);
+  (`mt_gpufreq.c` lines 1489–1543;
+  `mt_gpufreq.h` lines 20–24;
   `gpufreq` DT node with `clk_mux = TOP_MUX_MFG`, `clk_main_parent =
   TOP_MFGPLL_CK`, `clk_sub_parent = clk26m` at
-  [`mt6797.dtsi` lines 3968–3978](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L3968-L3978)).
+  `mt6797.dtsi` lines 3968–3978).
   The post-divider scheme depends on the efuse speed bounding (`cid`, F18):
   `cid 0` always ÷2; `cid 1` ÷2 at ≥ 500 MHz, ÷4 at ≥ 250 MHz, ÷8 at ≥ 125 MHz;
   `cid 2–4` ÷4 at ≥ 250 MHz, ÷8 below (lines 1546–1570). The current frequency
@@ -259,7 +259,7 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   require validation.
 - **F12. Vendor ordering of a frequency/voltage change.** Going up, voltage is
   raised first and the clock switched second; going down, the clock is switched
-  first ([`mt_gpufreq.c` lines 1853–1872](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c#L1853-L1872)).
+  first (`mt_gpufreq.c` lines 1853–1872).
   After a voltage increase the driver waits `ΔmV × 10 / slew_rate + 1` µs plus
   a fixed 350 µs, with the slew rate read from the RT5735 (lines 952–998,
   1670–1675); after a VGPU enable it waits 350 µs (`EXTIC_VOLT_ON_OFF_DELAY_US`,
@@ -274,18 +274,18 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   `INFRA_AP_DMA`, property `mediatek,gpupm_used`) contains `rt5735@1c` with
   compatible `rt,rt5735-regulator`, `rt,dvs_up = <0x6>`, `rt,dvs_down = <0x1>`,
   `rt,ioc = <0x1>`, `rt,tpwth = <0x2>` and `rt,rearm`
-  ([`mt6797.dtsi` lines 2549–2573](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L2549-L2573));
+  (`mt6797.dtsi` lines 2549–2573);
   `aeon6797_6m_n.dts` adds nothing for I2C7, the RT5735 or a `vgpu_buck`. The
   PMIC's `buck_vgpu` is described `regulator-always-on`, `regulator-boot-on`,
   0.6–1.39375 V (lines 429–436) but is not the GPU supply: `mt_gpufreq.c`
   selects `VGPU_SET_BY_EXTIC`
-  ([line 111](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c#L111)).
+  (line 111).
   Mainline `mt6797.dtsi` has `i2c7@11010000` on the same clocks, disabled
   ([lines 362–375](https://github.com/gregkh/linux/blob/v7.1.3/arch/arm64/boot/dts/mediatek/mt6797.dtsi#L362-L375));
   local [patch 0051](../../patches/v7.1.3/0051-regulator-add-Richtek-RT5735-VSEL0-support.patch)
   adds a disabled `regulator@1c`.
 - **F14. Register map and vendor initial configuration.** From
-  [`rt5735.h` lines 7–45](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/rt5735.h#L7-L45):
+  `rt5735.h` lines 7–45:
   `PID 0x03` (value `0x10`), `RID 0x04`, `FID 0x05`, `VID 0x06`,
   `PROGVSEL1 0x10`, `PROGVSEL0 0x11` (bit 7 enable, bits 6:0 code,
   600 mV + 6.25 mV × code, 0.6–1.39375 V; `rt5735.c` lines 250–278),
@@ -300,14 +300,14 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   lines 749–757), i.e. DVS-up 32 mV/µs, DVS-down 4 mV/µs, IOC 1, TPWTH 2,
   REARM on, discharge off. Then `mt_gpufreq_ext_ic_init()` sets VSEL0 to
   1.000 V, enables it and programs DVS-up 32 mV/µs again
-  ([`mt_gpufreq.c` lines 2726–2729](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c#L2726-L2729)).
+  (`mt_gpufreq.c` lines 2726–2729).
   Patch 0051's driver agrees on PID, VSEL0, the enable bit, the step and the
   discharge bit; it declares no `enable_time`, no `ramp_delay` and writes no
   protection registers.
 - **F15. VGPU is switched off whenever the vendor GPU is powered down.**
   `mt_gpufreq_voltage_enable_set()` sets or clears `PROGVSEL0` bit 7, waits
   350 µs, reads it back and calls `BUG()` if the readback disagrees
-  ([`mt_gpufreq.c` lines 1013–1146](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c#L1013-L1146));
+  (`mt_gpufreq.c` lines 1013–1146);
   the Mali power-on callback calls it with 1 as its second step and the
   power-off callback with 0 as its second-to-last step (F21). This is why the
   2026-07-12 capture saw "voltage control disabled, voltage 0" with the GPU
@@ -321,7 +321,7 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
 - **F16. The vendor probe carries two hazards mainline must not inherit.**
   Before the first I2C transfer the probe bit-bangs nine SCL pulses on the I2C7
   pins (vendor GPIO 153/154) to recover a stuck SDA
-  ([`rt5735.c` lines 762–796, 815](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/rt5735.c#L762-L830));
+  (`rt5735.c` lines 762–796, 815);
   if the product-ID read then still fails it calls `battery_disable_batfet()`
   (line 827), the BQ25896 `BATFET_DIS` write the charging record's F14
   describes, which disconnects the battery. A product-ID mismatch returns
@@ -331,7 +331,7 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   table is consistent with that.** `mt_eem.c` defines
   `GPU_PMIC_BASE_RT5735 = 60000`, `GPU_PMIC_STEP_RT5735 = 625` and separate
   16-entry RT5735 code tables per speed bin
-  ([lines 581–597, 1156–1157](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_eem.c#L1155-L1160)),
+  (lines 581–597, 1156–1157),
   while the GPU detector entry still points at the FAN53555 constants
   `GPU_PMIC_BASE 60300`/`STEP 1282` (lines 1898–1899); `mt_gpufreq_update_volt()`
   decodes the codes it receives with the RT5735 formula when that part is
@@ -347,7 +347,7 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   function code 4.** `mt_gpufreq_get_dvfs_table_type()` reads `func_code_1 =
   devinfo[22] & 0xf` and `ptp_version = (devinfo[61] >> 4) & 0xf`; type 12 is
   chosen when `func_code_1 == 4`
-  ([`mt_gpufreq.c` lines 582–620](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c#L582-L620)),
+  (`mt_gpufreq.c` lines 582–620),
   and type 12 maps to `mt_gpufreq_opp_plus_tbl_e1_1` (lines 2901–2903):
   900 MHz / 1.1545 V, 780 / 1.1032, 610 / 1.0134, 520 / 0.975, 442.5 / 0.9365,
   365 / 0.9108, 238 / 0.8467 (lines 135–182, 317–325). The frequencies match
@@ -358,18 +358,18 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   (lines 621–651); its live value is unknown. `devinfo[]` is the array the
   loader passes in the flattened DT `/chosen` property `atag,devinfo`, exposed
   through the `/dev/devmap` ioctl `READ_DEV_DATA`
-  ([`devinfo.c` lines 72–97, 196–200, 261, 283–295](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/devinfo/v1/devinfo.c#L283-L295));
+  (`devinfo.c` lines 72–97, 196–200, 261, 283–295);
   words 12 onward include the HRID, so the raw array is device-identifying.
 - **F19. EEM (PTPOD) owns the GPU voltage table, and the vendor runs a fixed
   point until it is ready.** The GPU detector has features `INIT01 | INIT02 |
   MON`, `max_freq 850 MHz`, `VBOOT 1.0006 V`, limits `VMAX 1.15 V` /
   `VMIN 0.80 V`, `DVTFIXED 0x5`, `VCO 0x10`
-  ([`mt_eem.c` lines 1888–1899, 1166–1167, 1178, 1187](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_eem.c#L1888-L1899)),
+  (`mt_eem.c` lines 1888–1899, 1166–1167, 1178, 1187),
   reads its calibration from `devinfo[50–53, 56–61, 65, 66]` (lines
   4881–4892) and pushes eight codes through `set_volt_gpu()` →
   `mt_gpufreq_update_volt()` (lines 2809–2830). The `eem_fsm@1100b000` node
   (SPI 129) consumes `MFG_BG3D`, `SCP_SYS_MFG` and `INFRA_THERM`
-  ([`mt6797.dtsi` lines 2503–2509](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L2503-L2509)),
+  (`mt6797.dtsi` lines 2503–2509),
   so EEM powers the MFG domain itself during calibration. Until EEM reports
   ready, `mt_gpufreq_disable_by_ptpod()` holds the first table entry whose
   default voltage is ≤ `GPU_DVFS_PTPOD_DISABLE_VOLT = 1.0006 V` and runs it at
@@ -383,7 +383,7 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   and the mainline `mt6797.dtsi` has no efuse node.
 - **F20. Vendor power model and limiters.** The dynamic power reference is
   1169 mW at 800 MHz and 1.0 V with a constant 71 mW leakage term
-  ([`mt_gpufreq.c` lines 759–786](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c#L759-L786)),
+  (`mt_gpufreq.c` lines 759–786),
   which in the binding's `dynamic-power-coefficient` unit (µW/MHz/V²,
   [`arm,mali-midgard.yaml` lines 90–102](https://github.com/gregkh/linux/blob/v7.1.3/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml#L90-L102))
   is 1169000 / 800 ≈ **1461**. Thermal, PBM and low-battery limiters cap the
@@ -394,7 +394,7 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
 ### The complete vendor GPU power sequence versus Panfrost
 
 - **F21. Vendor power-on and power-off, in order.** Power-on
-  ([`mtk_config_platform.c` lines 281–348](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1/drivers/gpu/arm/midgard/platform/mt6797/mtk_config_platform.c#L281-L348)):
+  (`mtk_config_platform.c` lines 281–348):
   `0x10001fbc = 0x1ff` → VGPU enable (+350 µs) → `infra_mfg_vcg` →
   MTCMOS `mfg_async` → `mfg` → `mfg_core0..3` (each with the 52 MHz pre-clock)
   → `mfg_bg3d` → 100 µs → release bus protection bits 21|23 → `0x1c` timing →

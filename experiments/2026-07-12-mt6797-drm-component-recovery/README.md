@@ -20,8 +20,8 @@ must be represented before any component is enabled?
 ## Provenance and safety
 
 The source comparison uses exact Gemian kernel commit
-`d388d350cb2dda8f23b99be6fa5db9628896e87f`, the independently retained Planet
-tree at `c5b0be85017ad0c599725e8273842efdbecdd88a`, and the repository's
+the vendor's kernel, the independently retained Planet
+the vendor's kernel, and the repository's
 checksum-verified Linux 7.1.3 tree. The live target is the same named Gemini PDA
 used by the baseline inventory.
 

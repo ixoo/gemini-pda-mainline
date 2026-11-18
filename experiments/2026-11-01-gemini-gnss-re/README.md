@@ -66,18 +66,18 @@ Firmware, from the retained 2019 vendor set:
 | `WMT_SOC.cfg` | 80 | `f4a59b622a4e0c1470e475ce33f3edae43b27f1fbdeba54dc7cf07503d132880` |
 
 Vendor kernel source, public, commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`:
+the vendor's kernel:
 
 | File | SHA-256 |
 | --- | --- |
-| `drivers/misc/mediatek/connectivity/gps/gps.c` | `e8cff970f66f86c41318db448ac3f3c9e82d02fc9cbe637926e66278813e49b4` |
-| `drivers/misc/mediatek/connectivity/gps/stp_chrdev_gps.c` | `0cd498a248dce5dd0a0809ab884229c3d034a4e8f0299caea78ba34abcbb8fb7` |
-| `drivers/misc/mediatek/connectivity/gps/gps_emi.c` | `1809b36948cdb333a3a2fa291a9addb589f5f65382ceaa96ae6b20c6ff5aa530` |
-| `drivers/misc/mediatek/connectivity/common/common_main/include/stp_exp.h` | `9c1daca8fa5e30468865d42fb778bf070ac09e0adebf6735852631d5dc89ec42` |
-| `drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c` | `79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65` |
-| `drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c` | `c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d` |
-| `arch/arm64/configs/aeon6797_6m_n_defconfig` | `83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f` |
-| `arch/arm64/boot/dts/mt6797.dtsi` | `eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e` |
+| `gps.c` | `e8cff970f66f86c41318db448ac3f3c9e82d02fc9cbe637926e66278813e49b4` |
+| `stp_chrdev_gps.c` | `0cd498a248dce5dd0a0809ab884229c3d034a4e8f0299caea78ba34abcbb8fb7` |
+| `gps_emi.c` | `1809b36948cdb333a3a2fa291a9addb589f5f65382ceaa96ae6b20c6ff5aa530` |
+| `stp_exp.h` | `9c1daca8fa5e30468865d42fb778bf070ac09e0adebf6735852631d5dc89ec42` |
+| `stp_core.c` | `79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65` |
+| `wmt_func.c` | `c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d` |
+| `aeon6797_6m_n_defconfig` | `83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f` |
+| `mt6797.dtsi` | `eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e` |
 
 No binary, firmware or configuration content is copied into this repository.
 Command bytes, frame layouts, opcodes and path names are cited as facts.

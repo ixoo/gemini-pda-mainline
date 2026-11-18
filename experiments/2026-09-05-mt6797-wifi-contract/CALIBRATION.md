@@ -7,8 +7,8 @@ The result is a pinned source contract and a pure record inspector, not an
 active radio candidate or a claim about firmware enforcement on Gemini.
 
 All vendor references use Planet commit
-`c5b0be85017ad0c599725e8273842efdbecdd88a`, below
-`drivers/misc/mediatek/connectivity/wlan/gen3/`. The inspected files carry
+the vendor's kernel, below
+the vendor's `gen3` code. The inspected files carry
 GPLv2 notices. This document describes their interfaces independently; it
 does not import vendor implementation, calibration, identifiers or defaults.
 The installed Gemian driver has not been proved identical to this source.
@@ -37,8 +37,8 @@ return exactly two bytes. `WIFI_CUSTOM` is defined nearby but is not selected
 by this reader. The code does not directly consume a GPT partition, parse an
 NVRAM database or establish which service restores that file. Mapping a
 verified retained filesystem record to this path remains unresolved.
-[Build selection](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/Makefile#L126),
-[file reader](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/platform.c#L389).
+Build selection,
+file reader.
 
 The active `WIFI_CFG_PARAM_STRUCT` has exactly 512 bytes in two 256-byte
 halves. The historical `MT6620` type alias does not establish MT6620 silicon.
@@ -66,7 +66,7 @@ establish an integrity check: no checksum/signature verification was found
 in the audited host load path. Firmware interpretation of the complete
 record remains unknown. The image CRC in [FIRMWARE_FORMAT.md](FIRMWARE_FORMAT.md)
 is a different format and supplies no NVRAM checksum algorithm.
-[Layout and assertions](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/CFG_Wifi_File.h#L224).
+Layout and assertions.
 
 ## Checks and fallbacks actually enforced by the host
 
@@ -81,13 +81,13 @@ is a different format and supplies no NVRAM checksum algorithm.
 | Invalid MAC input may fall back to an embedded or generated address. Configuration errors become synthetic scan-list warnings and the checker returns success; its caller runs after scan completion. | An address or warning-free scan list does not prove factory calibration, and the warning path is not an admission gate. |
 
 Primary control-flow references:
-[availability](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c#L562),
-[versions](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/version.h#L73),
-[ignored manufacture result](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L655),
-[manufacture commands](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L4056),
-[address fallback](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L3121),
-[warning result](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L4682),
-[post-scan caller](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_kal.c#L3336).
+availability,
+versions,
+ignored manufacture result,
+manufacture commands,
+address fallback,
+warning result,
+post-scan caller.
 
 ## Regulatory input is not regulatory approval
 
@@ -98,8 +98,8 @@ populated 2.4GHz and 5GHz channel ranges. Custom subbands are used directly.
 Enumeration filters disabled 5GHz and optionally DFS, without a calibration
 validity gate. These are historical host choices, not verified legal limits
 or a safe policy for Gemini.
-[Selectors](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/wlan_lib.h#L195),
-[domain selection](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c#L666).
+Selectors,
+domain selection.
 
 The enabled country-power checker examines compiled tables, not this record.
 Its duplicate check only logs; its validity result feeds the warning path.
@@ -108,10 +108,10 @@ and produces zero power-limit entries. Neither that sentinel nor successful
 unacknowledged command submission proves a safe emission limit. The custom
 Linux regulatory/channel handling and host configuration country override
 also prevent treating record country bytes as the sole authority.
-[Power-table checking and selection](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/rlm_domain.c#L1284),
-[compiled default](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/include/mgmt/rlm_txpwr_init.h#L989),
-[Linux channel update](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/os/linux/gl_init.c#L1245),
-[country override](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_lib.c#L5708).
+Power-table checking and selection,
+compiled default,
+Linux channel update,
+country override.
 
 ## Pure validator and limits
 

@@ -53,8 +53,8 @@ keeps the board-services RTC scope and adds `CHARGER_BQ25890`.
 
 ## Interrupt wiring (open)
 
-The public board DWS (`drivers/misc/mediatek/dws/mt6797/aeon6797_6m_n.dws` at
-`c5b0be85…`) names EINT158 `CHR_STAT`: level, active low, no debounce. GPIO246
+The public board DWS (the vendor's `aeon6797_6m_n.dws` code at
+`the vendor's kernel…`) names EINT158 `CHR_STAT`: level, active low, no debounce. GPIO246
 is in EINT mode 0 as an input with a pull-up, and the mainline MT6797 pin table
 maps GPIO246 to EINT158. The vendor `chr_stat` node is disabled, and the vendor
 charger driver requests no interrupt.

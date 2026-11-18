@@ -27,8 +27,7 @@ They are linked below rather than repeated. The durable summary is the
 ## Provenance and environment
 
 - Public source: Planet LK,
-  [`dguidipc/gemini-lk-android8`](https://github.com/dguidipc/gemini-lk-android8/tree/f4988d74bb70a0a15d7f362f412afba7e7fcda46)
-  at `f4988d74bb70a0a15d7f362f412afba7e7fcda46`, project `k97v1_64_bsp`,
+  the vendor's LK, project `k97v1_64_bsp`,
   fetched shallow in the development VM.
 - Binary: the unit's `lk` partition from the private July capture, SHA-256
   `75ec9f0ba97af9e68d964b304e0de809f9b4546982570bd16b2e7fe88823282c`
@@ -66,23 +65,23 @@ checkout; the binary reading used `r2 -a arm -b 16 -m 0x45fffe00`.
 
 ## Observations
 
-### Source (`lk/` at `f4988d74`)
+### Source (`lk/` the vendor's LK)
 
 S1. **Slot rule.**
-[`boot_linux_from_storage()`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/app/mt_boot/mt_boot.c#L2181)
+`boot_linux_from_storage()`
 loads `boot3` when keys 17 and 8 are down, `boot2` when 17 is down, else
 `boot`. It applies to normal, META, advanced META, SW reboot, alarm, both
 charging modes, factory and ATE factory. It reads the keys separately for the
 header and for the body. Recovery mode loads `recovery`.
 
 S2. **Early DTB.**
-[`platform_init()`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/platform.c#L631)
+`platform_init()`
 applies the same rule to `bldr_load_dtb()` right after eMMC init, before
 display init and boot-mode selection. The DTB is the last FDT magic found
 in the last 512 KiB of `kernel_sz`, copied to `tags_addr`, at most 512 KiB.
 
 S3. **Mode selection.**
-[`boot_mode_select()`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/boot_mode.c#L81)
+`boot_mode_select()`
 runs after display init, in this order:
 1. kernel exception dump;
 2. preloader mode (META, advanced META, ATE factory, alarm, fastboot, factory,
@@ -94,7 +93,7 @@ runs after display init, in this order:
 7. the charging decision.
 
 S4. **Charging decision.**
-[`kernel_power_off_charging_detection()`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/mt_kernel_power_off_charging.c#L97):
+`kernel_power_off_charging_detection()`:
 - `is_force_boot()` returns true for an RTC alarm or a bypass, factory-reset
   or alarm flag, META-type modes, the power key down, a watchdog
   bypass-power-key reboot or the RTC two-second reboot.
@@ -110,7 +109,7 @@ S6. **Logo.** The boot logo is shown in normal and charging mode, after
 nothing in alarm mode.
 
 S7. **Write protection.**
-[`set_write_protect()`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/write_protect.c#L137):
+`set_write_protect()`:
 - normal mode: power-on protection on `preloader`, then `oemkeystore` to
   `keystore`;
 - every mode: `seccfg`.
@@ -122,7 +121,7 @@ the active eMMC boot area. `mmc_set_boot_wp()` sets `B_PWR_WP_EN` and
 path refuses a range that isn't group-aligned.
 
 S8. **Verification.**
-[`verified_boot_flow()`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/load_image.c#L319)
+`verified_boot_flow()`
 is the same for every slot and uses the `boot` policy entry:
 - locked with verification required: a failure becomes yellow with a custom
   key, else red, with a warning and then `msg_img_error()`, which resets after
@@ -139,7 +138,7 @@ Fastboot mode is reached only through the preloader's mode argument.
 S10. **Handoff.** `boot_linux()` writes the properties listed on the hardware
 page:
 - `/chosen/atag,boot` is `{size, 0x41000802, g_boot_mode}`;
-- [`target_fdt_firmware()`](https://github.com/dguidipc/gemini-lk-android8/blob/f4988d74bb70a0a15d7f362f412afba7e7fcda46/lk/platform/mt6797/atags.c#L893)
+- `target_fdt_firmware()`
   sets `/firmware/android/mode` to `normal`, `charger`, `recovery`, `meta` or
   `factory`;
 - the command-line buffer is 1024 bytes.

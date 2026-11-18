@@ -29,9 +29,8 @@ mainline. The `0x6631` Gemian prints at boot is not that read (O4, S1).
 - Kernel: Linux 7.1.3 with the local series, tag `v1` (`5c263c74`) as the base
   station. No FM code exists in the series.
 - Vendor reference: the public downstream tree
-  [`gemian/gemini-linux-kernel-3.18`](https://github.com/gemian/gemini-linux-kernel-3.18)
-  at `8cfe6596a503612e3332d9c26e292a19525a7f07`, read only as evidence. The
-  paths below are relative to `drivers/misc/mediatek/connectivity/` unless they
+  the vendor's kernel, read only as evidence. The
+  paths below are relative to the vendor's `connectivity` code unless they
   start with `sound/`.
 - Gemian evidence: the running configuration and boot image under ignored
   `artifacts/vendor-kernel/gemian-2019/`, the userspace extraction under ignored
@@ -63,7 +62,7 @@ These are statements of the public source, not observations of this device.
 | S3 | FM packets are `01 OPCODE LEN_LO LEN_HI payload`; events start with `04`. A register read is `01 03 01 00 ADDR`. Opcodes `0x18`/`0x19` read and write connectivity-MCU registers and `0x20`/`0x21` the common SPI to the RF chip, all executed by the firmware: the AP maps no FM register | `fmradio/inc/fm_link.h`, `fmradio/core/fm_cmd.c` |
 | S4 | Power-up order: common SPI parameter, a-die clock enable, 26 MHz crystal sleep off, bandgap LDO on, clock-on batch (opcode `0x07`), read `0x62`, DSP patch and coefficient download, digital init, RF fine tune, then FM register `0x9b = 0xf9ab` (I2S transmit mode) and three MCU writes that enable the FM audio trigger. Power-down has its own sequence and is not the exact reverse | `mt6631_fm_lib.c` |
 | S5 | For an SoC CONSYS chip (type 1) the audio default is `FM_AUD_I2S`, CONSYS is I2S master at 32 kHz on the CONSYS pad (`FM_I2S_PAD_CONN`); that matches O4. The source comments the enable step "connsys FM 2 wire RX": the RF chip passes FM samples digitally to CONSYS, which drives the I2S | `fmradio/core/fm_config.c`, `fmradio/inc/fm_interface.h`, `mt6631_fm_lib.c` |
-| S6 | The MT6797 AFE takes that I2S on its second I2S input, slave, 16 bit, I2S format, pad select "from CONNSYS", runs the ASRC from 32 kHz to 44.1 or 48 kHz, applies hardware gain 1 and connects `I00/I01` to `O13/O14` (the DAC path to the MT6351) for hostless playback. The AWB variant captures the same input to memory. FM never uses an MT6351 analog input | `sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_fm_i2s.c`, `..._awb.c` |
+| S6 | The MT6797 AFE takes that I2S on its second I2S input, slave, 16 bit, I2S format, pad select "from CONNSYS", runs the ASRC from 32 kHz to 44.1 or 48 kHz, applies hardware gain 1 and connects `I00/I01` to `O13/O14` (the DAC path to the MT6351) for hostless playback. The AWB variant captures the same input to memory. FM never uses an MT6351 analog input | `mt_soc_pcm_fm_i2s.c`, `..._awb.c` |
 | S7 | The driver supports a long antenna (in the headset cable) and a short one, chosen by a bit in `FM_MAIN_CG2_CTRL`. Nothing in O6 or O8 selects one | `mt6631_fm_lib.c` |
 | S8 | The FM-specific VCN28 step exists only in co-clock mode; Gemini's `WMT_SOC.cfg` has `co_clock_flag = 0`, so the common CONSYS power-on already covers the rail ([GNSS document](../../docs/hardware/gemini-gnss.md)) | WMT recovery source summary |
 | S9 | The MT6631 library has a receive power-up only; the TX fields in the shared configuration are generic. FM itself transmits nothing | `mt6631_fm_lib.c` |
@@ -851,7 +850,7 @@ ADDA path ([audio record](../2026-11-01-gemini-audio-station/README.md)), and
 every AFE register the vendor uses for FM is already defined in mainline
 `mt6797-reg.h`; only the DAIs and routes are missing.
 
-What the vendor programs (`sound/soc/mediatek/mt_soc_audio_6797/`:
+What the vendor programs (the vendor's `mt_soc_audio_6797` code:
 `mt_soc_pcm_fm_i2s.c`, `mt_soc_afe_control.c`, `AudDrv_Clk.c`,
 `mt_soc_afe_connection.c`):
 

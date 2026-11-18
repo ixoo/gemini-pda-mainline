@@ -30,7 +30,7 @@ START phases and poison the transaction; a CMD_RESULT cannot complete START.
 value only in START_READY. Source `mt6630_reg.h` defines WLAN_READY as bit 21;
 the already-audited startup path polls this bit after sending START. The
 header belongs to the [existing pinned PIO ledger](results/pio-sources.json)
-at Planet `c5b0be85017ad0c599725e8273842efdbecdd88a`. No register address or
+in the vendor's kernel. No register address or
 MMIO read is introduced. A clear bit returns `-EAGAIN`; a set bit returns to
 IDLE with the credit still consumed and sequence still marked used.
 

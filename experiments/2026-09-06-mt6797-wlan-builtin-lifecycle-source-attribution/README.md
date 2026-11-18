@@ -15,7 +15,7 @@ cleanup verdicts and does not establish running Gemian equivalence.
 ## Evidence and exact conditions
 
 The [work item](WORK_ITEM.md) pins Planet source
-`c5b0be85017ad0c599725e8273842efdbecdd88a` and repository parent
+the vendor's kernel and repository parent
 `05e3e04afd0f00a6a2ed1fdb9a263af8c0fd1d0d`.
 [Inputs](inputs.json) record 22 complete source tuples: ten inherited from the
 accepted predecessor and twelve newly fetched regular files.

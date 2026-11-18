@@ -20,7 +20,7 @@ consumers, or does the vendor behavior require another driver?
 - Live capture: private, Git-ignored
   `artifacts/device-inventory/20260712-live/hall-lid.txt`.
 - Vendor source: Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Mainline comparison: prepared Linux 7.1.3 source in the development VM.
 - Collector is [`collect-live-hall-lid.sh`](scripts/collect-live-hall-lid.sh).
 - Source audit is [`analyze-hall-lid-contract.sh`](scripts/analyze-hall-lid-contract.sh);

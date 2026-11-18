@@ -17,8 +17,8 @@
   `gemini_reasoner`, `gpt-5.6-sol`, medium for review.
 - **Frozen parent and inputs:** repository commit
   `cb035d7f8b9f782b1b8b1139352621fe2a38c025`; source repository
-  `https://github.com/lineage-geminipda/android_kernel_planet_mt6797` at exact
-  commit `c5b0be85017ad0c599725e8273842efdbecdd88a`. Accepted predecessor verdicts,
+  `the vendor's kernel` at exact
+  the vendor's kernel. Accepted predecessor verdicts,
   inputs and attempts have SHA-256
   `beaa116bf405d8143353b98bb458143eb2ff1ad07020f72fb8006a0df3750af9`,
   `157c990f2f3a04099723ce7098e61840ec3756842381397e787b8ed5956e9496`

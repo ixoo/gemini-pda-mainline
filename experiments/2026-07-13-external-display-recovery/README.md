@@ -25,7 +25,7 @@ copying the vendor HDMI ABI?
 - Private raw capture: `artifacts/device-inventory/20260713-live/external-display.txt`
   (Git-ignored and access-restricted).
 - Vendor source: Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Mainline comparison: Linux `7.1.3` in the development VM.
 
 The live procedure is read-only. It reads I2C/platform sysfs metadata, device
@@ -100,7 +100,7 @@ Linux uses a standard DDC I2C mux/DRM EDID path.
 The vendor DTS includes `sil9024a.dtsi`, despite naming its wrapper nodes
 `sii9022`. That include requests reset GPIO57, HPD/EINT GPIO62, a 1.2 V enable
 GPIO247, DPI GPIO39–54, and an `mhl_12v` supply. The pinned vendor tree also
-contains the matching implementation under `drivers/misc/mediatek/hdmi/sil9024/`;
+contains the matching implementation under the vendor's `sil9024` code;
 its source and compiled ELF are immutable evidence, not code to copy. Static
 analysis recovered the same `0xb0` register identity used by Linux `sii902x`, a
 vendor indexed `0x9022` family ID, the reset/1.2 V/pinctrl sequence, and a

@@ -28,7 +28,7 @@ PTY roundtrip, not physical-key or VT-translation correctness.
 ## Kernel source comparison
 
 The retained public Gemian source revision is
-`59e00a9144d782e148332009a835b99c43382467`. Its `k_self()` calls
+the vendor's kernel. Its `k_self()` calls
 `k_unicode(conv_8bit_to_uni(value), up_flag)`; releases do not emit characters.
 Its `put_queue()` inserts one character into the tty flip buffer and schedules
 the buffer. Linux 7.1.3 retains this translation model, using

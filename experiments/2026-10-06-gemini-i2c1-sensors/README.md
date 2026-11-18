@@ -18,8 +18,8 @@ gravity. The same boot can make the single identity reads of H6 and H7
 
 ## Pin pair answered offline (sensors H8)
 
-The public board DWS (`drivers/misc/mediatek/dws/mt6797/aeon6797_6m_n.dws` at
-`c5b0be85…`) sets these default pin modes:
+The public board DWS (the vendor's `aeon6797_6m_n.dws` code at
+`the vendor's kernel…`) sets these default pin modes:
 
 | GPIO | DWS mode | Function in mainline `mt6797-pinfunc.h` |
 | --- | --- | --- |

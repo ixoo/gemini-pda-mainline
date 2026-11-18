@@ -38,7 +38,7 @@ the vendor driver behaviour behind them.
 ## Inputs
 
 Every vendor citation below is a public GPL file at Gemian commit
-`8cfe6596a503612e3332d9c26e292a19525a7f07`, the same commit the
+the vendor's kernel, the same commit the
 [charging record](../2026-10-04-gemini-charging-re/README.md) used. Every
 mainline citation is Linux `7.1.3` as pinned in `kernel/manifest.json`. Exact
 URLs, sizes and SHA-256 values are in [`source-inputs.json`](source-inputs.json).
@@ -58,11 +58,11 @@ and a live capture disagree, the live capture wins.
   sensor *clients*, and the public tree cannot build its own DTB.**
   `aeon6797_6m_n.dts` has `cust_accel@0/1`, `cust_alsps@0`, `cust_mag@0`,
   `cust_gyro@0/1`, `cust_baro@0` and `cust_hmdy@0`
-  ([lines 203–297](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L203-L297)),
+  (lines 203–297),
   while the only `&i2c1` children in the tree are an MT6735 code-generator
   template with `cap_touch@5d` and `i2c_lcd_bias@3e`, and its sensors sit on
   `&i2c2` at other addresses
-  ([`cust_i2c.dtsi` lines 1–4, 29–66](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_i2c.dtsi#L29-L66)).
+  (`cust_i2c.dtsi` lines 1–4, 29–66).
   `mt6797.dtsi` line 4286 includes `cust.dtsi`, which is absent from the
   public `arch/arm64/boot/dts/` directory, and the DTS `Makefile` lists no
   MediaTek target. The live DTB's eight I2C1 children (`0x30`, `0x48`, `0x5f`,
@@ -72,11 +72,11 @@ and a live capture disagree, the live capture wins.
 - **F2. The sensor EINT pseudo-nodes differ between the public tree and the
   live DTB.** `cust_eint.dtsi` declares `ALS@65`, `GSE_1@66` and `GYRO@67`
   with `interrupts = <N 8>` and zero debounce
-  ([lines 50–69](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/cust_eint.dtsi#L50-L69)),
+  (lines 50–69),
   but no file includes it. `mt6797.dtsi` instead defines `als: als`
   (`"mediatek, als-eint"`, **disabled**, no `interrupts`) and `gse_1`
   (`"mediatek, gse_1-eint"`) with no interrupt at all
-  ([lines 4137–4147](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L4137-L4147)).
+  (lines 4137–4147).
   The STK driver fails its probe when that node has no mappable interrupt
   (F11), yet the live kernel binds it and the live EINT table shows ALS on
   line 11 ([recovery record](../2026-07-12-sensor-iio-recovery/README.md#observations)).
@@ -87,7 +87,7 @@ and a live capture disagree, the live capture wins.
   `bias-pull-up`; `gyro_intpin_cfg` selects `PINMUX_GPIO65__FUNC_GPIO65` (GPIO
   function, **not** its `EINT4` alternate) with `bias-pull-down`; both
   `pin_default` states are empty
-  ([`aeon6797_6m_n.dts` lines 299–341](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L299-L341)).
+  (`aeon6797_6m_n.dts` lines 299–341).
   The `&gyro` consumer is the vendor `gyroscope@0` platform node
   (`mt6797.dtsi` line 4165). In the pinned mainline pin table GPIO65's
   function 1 is `EINT4` and GPIO88's is `EINT11`
@@ -98,7 +98,7 @@ and a live capture disagree, the live capture wins.
 - **F4. No sensor has a controlled supply in the vendor model.** Every
   `cust_*` node sets `power_id = <0xffff>` and `power_vol = <0>` (F1 lines);
   `sensor_dts.c` maps `0xffff` to `hw->power_id = -1`
-  ([lines 61–66](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/hwmon/sensor_dts/sensor_dts.c#L61-L66)
+  (lines 61–66
   and the ALS/mag equivalents at lines 123–128, 211–216), and none of the
   bound drivers (`bmi160_acc.c`, `bmi160_gyro.c`, `stk3x1x.c`) contains a
   regulator or `hwPowerOn` call (bounded grep). The sensor rails are therefore
@@ -114,11 +114,11 @@ and a live capture disagree, the live capture wins.
   `CONFIG_CUSTOM_KERNEL_MAGNETOMETER`, `CONFIG_MTK_MMC3524XD`,
   `CONFIG_CUSTOM_KERNEL_BAROMETER`, `CONFIG_MTK_BMP280`,
   `CONFIG_CUSTOM_KERNEL_HUMIDITY` and `CONFIG_MTK_HTS221` unset
-  ([`aeon6797_6m_n_defconfig` lines 219–240](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L219-L240)).
+  (`aeon6797_6m_n_defconfig` lines 219–240).
   `CONFIG_MTK_TINYSYS_SCP_SUPPORT=y` (line 282) but `CONFIG_MTK_SCP_SENSORHUB_V1`
   is not set, so every per-sensor Makefile takes its non-hub branch
-  ([`accelerometer/Makefile`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/Makefile),
-  [`magnetometer/Makefile`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/magnetometer/Makefile)).
+  (`Makefile`,
+  `Makefile`).
   Consequence: **the Gemini has no sensor hub path; all sensors are AP-side
   I2C1 clients**, and the stock kernel has **no magnetometer, barometer or
   humidity driver at all**. The `0x30`, `0x77` and `0x5f` clients were never
@@ -129,15 +129,15 @@ and a live capture disagree, the live capture wins.
 - **F6. Both vendor IMU drivers force their client to `0x69` and accept chip
   IDs `0xd0`–`0xd3`; only the gyro rejects a mismatch.**
   `bmi160_acc_i2c_probe` sets `client->addr = 0x69`
-  ([`bmi160_acc.c` line 3539](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.c#L3539));
+  (`bmi160_acc.c` line 3539);
   `bmi160_acc_check_chip_id` reads register `0x00` twice and logs success for
   `SENSOR_CHIP_ID_BMI` (`0xD0`), `_C2` (`0xD1`), `_C3` (`0xD3`) but returns
   the read status either way
-  ([lines 551–572](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.c#L551-L572),
-  [header lines 143–145](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.h#L143-L145)).
+  (lines 551–572,
+  header lines 143–145).
   `bmi160_gyro_i2c_probe` also sets `client->addr = 0x69` (line 1509) and
   `bmg_get_chip_type` fails with `INVALID_TYPE` outside the same three IDs
-  ([`bmi160_gyro.c` lines 619–645](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gyroscope/bmi160_gyro/bmi160_gyro.c#L619-L645)).
+  (`bmi160_gyro.c` lines 619–645).
   The header's nominal `BMI160_I2C_ADDR` is `0x68` (header line 103), which
   explains the live `0x68` client name; the transfer address is `0x69`. This
   is the source form of the disassembly finding in the recovery record.
@@ -145,10 +145,10 @@ and a live capture disagree, the live capture wins.
   `bmi160_acc_init_client`: chip-ID read, soft reset (`CMD 0x7E = 0xB6`),
   5 ms, ODR 200 Hz, OSR4 averaging, range ±4 g, interrupt-enable registers
   `0x50`–`0x52` cleared, then accelerometer suspend
-  ([lines 1691–1725](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.c#L1691-L1725)).
+  (lines 1691–1725).
   Gyroscope `bmg_init_client`: chip ID, ODR 100 Hz, range ±2000 °/s,
   gyro suspend
-  ([lines 794–808](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gyroscope/bmi160_gyro/bmi160_gyro.c#L794-L808)).
+  (lines 794–808).
   Power on writes `CMD_PMU_ACC_NORMAL` / `CMD_PMU_GYRO_NORMAL` on demand
   (acc lines 636–672). Two Linux clients therefore drive one chip's `CMD`
   register with no shared lock other than the I2C core; the accelerometer's
@@ -158,7 +158,7 @@ and a live capture disagree, the live capture wins.
 - **F8. The vendor accelerometer requests an interrupt it can never
   receive.** `bmi160_request_irq` looks up `"mediatek, ALS-eint"`, maps its
   interrupt and requests it as `bmi160_accint` with `IRQF_TRIGGER_RISING`
-  ([lines 3494–3513](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/bmi160_acc/bmi160_acc.c#L3494-L3513));
+  (lines 3494–3513);
   the work handler reads `INT_STATUS[0..3]` (`0x1C`–`0x1F`) and dispatches
   step-detector and significant-motion events (lines 3468–3485). But the
   driver never writes `INT_OUT_CTRL` (`0x53`), `INT_LATCH` (`0x54`) or
@@ -173,9 +173,9 @@ and a live capture disagree, the live capture wins.
   driven by a third vendor module through the same client.** `bmi160_stc.c`
   reuses `bmi160_acc_i2c_client` (lines 1231–1243), enables the chip's step
   counter and reads `STEP_CNT` `0x78`/`0x79`
-  ([lines 134, 307–321](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/step_counter/bmi160_stc/bmi160_stc.c#L307-L321));
+  (lines 134, 307–321);
   it is selected by `CONFIG_MTK_BMI160_STC`
-  ([`step_counter/Makefile` line 18](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/step_counter/Makefile#L18)).
+  (`Makefile` line 18).
   The pinned mainline BMI160 driver exposes no step counter; this is a
   feature gap, not a hardware-support gap, and belongs to userspace or a
   later upstream extension.
@@ -184,10 +184,10 @@ and a live capture disagree, the live capture wins.
   unbound.** The LSM6DS3 accelerometer driver matches the generic
   `"mediatek,gsensor"` node, forces `client->addr = 0x6B` and requires
   `WHO_AM_I` (`0x0F`) `== 0x69`
-  ([`lsm6ds3-int.c` lines 626–637, 4715, 5133–5134](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/lsm6ds3-new/lsm6ds3-int.c#L4715),
-  [header line 67](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/accelerometer/lsm6ds3-new/lsm6ds3-int.h#L67));
+  (`lsm6ds3-int.c` lines 626–637, 4715, 5133–5134,
+  header line 67);
   the gyro half does the same on `"mediatek,gyro"`
-  ([`lsm6ds3_gy.c` lines 183, 436–440, 2254](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/gyroscope/lsm6ds3-new/lsm6ds3_gy.c#L2254)).
+  (`lsm6ds3_gy.c` lines 183, 436–440, 2254).
   Both the BMI160 and LSM6DS3 drivers are built in (F5) and the live capture
   binds only the BMI160 pair, so on this unit nothing at `0x6b` answered
   `0x69` to register `0x0f`. Inference: no LSM6DS3 is populated; the
@@ -196,7 +196,7 @@ and a live capture disagree, the live capture wins.
 - **F11. Direction table.** `hwmsen_helper.c`'s `map[]` gives direction 7 as
   `sign={-1,-1,-1}, map={1,0,2}` and direction 6 (the LSM6DS3 alternate) as
   `sign={1,-1,-1}, map={0,1,2}`
-  ([lines 570–581](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/hwmon/hwmsen/hwmsen_helper.c#L570-L581)).
+  (lines 570–581).
   This confirms the recovery record's direction-7 matrix from source. The
   `cust_mag@0` node also uses direction 7 (F1), so a populated magnetometer
   would share the IMU's package orientation in the vendor model.
@@ -208,12 +208,12 @@ and a live capture disagree, the live capture wins.
   (`<0x48 0 0 0>`), looks up `"mediatek, als-eint"` (lower case; the
   accelerometer uses upper case, F8), and configures PS interrupt mode 1 with
   ALS in polling mode (`polling_mode_ps = 0`, `polling_mode_als = 1`)
-  ([`stk3x1x.c` lines 5029, 5076–5090](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.c#L5029)).
+  (`stk3x1x.c` lines 5029, 5076–5090).
   `stk3x1x_setup_eint` reads the node's `debounce`, selects the `pin_cfg`
   pinctrl state (GPIO88/EINT11 pull-up, F3), maps the interrupt and requests
   it with `IRQF_TRIGGER_NONE` (trigger type from the DT tuple), returning
   `-EINVAL` when the node has no mappable interrupt
-  ([lines 2491–2548](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.c#L2491-L2548));
+  (lines 2491–2548);
   `stk3x1x_init_client` calls it on first boot and fails the probe on error
   (lines 2551–2575). The handler does `disable_irq_nosync` and schedules
   work (lines 2481–2489). The pull-up plus proximity-interrupt mode implies
@@ -224,14 +224,14 @@ and a live capture disagree, the live capture wins.
   gain 64×, IT 0.391 ms; bits 7:6 cleared in PS polling mode), `ALSCTRL =
   0x39` (persistence 1, gain 64×, IT 50 ms), `LEDCTRL = 0xFF` (100 mA IRDR,
   64/64 duty), `WAIT = 0x07` (50 ms), then thresholds
-  ([defines lines 80–83](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.c#L80-L83),
-  [init lines 2551–2625](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.c#L2551-L2625)).
+  (defines lines 80–83,
+  init lines 2551–2625).
   `STK_TUNE0` is defined (line 69), so proximity thresholds are auto-tuned
   around a measured crosstalk (`MAX_MIN_DIFF 140`, `LT_N_CT 70`, `HT_N_CT 100`,
   lines 100–102) rather than taken from the DT `ps_threshold_high/low =
   50/40` (F1). `STK_ALS_FIR` is also defined (line 71). The register map
   (`STATE 0x00` … `THD 0x06–0x0D`, `FLAG 0x10`, `DATA 0x11–0x14`,
-  `PDT_ID 0x3E`, `RSRVD 0x3F`; [header lines 57–82](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.h#L57-L82))
+  `PDT_ID 0x3E`, `RSRVD 0x3F`; header lines 57–82)
   is the one the earlier reuse audit matched to upstream.
 - **F14. Vendor identity handling, and what the observed `0x11`/`0xc2` means
   in it.** `stk3x1x_read_id` reads two bytes at `0x3E`, names only
@@ -239,7 +239,7 @@ and a live capture disagree, the live capture wins.
   handling, treats VID `0xC3` as a board flag, calls `stk3x1x_read_otp25`
   (which **writes** `STATE`, `0x90` and `0x92` before reading `0x91`; lines
   793–840), and accepts any PID whose high nibble is `0x1`, `0x2` or `0x3`
-  ([lines 116–118, 847–903](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/alsps/stk3x1x-new/stk3x1x.c#L847-L903)).
+  (lines 116–118, 847–903).
   The observed `0x11` therefore takes the generic `0x1x` path with the
   default LED/ratio settings; the vendor has no variant-specific behaviour
   for it and gives VID `0xc2` no meaning. The vendor's own init is not
@@ -254,10 +254,10 @@ and a live capture disagree, the live capture wins.
   `"mediatek,mmc3530"` configuration (lines 181–182, 2933–2939); its probe
   first issues a `TM` (take measurement) command and then requires product
   ID register `0x20` to read `0x08` or `0x09`
-  ([lines 2695–2756](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/magnetometer/mmc3524xd/mmc3524xd.c#L2740-L2756)).
+  (lines 2695–2756).
   Its header has `DATA 0x00`, `DS 0x06`, `CTRL 0x07` (TM/CM/SET/RESET/REFILL
   bits), `BITS 0x08`, `PRODUCTID_1 0x20`, 7-bit address `0x30`
-  ([`mmc3524xd.h` lines 15–38](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/magnetometer/mmc3524xd/mmc3524xd.h#L15-L38)).
+  (`mmc3524xd.h` lines 15–38).
   The pinned upstream `mmc35240.c` uses `XOUT_L 0x00`…`ZOUT_H 0x05`,
   `STATUS 0x06`, `CTRL0 0x07` (same TM/CMM/SET/RESET/REFILL bit positions),
   `CTRL1 0x08`, `ID 0x20`

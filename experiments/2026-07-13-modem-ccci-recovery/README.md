@@ -25,7 +25,7 @@ Gemini, and can Linux 7.1.3's existing WWAN/CLDMA code be reused directly?
   (Git-ignored and access-restricted). The rerun SHA-256 is recorded in the
   current validation result.
 - Vendor source: Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`; source was read from Git objects
+  the vendor's kernel; source was read from Git objects
   in the VM and no vendor source was copied here.
 - Mainline comparison: Linux `7.1.3` in the development VM.
 

@@ -3,7 +3,7 @@
 The preceding [power-on result](../2026-09-28-mt6797-wifi-power-probe/results/runtime-1.json)
 showed the modern provider's point-in-time dual-status ON result while CONMCU
 reset remained asserted. It did not access the CONSYS device window. The
-selected [Gemian source](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L405-L450)
+selected Gemian source
 reads `0x18070008` after the power-domain transition and before releasing
 CONMCU reset. Its selected AHB-clock branch is disabled, as established in the
 [power-domain contract](../2026-09-05-mt6797-wifi-contract/POWER_DOMAIN.md).

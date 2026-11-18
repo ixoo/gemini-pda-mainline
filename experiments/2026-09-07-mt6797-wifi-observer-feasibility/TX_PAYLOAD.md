@@ -74,8 +74,8 @@ budget and device admission remain open.
 ## Shared-buffer ownership review
 
 Read-only inspection of Gemian source revision
-`59e00a9144d782e148332009a835b99c43382467` narrows the next ownership change.
-The locations below are relative to `drivers/misc/mediatek/connectivity/wlan/gen3/`
+the vendor's kernel narrows the next ownership change.
+The locations below are relative to the vendor's `gen3` code
 in that baseline, before the observer patches; they are source observations,
 not evidence of a runtime race or an exhaustive caller-isolation proof.
 

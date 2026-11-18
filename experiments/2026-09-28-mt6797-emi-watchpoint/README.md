@@ -151,11 +151,11 @@ describes a test-mode monitor clear, not MPU-region priority. No register was
 programmed in this preflight.
 
 The pinned Gemian
-[`mt_emi_bm.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/emi_mbw/mt_emi_bm.c)
-at `59e00a9144d782e148332009a835b99c43382467`
+`mt_emi_bm.c`
+the vendor's kernel
 (SHA-256 `2964650c7dc547c27652a0a16c5e33f863b25860d18160f25783f8dc1e110445`)
 provides bus-monitor controls. Its
-[`mt_mem_bw.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/emi_mbw/mt_mem_bw.c)
+`mt_mem_bw.c`
 caller (SHA-256
 `6c5e54cc0854c9e3a3ef64701e9719d850821aab640fdc13be1bfb176010f0d8`)
 enables the monitor at init and can disable/restart it while sampling memory

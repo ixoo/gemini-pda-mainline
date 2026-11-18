@@ -202,8 +202,8 @@ so the result stands. Steps 3 to 5 weren't run, so nothing was mounted or writte
 
 The Gemian source explains it. Its MSDC1 probe selects an `insert_cfg` state that puts
 GPIO67 in EINT6 mode with Schmitt trigger and `bias-pull-up`
-([`msdc_io.c` lines 739-757](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c#L739-L757),
-[board DTS `mmc1_ins_cfg`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L748-L784)).
+(`msdc_io.c` lines 739-757,
+board DTS `mmc1_ins_cfg`).
 The same tree's GPIO table (`gpio_cfg.h`, SHA-256 `29ea8cc6…`, as in the
 [pad record](../2026-07-12-mt6797-msdc-recovery/MICROSD_PADS.md)) places GPIO67's pull
 fields in IOCFG_R:
@@ -273,7 +273,7 @@ is the table's "still doesn't change" row.
 The Gemian source has one more step that mainline lacks. At the end of the MSDC1 probe,
 after the generic code powers the empty slot off, a board addition calls
 `msdc_sd_power(host, 1)` for any removable slot and prints "power on vmch"
-([`sd.c` lines 5817-5820](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c#L5817-L5820)).
+(`sd.c` lines 5817-5820).
 That is why Gemian showed VMCH on with an empty slot. Under mainline, VMCH was off at
 both readings (`0a2e` bit 1 clear, 0 users).
 
@@ -536,7 +536,7 @@ SDR104 and DDR50 stay out.
 | Vendor step | Here |
 | --- | --- |
 | VMC to 1.8 V | Done by the MMC core's signal-voltage switch through mtk-sd |
-| VMC trim field set to its saved default minus 2, commented "+40 mV" ([`msdc_io.c` `msdc_sd_power_switch`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c#L199-L222)) | Not done. VMC keeps the trim the firmware left (`0x1b`), which mainline has never changed. Its 1.8 V level relative to the vendor's is unknown |
+| VMC trim field set to its saved default minus 2, commented "+40 mV" (`msdc_io.c` `msdc_sd_power_switch`) | Not done. VMC keeps the trim the firmware left (`0x1b`), which mainline has never changed. Its 1.8 V level relative to the vendor's is unknown |
 | RDSEL to 0 for 1.8 V (`0xc30c` at 3.3 V) | Already 0: the firmware leaves `0x100024a0` at 0, and the slot has worked at 3.3 V with it |
 | TDSEL `0xccc` in both modes | The firmware leaves `0x333`; working at 3.3 V |
 | Drive changed for UHS (CMD/DAT 3, CLK 4 in the vendor's units, against 6 by default) | Not done. The pads keep the firmware's selector 4; MT6797 pinctrl here has no drive callback |
@@ -1011,7 +1011,7 @@ safe setting meanwhile.
 ### What the vendor tunes that mainline doesn't (2026-11-06)
 
 Sources: the vendor's eMMC tuning in the public Gemian kernel
-([`autok.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/autok.c),
+(`autok.c`,
 `execute_online_tuning_hs200`, `autok_path_sel`, `autok_init_hs200`); its tuning
 output in a retained Gemian boot log of this unit; Linux 7.1.3 `mtk-sd.c`. The log
 itself stays private; the values below are read from it.
@@ -1728,8 +1728,8 @@ power cycle. That is a design change, not a test, and it needs its own record.
 The owner asked to treat the hang as a power-management problem, compare the vendor
 kernel, and make the host recover the card. This is analysis and code only. Nothing
 has run on the device, and no Gemian boot was needed: the public Gemian kernel
-([`mt6797/sd.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c),
-[`msdc_io.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c),
+(`sd.c`,
+`msdc_io.c`,
 the MT6351 field map in `mach/upmu_hw.h`) and the earlier T-series register reads
 answer the questions below. The retained Gemian logs have no long idle with a card
 in, so they say nothing about the hang itself.

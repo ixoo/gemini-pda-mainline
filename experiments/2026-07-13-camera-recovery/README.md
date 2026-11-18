@@ -22,7 +22,7 @@ drivers rather than by copying the vendor camera ABI?
 
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
 - Vendor source: Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Mainline comparison: Linux `7.1.3` in the development VM.
 - Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Private raw capture: `artifacts/device-inventory/20260713-live/camera.txt`

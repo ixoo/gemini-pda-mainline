@@ -456,7 +456,7 @@ codes; its name was not checked against the header.
 Analysis:
 - **The 2.4 GHz band works.** Authentication, association and data all ran.
 - **The driver allowed 3 transmit attempts; the vendor's limit is 30**
-  ([`nic_tx.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_tx.h)).
+  (`nic_tx.h`).
   On a busy channel three attempts can fail within tens of milliseconds. That fits
   every lost frame here, and may fit channel 6 too, although channel 6's message 2
   frames were not seen. [0436](../../patches/proposals/0436-wifi-mt6797-retry-frames-as-the-vendor-does.patch)
@@ -594,7 +594,7 @@ Three of four disconnects after heavy traffic on this boot closed the lifetime:
 | Channel 11, 184 s, 52022 frames, 172 not done at the end | `-ETIMEDOUT`, branch 5 |
 
 In the second, WHISR bit 6 is the abnormal interrupt; the vendor
-([`nic.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic.c))
+(`nic.c`)
 reads WASR and resets the chip on it. The causes of these faults are not understood.
 
 [0443](../../patches/proposals/0443-wifi-mt6797-restart-the-firmware-after-a-fault.patch)

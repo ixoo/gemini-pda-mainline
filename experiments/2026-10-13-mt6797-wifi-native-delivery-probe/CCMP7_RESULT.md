@@ -87,7 +87,7 @@ The existing HIF reads pre-WRPLR, completes the advertised span plus appended
 word, checks its guard, then compares descriptor length before publishing type
 or copying bytes. Runtime post-WRPLR is not reached or selected. No group
 stripping occurs before the comparison. The pinned public
-[gen3 receive path](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_rx.c#L2826-L2908)
+gen3 receive path
 also requires advertised/header equality; it supplies no 48-byte exception.
 
 The untrusted staged type word has descriptor group bits zero. That is an

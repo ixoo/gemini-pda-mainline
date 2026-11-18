@@ -25,7 +25,7 @@ register contract is demonstrably different.
 - Live kernel: Linux `3.18.41+`, AArch64, Gemian Debian 9 userspace.
 - Live device: `gemini@GEMIAN_HOST` over the owner's private LAN.
 - Vendor source: Gemian MT6797 tree commit
-  `d388d350cb2dda8f23b99be6fa5db9628896e87f`.
+  the vendor's kernel.
 - Mainline comparison: Linux `7.1.3` in the development VM.
 - Sanitized summary: [`results/runtime-summary.txt`](results/runtime-summary.txt).
 - Private raw capture, if regenerated, belongs only under the Git-ignored

@@ -21,7 +21,7 @@ down-pressure handling despite loss of early console text?
 
 ## Provenance and environment
 
-- Exact source: `59e00a9144d782e148332009a835b99c43382467`.
+- Exact source: the vendor's kernel.
 - Exact parent: `2026-08-03-a72-cpu9-retention-window`, including its positive
   three-pair boundary and inconclusive missing-HPS-attribution result.
 - Build backend: Buildbox only; no native VM kernel build.

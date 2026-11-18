@@ -26,7 +26,7 @@ faulted in a pre-platform hotplug notifier and caused the observed restart.
 
 ## Provenance and environment
 
-- Pinned public Gemian source: `59e00a9144d782e148332009a835b99c43382467`.
+- Pinned public Gemian source: the vendor's kernel.
 - Accepted predecessor: the exact 2026-08-02 pre-isolation rollback runtime.
 - Working-path comparator: the immutable first natural Gemian CPU8 up/down
   capture from 2026-08-02.

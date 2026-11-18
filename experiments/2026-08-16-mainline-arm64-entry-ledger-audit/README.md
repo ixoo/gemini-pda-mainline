@@ -30,7 +30,7 @@ support.
   commit `ca56f0161f6d67900d0fc58719e9190e7d1bb4a3` and profile
   `da921x-modules-pre-ramoops-ledger`.
 - LK source: public Planet Android 8 LK commit
-  `f4988d74bb70a0a15d7f362f412afba7e7fcda46`; the exact handoff calls
+  the vendor's LK; the exact handoff calls
   `lk_jump64(entry, tags, 0, KERNEL_64BITS)`.
 - Relevant prior candidate contract: Image range
   `[0x40200000,0x40df0000)`, ramdisk range

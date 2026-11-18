@@ -53,17 +53,17 @@ In the vendor stack, Wi-Fi never starts on a bare CONSYS. WMT power-on runs
 first, over the BTIF/STP link to the CONSYS MCU, and only then does the WLAN
 driver probe and download its own firmware through the HIF.
 
-- Pinned [`opfunc_pwr_on`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c#L1026-L1090)
+- Pinned `opfunc_pwr_on`
   performs hardware power-on and then `wmt_core_stp_init`, which calls the
   chip `sw_init`.
-- Pinned [`mtk_wcn_soc_sw_init`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ic_soc.c#L975-L1250)
+- Pinned `mtk_wcn_soc_sw_init`
   then, in order: configures STP over BTIF, raises the MCU clock (for IC
   `0x0279`), downloads every ROM patch followed by a WMT reset, applies Wi-Fi
   and LTE coexistence settings, switches the BT and Wi-Fi PA LDOs on, sends
   `WMT_CORE_START_RF_CALIBRATION_CMD` (`01 14 01 00 01`) and waits for its
   event, switches the PA LDOs back, initializes coexistence, sets crystal
   trimming, the oscillator type when co-clock is enabled, and the FM strap.
-- Pinned [`wmt_func_wifi_on`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c#L694-L727)
+- Pinned `wmt_func_wifi_on`
   only calls the WLAN probe for SOC chips. So RF calibration and the ROM
   patch belong to the WMT common power-on and precede every Wi-Fi start.
 - Gemian requests `WMT_SOC.cfg` and both `ROMv3_patch_*` files at boot
@@ -84,7 +84,7 @@ sits upstream of every receive gate sampled so far.
 ### 2. Rail differences around calibration (secondary)
 
 Vendor calibration runs with both VCN33-BT and VCN33-Wi-Fi enabled
-([`mtk_wcn_consys_hw_bt_paldo_ctrl` and `..._wifi_paldo_ctrl`](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c#L897-L975),
+(`mtk_wcn_consys_hw_bt_paldo_ctrl` and `..._wifi_paldo_ctrl`,
 `CONSYS_BT_WIFI_SHARE_V33` is 0). Proposal 0041 requires VCN33-BT to be off
 and never enables it. Gemian showed both VCN33 rails in use with carrier
 ([rail counts](../2026-09-26-gemian-wifi-reference/results/rail-clock-counts-v8-1.json)).

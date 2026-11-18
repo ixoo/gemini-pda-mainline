@@ -31,8 +31,7 @@ least one fail-closed prerequisite.
 - Exact current-source file hashes and pinned repository inputs are in
   [`contract.json`](contract.json).
 - Public vendor source:
-  `lineage-geminipda/android_kernel_planet_mt6797` commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Buildbox was used only for read-only inspection of its managed prepared
   Linux source and existing vendor Git mirror. No native VM build was run.
 - Boot path: none. No candidate, device endpoint, partition, or hardware was

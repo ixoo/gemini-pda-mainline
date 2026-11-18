@@ -146,7 +146,7 @@ storage and recovery window still require closure before implementation.
 The [kernel-actor receipt](results/startup-kernel-actors-review.json) identifies
 one additional control path that userspace isolation alone must not obscure.
 Five prepared source files were compared byte-for-byte with Git objects at
-`59e00a9144d782e148332009a835b99c43382467`. The retained compile package's log
+the vendor's kernel. The retained compile package's log
 records their five compilations; its symbol map has a global text definition
 of `kalBoostCpu`, as well as the performance-start and framebuffer callbacks.
 This supplements the [compiler-input review](NATIVE_SOURCE_FEASIBILITY.md#recorded-compiler-command-follow-up-2026-09-09).

@@ -38,7 +38,7 @@ That deadline was too short to support the protocol's "BT on fails" branch.
 The vendor waits `WMT_LIB_RX_TIMEOUT` = 2000 ms for every WMT event, and its
 header notes that Bluetooth function-on alone takes about 830 ms on some
 phones (`wmt_lib.h` line 70 at the
-[pinned vendor revision](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_lib.h#L70)).
+pinned vendor revision).
 H1 is therefore neither demonstrated nor refuted. Dependence on the ROM patch
 remains possible, but this timeout does not show it.
 

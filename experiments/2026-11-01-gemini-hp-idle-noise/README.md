@@ -30,7 +30,7 @@ continues with all of them back; then the cause is not in a writable register th
 
 ## Why this candidate first
 
-[Stock's close path](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c)
+Stock's close path
 and the mainline driver both write these registers at power-up. Comparing what each leaves afterwards,
 from reading the code, for the registers the tone changed on station 34:
 

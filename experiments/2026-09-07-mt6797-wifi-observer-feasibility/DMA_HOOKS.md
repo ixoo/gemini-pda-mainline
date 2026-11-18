@@ -10,7 +10,7 @@ separately unmaps after an idle-count escape without observing idle.
 
 The [five-file source receipt](results/dma-hook-sources.json) pins complete
 public Git objects at Gemian revision
-`59e00a9144d782e148332009a835b99c43382467`. The four HIF files match the earlier
+the vendor's kernel. The four HIF files match the earlier
 [build selection](results/native-build-selection-sources.json); `sdio.h`
 resolves the IRQ macros. This is source and injected-execution evidence,
 not attribution of the installed kernel or an admitted radio cycle. No native

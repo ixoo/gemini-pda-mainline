@@ -27,7 +27,7 @@ must remain disabled until their firmware semantics are proven.
 - Private raw capture: `artifacts/device-inventory/20260713-live/cpu-psci-timer.txt`
   (Git-ignored, mode 0600).
 - Vendor source: Planet MT6797 tree commit
-  `c5b0be85017ad0c599725e8273842efdbecdd88a`.
+  the vendor's kernel.
 - Mainline comparison: prepared Linux `7.1.3` tree in the development VM.
 - Sanitized source result:
   [`results/mainline-cpu-psci-timer-validation.txt`](results/mainline-cpu-psci-timer-validation.txt).

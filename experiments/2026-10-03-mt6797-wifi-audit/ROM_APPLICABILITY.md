@@ -20,7 +20,7 @@ unrecognized chip/HW/ROM tuple before any patch or calibration effect.
 
 ## Exact source ordering and wire uncertainty
 
-Pinned [register definitions](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/core/include/wmt_ic.h#L83)
+Pinned register definitions
 define firmware register addresses `0x80000008` (chip), `0x80000000` (HW),
 and `0x80000004` (ROM), each with mask `0x0000ffff`. These are firmware wire
 addresses, not permission to access AP MMIO. The 20-byte opcode-0x08 read
@@ -30,7 +30,7 @@ the caller value into the request; chip storage is initialized to zero but
 HW/ROM storage is uninitialized. A new constructor should supply a deterministic
 zero read value instead of inheriting those undefined request bytes.
 
-In [the pinned core](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_core.c#L782),
+In the pinned core,
 mandatory STP is enabled, then `wmt_core_hw_check` reads chip/HW/ROM and selects
 operations, then `sw_init` performs negotiation and common initialization.
 Thus the complete owner must insert checked identity reads before the

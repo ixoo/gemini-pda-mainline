@@ -26,7 +26,7 @@ image is not hardware evidence and does not itself authorize deployment.
 
 - Reviewed project commit: `bc01fc33ec60540b86cd1133697c6fc4a6d1b857`.
 - Public hook-equivalent vendor source:
-  `59e00a9144d782e148332009a835b99c43382467`.
+  the vendor's kernel.
 - Observer patchset SHA-256:
   `85ac017a2fec821ee930a74d021cb6d2224ea958929c5bbffaf7ec480e19f9c9`.
 - Exact observer `Image.gz-dtb` SHA-256:
