@@ -4096,9 +4096,9 @@ minute after boot, with no SPM module loaded:
 | `PCM_WDT_LATCH_0` `0x10006190` | `0x04248000` |
 | `PCM_WDT_LATCH_1` `0x10006194` | `0x00000000` |
 | `PCM_WDT_LATCH_2` `0x10006198` | `0xffffffff` |
-| `PCM_WDT_LATCH_3` `0x1000619c` | `0x0000c0ff` |
-| `PCM_WDT_LATCH_4` `0x100061c4` | `0x2a00005c` |
-| `DRAMC_DBG_LATCH` `0x100061c8` | `0x003dff08` |
+| `DRAMC_DBG_LATCH` `0x1000619c` | `0x0000c0ff` |
+| `PCM_WDT_LATCH_3` `0x100061c4` | `0x2a00005c` |
+| `PCM_WDT_LATCH_4` `0x100061c8` | `0x003dff08` |
 | TOPRGU MODE / LENGTH / STA / DEBUG_CTL | `0x15` / `0xf800` / `0` / `0xf3` |
 
 The RGU status of 0 does not rule the watchdog out: the power-key boot
@@ -4113,10 +4113,14 @@ with the SPM program session for decoding.
 field layout is not documented. Three values match what Gemian printed
 on earlier, unrelated boots, so they may be generic or stale:
 `LATCH_1` 0, `LATCH_2` `ffffffff`, and the `0x2X00005Y` pattern. `LATCH_0`
-`0x04248000` reads as "kicked, not idle", only if it shares
+`0x04248000` reads as "kicked, not idle", with `SRCVOLTEN` low, only if it shares
 `PCM_FSM_STA`'s layout, which is unverified. That would fit a PCM that
-never reached its exit block. `LATCH_3`'s low bits do not fit a
-`pcm_sodi` PC on this path. The session asked the custodian for three
+never reached its exit block, but cannot tell the entry wait, the clock
+cut or the main wait apart. As a `pcm_sodi` PC, `LATCH_3`'s `0x5c` falls in
+the 26 MHz sleep handler, which CG mode does not enable. The register
+names follow the vendor's MT6797 map: `0x19c` is `DRAMC_DBG_LATCH`,
+`0x1c4` and `0x1c8` are `PCM_WDT_LATCH_3` and `4` (corrected
+2026-11-18). The session asked the custodian for three
 read-only calibration reads: the latches now (live or latched?), after a
 clean reboot without the module, and after a cold power-on. The pinned
 221 MHz hang also makes a slow PLL restore at high OPPs unlikely.
