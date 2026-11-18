@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 17 Nov 2026 20:35:57 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: learn the resistance
+ against the start-up OCV
+
+The resistance is learned only within 24 hours of an OCV reading taken
+at rest, so that the estimate does not rest on a reading that itself
+depends on the resistance. The start-up OCV, sampled by the PMIC before
+the load, was not counted as such, so a boot that began from it learned
+nothing until a rest or a finished charge: on one boot an all-core load
+at 1.5-1.8 A ran for five minutes with the headroom on its aged-cell
+assumption, while the samples showed about 0.4 Ohm.
+
+Count the start-up OCV as a rested reading for learning the resistance.
+It does not depend on the resistance; surface charge after a charge
+would only make the estimate a little high, the safe side for the
+headroom.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 867d68b..3bfcb23 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -1018,7 +1018,12 @@ static void mt6351_fg_pwron_anchor(struct mt6351_fg *fg)
+ 	fg->anchor_uah = div_s64(fg->full_uah * clamp(pct, 0, 100), 100);
+ 	fg->anchor_car = fg->car;
+ 	fg->anchor_time = ktime_get_boottime();
+-	fg->anchor_trusted = false;
++	/*
++	 * Taken before the load, it does not depend on the resistance, so the
++	 * resistance can be learned against it; surface charge would only make
++	 * the estimate a little high, the safe side.
++	 */
++	fg->anchor_trusted = true;
+ 	fg->anchored = true;
+ 	dev_info(fg->dev, "start-up OCV %d uV: %d %% of the OCV table\n", uv, pct);
+ }
+-- 
+2.54.0 (Apple Git-157)
+

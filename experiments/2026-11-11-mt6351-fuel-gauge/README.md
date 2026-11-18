@@ -28,11 +28,9 @@ How does the vendor stack read the same values, and what makes ours reliable?
 
 ## Sources
 
-- Vendor kernel `planet-community/android_kernel_planetcom_mt6797` `8cfe6596`:
-  - `power/mt6797/battery_meter_hal.c`: `fgauge_read_current`, `fgauge_read_columb_internal`,
-    `fgauge_initialization`;
-  - `power/mediatek/battery_meter_fg_20.c`, `battery_common_fg_20.c`;
-  - `mt6797/include/mach/upmu_hw.h`.
+- The vendor's kernel: its fuel-gauge hardware layer (`fgauge_read_current`,
+  `fgauge_read_columb_internal`, `fgauge_initialization`), its battery meter and battery
+  common drivers, and its PMIC register header.
 - MT6351 datasheet v12, FGADC register chapter.
 - Retained private Gemian kernel logs (`[kernel]AvgVbat … IBat` lines): only counts are
   given here.
@@ -60,8 +58,8 @@ battery reads a discharge above 50 mA (−300 to −1600 mA). Near-zero values a
 mainline-side state, not the chip's normal behaviour. The vendor reads the register no
 differently from us.
 
-**The vendor initialises the FGADC twice per boot; mainline relies on the first.** LK
-(`lk/platform/mt6797/mt_battery.c`, under `DLPT_FEATURE_SUPPORT`) and then the vendor kernel
+**The vendor initialises the FGADC twice per boot; mainline relies on the first.** The
+vendor's LK battery code (under `DLPT_FEATURE_SUPPORT`) and then the vendor kernel
 (`battery_meter_initial` → `fgauge_initialization`) each run:
 1. `CON0` low byte `0x28`, then `0x29`: `FG_ON`, `FG_CAL` 2, `FG_AUTOCALRATE` 2;
 2. `CON0` upper byte `0x71`: `SW_CR` with `OFFSET_RST`, `TIME_RST` and `CHARGE_RST`, which
@@ -1051,8 +1049,8 @@ mt6351-fuel-gauge: full charge 4163263 uAh from -1963017 uAh over -51 points, st
 - The custodian compares `0x02BC` after a known clean power-off.
 - The 3.10 V backstop polls every 10 s, so it cannot catch a burst-driven cut.
 
-**What the vendor kernel does** (`mt_pmic.h`, `power/mt6797/pmic.c`, `base/power/ppm_v1`,
-`pbm_v1`): every mechanism sets a CPU power budget in PPM's `pwr_thro` policy, plus GPU
+**What the vendor kernel does** (its PMIC driver and its power-performance and power-budget
+managers): every mechanism sets a CPU power budget in PPM's `pwr_thro` policy, plus GPU
 limits.
 
 | Mechanism | Trigger | Action |
@@ -1180,6 +1178,42 @@ against it.
     18.5 s (3.911 V, −0.88 A) and at 87 s (3.982 V, −0.38 A). 84 ÷ 0.93 ≈ 90, so there was no
     swing.
   - **Still to do:** the long-rest check, after a long off period on battery.
+
+## A 15-minute rest and an all-core load (image 137, card-32, 2026-11-17)
+
+From the custodian, shared at the owner's request. Private log `artifacts/card-32/2bea635f/t11/`.
+
+**Learned values:**
+- Q 4163262 µAh (`charge_full` 3871833 of 3969240);
+- R 400000 µΩ, seeded.
+
+**Before the rest:** 28 % at 3.673 V and −168 mA, screen dark. At 0.40 Ω that is an OCV of
+about 3.74 V.
+
+**After 15-16 min off, boot `2bea635f…`:**
+- `start-up OCV 3775616 uV: 29 % of the OCV table`, shown as 31 %.
+- The 3-point rise is rest recovery plus the loaded reading's offset, not an error.
+
+**All-core load, 300 s at 1.45-1.79 A, 25-31 °C:**
+- 3.27-3.31 V at about 1.45 A, and down to 3.072 V at 1.766 A.
+- Against the start-up OCV that is 0.33-0.40 Ω, matching the seeded R.
+- The capacity fell 31 → 27 % for about 135-140 mAh counted, 3.5 % of 3.87 Ah.
+
+**The headroom stayed on its aged-cell floor:**
+- `current_max` 1355555 µA = (3.776 − 3.10 V) ÷ 0.495 Ω.
+- No resistance estimate was taken, because the start-up anchor did not count as a rested
+  reading.
+- With R at 0.40 Ω, the headroom would have been about 1.69 A. The load's 1.77 A took the
+  terminal to 3.07 V, the headroom point.
+
+**[0823](../../patches/proposals/0823-power-supply-mt6351-fuel-gauge-learn-the-resistance-.patch)**
+counts the start-up OCV as a rested reading for learning R.
+- It is taken before the load and does not depend on R.
+- Surface charge would make an estimate a little high, which is the safe side.
+- Compiled at W=1 and checkpatch clean; not on a device.
+
+The record's references to the vendor's sources were reworded without the tree name or file
+paths, as the project's public text requires.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
