@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); resets follow the two-state cpuidle driver, cause unknown (D5a-D5g); D5h proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, inside the period, cause unknown (D5a-D5h) |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3704,6 +3704,50 @@ again. A refusal's own synced line could refuse the next try in the same
 way, so retries also wait 1 s (`d4.sh` 787dbcf3). `mtk-sd`'s autosuspend
 delay is 50 ms. The placement reading is unchanged. The module stayed registered
 (`state1` usage 0), so the rerun needs a fresh boot.
+
+### D5h: the hang is inside the first period (custodian, 2026-11-18)
+
+**Setup.** Boot 685c02c8 of image 137, taint 0, cable out at 93 %, Wi-Fi
+power save on. `d4.sh` 787dbcf3, module 68aa478c (0822), `D4_CIRQ_LEVEL=1`,
+two states, no cap. MSDC `autosuspend_delay_ms` read 50 on the device.
+
+**Observed.** The `d4.log` tail:
+- 16:40:52: blanked.
+- 16:40:53: CPUs online `0`.
+- 16:40:58: hash reference taken; window C waiting.
+- 16:40:59: pings arriving, then `start`.
+
+Nothing follows: no refusal and no period result. 66 of 180 pings were
+answered, and the replies stopped around the first period. The previous
+boot's journal ends at 16:40:53.48 with CPU1 going offline. pstore was
+empty. The device came up in Gemian, and the owner recovered to boot2
+(boot 09980766).
+
+**Result.** This is the first reset in a first period; earlier resets came
+after 2-22 periods. After `start` the script idles 1 s, then makes the
+attempt. The two-state idle alone was tested twice without a hang:
+- D5 run 1's off window: 180 s with the driver registered and SODI
+  disabled;
+- D5h's first attempt: 12 minutes up, ten refused attempts.
+
+*Inference:* the hang is inside the first SODI period. It needs no
+earlier period, so it is not state that a previous period left behind.
+
+**Where this leaves D5.** Over eight runs, a period hangs only while the
+two-state driver is registered. It hangs whether or not the tick expires
+inside the period, with nothing pending at entry, and on the first period
+as well as later ones. One state or no driver passed about 1,900 periods.
+The mechanism is still unknown.
+
+Two ways on:
+- **One-state SODI:** register SODI as the only state. Its entry function
+  chooses SODI or WFI itself, so the idle loop skips the governor as in
+  D5e. This targets D5's goal with the configuration that passed. It
+  avoids the unexplained hazard without explaining it, and needs its own
+  run script (no `state1/disable`).
+- **Keep diagnosing:** compare the SPM, MCUCFG and CPU0 state at period
+  entry between one and two states. This is open-ended after four
+  disproved explanations.
 
 ### What it should save
 
