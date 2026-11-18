@@ -3662,7 +3662,9 @@ only results. So "period 6 logged nothing" fits both:
 The two point at different code: the period itself, or the state a
 period leaves behind.
 
-### Request D5h (proposed): place the hang
+### Request D5h (approved 2026-11-17): place the hang
+
+**Approved** by the owner ("Approve D5h").
 
 `d4.sh` (now 4c6e9193) logs a synced `start` line before each period
 attempt. No kernel change: the candidate is D5g's module.
