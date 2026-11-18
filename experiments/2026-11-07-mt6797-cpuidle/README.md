@@ -4004,6 +4004,26 @@ The two-state difference is therefore on the CPU side. Suggested next:
 - logging the A53 OPP and MCU clock mux at entry, and CPU0's idle status
   at return.
 
+**Its answers on the wait and the PLLs.**
+- **The `0xd00f0000` wait** is a hardware condition chosen by its value.
+  The code does not say what it waits on. On this path the program reads
+  no CPU-state register (`CPU_IDLE_STA`, SPARK's `CPU_RET_STATUS`,
+  MCUSYS idle). Returned periods show the main-wait value in `event_reg`,
+  so the entry wait completed there. In D5i the backstop could not wake
+  CPU0, so the clock cut, which follows that wait, had happened.
+- **The program writes no PLL register:** no MCUMIXED, no MCU mux. It
+  gates the ARM clock and PLL outputs through power-I/O signals and
+  restarts them with fixed waits (`0x300`, `0x300`, `0x104` ticks) tuned
+  for the vendor's OPPs. Whatever Linux set restarts.
+
+Two unverified OPP risks follow:
+- Linux changing a cluster's rate at entry;
+- an A53 OPP that locks slower than the fixed waits. 0656 lets CPU0-3
+  reach 1547 MHz.
+
+The cheap discriminator is two-state runs with cpufreq pinned low, then
+high.
+
 **Reading the latches after a reset.** Every reset has landed in Gemian,
 and the owner has powered off before boot2, which probably clears the
 latches. To read them, the owner catches the bootloader after a reset and
