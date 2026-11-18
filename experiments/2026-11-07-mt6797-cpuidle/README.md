@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); resets follow the two-state cpuidle driver, not the tick (D5a-D5f); D5g proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); resets follow the two-state cpuidle driver, cause unknown (D5a-D5g); D5h proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -3579,7 +3579,7 @@ never been seen to survive.
 pending more often than the other configurations, and an SPM read in the
 middle of a SODI period hangs the bus.
 
-### Request D5g (proposed): check CPU0's SGIs and PPIs
+### Request D5g (approved 2026-11-17): check CPU0's SGIs and PPIs
 
 [`0822`](../../patches/proposals/0822-soc-mediatek-mt6797-spm-sleep-check-CPU0-s-SGIs-and-.patch)
 (module only) maps CPU0's redistributor, checking that its affinity is 0.
@@ -3610,6 +3610,82 @@ The new accesses are reads only: GICR `0x19200008` (TYPER) and
 | Pass, with "interrupt pending" refusals showing SGI or PPI bits | The early wake is the hazard. Keep the check; find which interrupt the two-state idle leaves pending; then D5 again |
 | Pass, no such refusals | Not explained by pending interrupts; the timer lines bound the entry state. Repeat once to see whether the pass holds |
 | Reset or hang | Not this. The logged entry states before the reset are the next evidence; then check `loops` and the SPM read in the wait |
+
+### D5g: no pending interrupt at entry, reset anyway (custodian, 2026-11-17)
+
+**Approved** by the owner ("Approve D5g").
+
+**Setup.** Fresh boot 69228e22 of image 137, with no SODI module loaded
+before. Module 68aa478c (0822, Buildbox `30b591ac`). `d4.sh` 0a9ac3a9 with
+`D4_CIRQ_LEVEL=1`, two states and no cap. Wi-Fi power save on, battery
+29 %, hands off. C started at 19:19:09 and pings arrived from 19:19:18.
+
+**Observed.** Five periods returned, each ended by CONN2AP through
+SYS_CIRQ (r12 `00400020`). They slept 12, 90, 90, 91 and 273 ms.
+
+| Period | Next local event after entry | GICR pending | GICR enabled | ISR_EL1 |
+| --- | --- | --- | --- | --- |
+| 1 | 4094 us | `01000000` | `408000ff` | 0 |
+| 2 | 2089 us | same | same | 0 |
+| 3 | 5993 us | same | same | 0 |
+| 4 | 4695 us | same | same | 0 |
+| 5 | 185 us | same | same | 0 |
+
+The journal ends with period 5's SYS_CIRQ line at 19:19:20.635. Period 6
+logged nothing, and the device reset into Gemian with an empty pstore.
+The owner recovered to boot2 (boot eac12171, taint 0). There were 0
+"interrupt pending" refusals.
+
+**Result.**
+- **No CPU-private interrupt was pending at entry.** INTID 24 (PPI 8,
+  with no owner in the device tree) was pending at every entry but is not
+  enabled. The enabled set is SGIs 0-7, INTID 23 (PPI 7, the PMU node)
+  and INTID 30 (the physical timer). ISR_EL1 was 0. The GICR theory is
+  ruled out.
+- **The tick is kept under two states:** the next local event was always
+  0.2-6 ms away (`HZ=100`). The expiring tick itself was ruled out by
+  D5f.
+
+Four explanations have now failed: the moved SYS_CIRQ programming, the
+pending check, the expiring tick and a pending CPU-private interrupt. The
+only firm finding is that a two-state driver resets the device within
+2-22 periods under pings, while one state or none passes.
+
+**What is not known: is the hang inside a period or between periods?**
+`sodi_once` prints nothing until a period returns, and `d4.sh` logged
+only results. So "period 6 logged nothing" fits both:
+- a hang inside period 6;
+- a hang in CPU0's ordinary idle between periods. With two states, that
+  idle runs with the tick kept, about a hundred WFI entries a second right
+  after SODI periods.
+
+The two point at different code: the period itself, or the state a
+period leaves behind.
+
+### Request D5h (proposed): place the hang
+
+`d4.sh` (now 4c6e9193) logs a synced `start` line before each period
+attempt. No kernel change: the candidate is D5g's module.
+
+- **Run:** as D5g, on a fresh boot with the battery charged first (the
+  run itself needs the cable out).
+- *Hypothesis:* none favoured. This is a placement measurement.
+- *Unique observation:* whether the last line before a reset is a
+  `start`, so the hang came inside the period, or a period's result, so it
+  came between periods.
+- **Stops:** as in D4. A reset is recovered as in D5a.
+
+| Outcome | Decision |
+| --- | --- |
+| Last line `start` | The period hangs. Next: what the two-state idle changes in the state a period starts from (SPM, MCUCFG, CPU0's idle registers), compared with one state |
+| Last line a result | CPU0's idle hangs after SODI periods. Next: what a period leaves behind (`spm_restore`, the WFI enables, SYS_CIRQ) under frequent idle WFI |
+| Passes | The synced writes changed the timing. Repeat without them, or move on to one state |
+
+**An alternative to more bisection.** Register SODI as a single state
+whose entry falls back to WFI itself. The idle loop then skips the
+governor and stops the tick, as in the one-state runs that passed (D5e).
+That avoids the unexplained hazard rather than explaining it, so it is
+held until the owner chooses it.
 
 ### What it should save
 

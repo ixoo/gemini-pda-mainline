@@ -118,6 +118,9 @@ period() {
 	tries=0
 	while :; do
 		n0=$(dmesg | wc -l)
+		# Synced before each attempt: a reset after this line and before the
+		# period's result came inside the period, not between periods (D5h).
+		log "    start"
 		echo 2000 >"$SODI" && break
 		if dmesg | tail -n +"$((n0 + 1))" | grep -q 'refused'; then
 			tries=$((tries + 1))
