@@ -116,11 +116,14 @@ in_echos() {
 # 0.5 s, ten at most in a row. Sets R12 and SLEPT for the caller.
 period() {
 	tries=0
+	# Synced once before the period's attempts: a reset after this line and
+	# before the period's result came inside the period, not between periods
+	# (D5h). The second lets the card's MSDC clock gate off again after the
+	# sync; synced right before the attempt, every attempt was refused.
+	log "    start"
+	sleep 1
 	while :; do
 		n0=$(dmesg | wc -l)
-		# Synced before each attempt: a reset after this line and before the
-		# period's result came inside the period, not between periods (D5h).
-		log "    start"
 		echo 2000 >"$SODI" && break
 		if dmesg | tail -n +"$((n0 + 1))" | grep -q 'refused'; then
 			tries=$((tries + 1))

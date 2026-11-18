@@ -3689,6 +3689,20 @@ governor and stops the tick, as in the one-state runs that passed (D5e).
 That avoids the unexplained hazard rather than explaining it, so it is
 held until the owner chooses it.
 
+**D5h attempt 1: every period refused (custodian, 2026-11-18).** The run was
+on boot 360cde5b of image 137 (taint 0), with module 68aa478c and
+`d4.sh` 4c6e9193. Cable out at 98 %, Wi-Fi power save on. 180 of 180
+pings were answered. Window C made ten attempts, 06:19:32-06:19:40. Each
+logged `start`, then got "sodi: MSDC running, refused". The script stopped
+on "ten refusals in a row" and restored, with taint 0. No period entered
+SODI, so the run did not place the hang.
+
+The synced `start` line wrote to the card just before each attempt, so
+the MSDC clock was still on. `d4.sh` (now 5039cd51) logs `start` once per
+period, then waits 1 s before the first attempt; retries do not log
+again. The placement reading is unchanged. The module stayed registered
+(`state1` usage 0), so the rerun needs a fresh boot.
+
 ### What it should save
 
 | State | Today | Expected |
