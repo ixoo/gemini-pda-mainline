@@ -1730,6 +1730,20 @@ What this means for the A72s on battery:
 - Using them more on battery needs the low-battery interrupt backstop described
   above. That is the owner's choice.
 
+**Owner decision (2026-11-17): "Yes, A72s on".**
+- **On the station,** the A72s load at boot by default from the first image whose
+  `battery-headroom` carries the 50 % margin. The custodian sets `a72-at-boot` as
+  part of that install, so no battery boot runs with the A72s on the 30 % margin.
+  The init's mechanism is unchanged, and `cpufreq-at-boot` stays set.
+- **The release image** carries no CPU frequency scaling: its profile has none of
+  the cpufreq, CCI or regulator modules, and the A72s are only an optional `hw-start`
+  group, unmanaged at 750 MHz. Loading them by default there waits until frequency
+  scaling, the power allocator and `battery-headroom` are in the release. The release
+  notes must then say that the system reports `Vulnerable` for Spectre-v2 and
+  speculative store bypass once the A72s are up, which the owner accepted on
+  2026-11-11.
+- **The low-battery interrupt backstop** is a separate decision.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
