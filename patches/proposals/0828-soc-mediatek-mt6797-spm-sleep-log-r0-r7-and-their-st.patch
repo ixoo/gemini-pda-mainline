@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 18 Nov 2026 20:49:12 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: log r0, r7 and their start
+ values
+
+With PCM_PWR_IO_EN set, r0 and r7 drive the 26 MHz and VCORE requests and
+the DRAM PHY controls, and they start from POWER_ON_VAL0/1, which the
+module copies as found. The vendor writes POWER_ON_VAL1 at boot and
+keeps POWER_ON_VAL0 current; the module does neither. Every hang latch
+has the FSM's external SRCVOLTEN status clear, which every returned
+period has set.
+
+Log POWER_ON_VAL0/1 at each entry and r0 and r7 after each return. Read
+only.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 15253de18..2872ed1cf 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -111,7 +111,9 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define SPM_SRC_MASK		0x0bc
+ #define SPM_SRC2_MASK		0x0c0
+ #define SPM_WAKEUP_EVENT_MASK	0x0c4
++#define PCM_REG0_DATA		0x100
+ #define PCM_REG1_DATA		0x104
++#define PCM_REG7_DATA		0x11c
+ #define PCM_REG13_DATA		0x134
+ #define PCM_REG12_EXT_DATA	0x144
+ #define SPM_IRQ_STA		0x158
+@@ -327,6 +329,8 @@ struct spm_wake {
+ 	u32 fsm;		/* PCM_FSM_STA after the wait */
+ 	u32 im_fsm0, im_fsm1;	/* after the IM kick, before the PCM kick */
+ 	u32 im_us;		/* polls until IM_STATE settled */
++	u32 on_val0, on_val1;	/* r0 and r7 start values, at entry */
++	u32 r0, r7;		/* after the return */
+ 	bool im_reused, im_stuck;
+ 	bool backstop;		/* CPU0's timer ended the wait, not the PCM */
+ 	u32 rd_en, rd_pend;	/* CPU0's SGIs and PPIs at entry */
+@@ -890,6 +894,8 @@ static int spm_run(const struct spm_scen *sc)
+ 	s.wake.im_fsm0 = spm_rd(PCM_FSM_STA);
+ 
+ 	/* S7: r0 and r7 from POWER_ON_VAL0/1 */
++	s.wake.on_val0 = spm_rd(SPM_POWER_ON_VAL0);
++	s.wake.on_val1 = spm_rd(SPM_POWER_ON_VAL1);
+ 	spm_wr(PCM_REG_DATA_INI, spm_rd(SPM_POWER_ON_VAL0));
+ 	spm_wr(PCM_PWR_IO_EN, PCM_RF_SYNC_R0);
+ 	spm_wr(PCM_PWR_IO_EN, 0);
+@@ -1039,6 +1045,8 @@ static int spm_run(const struct spm_scen *sc)
+ 	s.wake.wake_misc = spm_rd(SPM_BSI_D0_SR);
+ 	s.wake.timer_out = spm_rd(SPM_BSI_D1_SR);
+ 	s.wake.r13 = spm_rd(PCM_REG13_DATA);
++	s.wake.r0 = spm_rd(PCM_REG0_DATA);
++	s.wake.r7 = spm_rd(PCM_REG7_DATA);
+ 	s.wake.idle_sta = spm_rd(SUBSYS_IDLE_STA);
+ 	s.wake.debug_flag = spm_rd(SPM_SW_DEBUG);
+ 	s.wake.event_reg = spm_rd(SPM_BSI_D2_SR);
+@@ -1134,6 +1142,8 @@ static void spm_log_wake(const char *what)
+ 	dev_info(&s.pdev->dev, "%s: im fsm %08x>%08x after %u us, reused=%d stuck=%d\n",
+ 		 what, s.wake.im_fsm0, s.wake.im_fsm1, s.wake.im_us,
+ 		 s.wake.im_reused, s.wake.im_stuck);
++	dev_info(&s.pdev->dev, "%s: io val0=%08x val1=%08x r0=%08x r7=%08x\n",
++		 what, s.wake.on_val0, s.wake.on_val1, s.wake.r0, s.wake.r7);
+ }
+ 
+ /*
+-- 
+2.43.0
+

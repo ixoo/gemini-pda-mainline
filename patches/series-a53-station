@@ -985,3 +985,4 @@ proposals/0824-soc-mediatek-mt6797-spm-sleep-bound-the-SODI-wait-wi.patch
 proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch
 proposals/0826-soc-mediatek-mt6797-spm-sleep-optionally-end-stuck-t.patch
 proposals/0827-soc-mediatek-mt6797-spm-sleep-optionally-wait-for-or.patch
+proposals/0828-soc-mediatek-mt6797-spm-sleep-log-r0-r7-and-their-st.patch

@@ -173,6 +173,8 @@ period() {
 	log "    r12 $R12, slept $SLEPT ms; $(wake_names "$R12"); cirq $sta"
 	im=$(echo "$out" | grep -o 'im fsm.*' | tail -n 1)
 	[ -n "$im" ] && log "    $im"
+	io=$(echo "$out" | grep -o 'io val0.*' | tail -n 1)
+	[ -n "$io" ] && log "    $io"
 	if [ "$SLEPT" -eq 0 ] && [ "$R12" = "$LAST_R12" ]; then
 		INSTANT=$((INSTANT + 1))
 	else

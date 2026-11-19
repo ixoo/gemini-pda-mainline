@@ -4558,6 +4558,41 @@ cable out.
 **D5q is changed:** it runs without `D4_PCM_WDT`. The watchdog gave no
 wake, and it may have changed the reset path and cost the latches.
 
+### r0 and r7 drive the 26 MHz and VCORE requests (SPM program session)
+
+- **The program cannot stop 26 MHz or 32 kHz in CG mode.**
+  - Its clock cut (`0x590`-`0x597`) switches off only the ARM PLLs and the
+    ARM and SMI clocks.
+  - 26 MHz goes off only in event handler 1, the 26 MHz sleep handler. CG
+    mode does not enable it, and D5n's `r6` confirms it never ran.
+  - Nothing in the program touches 32 kHz.
+- **The hardware path differs from the vendor's.**
+  - At the kick, `PCM_PWR_IO_EN` `0x81` hands control to `r0` and `r7`.
+    From then on, `r7` drives the 26 MHz request (`SRCCLKENO_0`) and the
+    VCORE request (`SRCVOLTEN`, bit 11), and `r0` drives the 26 MHz
+    oscillator and bits 26-31 the DRAM PHY.
+  - `r0` and `r7` start from `SPM_POWER_ON_VAL0/1`, which the module copies
+    as found. The vendor's driver writes `POWER_ON_VAL1` `0x00015820` at
+    boot and keeps `POWER_ON_VAL0` equal to the last `r0`. The module does
+    neither.
+- **One FSM bit separates every hang from every return.**
+  `EXT_SRCVOLTEN_STA` (`PCM_FSM_STA` bit 25) is 0 in both hang latches
+  (`0x04248000`) and 1 in every returned period (`0x02048490`). Under
+  `r7` control that is `r7` bit 11. *Inference:* at the hang the VCORE
+  request was down, which would freeze far more than the PCM. The latch
+  is taken at the TOPRGU reset, not at the hang.
+
+[`0828`](../../patches/proposals/0828-soc-mediatek-mt6797-spm-sleep-log-r0-r7-and-their-st.patch)
+(module only, read only) logs `POWER_ON_VAL0/1` at each entry and `r0`
+and `r7` after each return. `d4.sh` logs the line. It is compile-checked
+with `W=1`, with and without `CONFIG_CPU_IDLE`, and checkpatch
+`--strict` is quiet. The pre-module read on each fresh boot adds
+`0x004`, `0x008` (`POWER_ON_VAL0/1`) and `0x00c` (`SPM_CLK_CON`).
+
+*Next if the values differ from the vendor's:* write `POWER_ON_VAL1`
+`0x00015820` at load and refresh `POWER_ON_VAL0` from the last `r0`, as
+the vendor does. That is a new write and needs its own request.
+
 ### Request D5q (proposed): the IM fetch before the kick
 
 **The two-state hangs may stop before the program's first words (SPM
@@ -4638,8 +4673,9 @@ Two more differences from the vendor's reset, not addressed by 0827:
   `SPM_SW_RSV_5`. The module never writes it, so the program sees
   `0xffffffff`, with both bits set.
 
-The module is the Buildbox build of 2f9f200f (1918268c), with 0826 and
-0827.
+The module is a Buildbox build of the commit recording 0828, with 0826,
+0827 and 0828, so each period also logs `r0`, `r7` and their start
+values.
 
 ### Request D5n (proposed): two states with no resource events
 
