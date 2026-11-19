@@ -4323,6 +4323,29 @@ explanations fit all runs:
 | 0806 passes, 0825 hangs | The cause is in 0816's period changes, whatever the driver. Next: diff 0806's and 0816's `sodi_once` and program load |
 | 0806 hangs | Passes depend on the boot, not the module. Next: compare what the bootloader leaves in the SPM between boots |
 
+**The two modules' load paths are the same (SPM program session).** The
+session reverse-applied 0816-0824 and compared the whole file with 0806.
+Program load, the PCM reset and `PCM_CON0`/`PCM_CON1` setup, the event
+vectors, the flag and mailbox writes and the restore list are identical.
+Neither module writes `PCM_WDT_VAL` or `SPM_SW_RSV_5`, so both run on
+whatever the boot left there. With no cpuidle driver, 0817 and later
+differ from 0806 only in:
+- level recording on by default (`d4.sh` sets it anyway);
+- the read-only pending and GICR checks before the period;
+- from 0824, the CNTP backstop.
+
+0816 and 0817 hung without the backstop. *Inference:* row 3 of D5o
+(passes depend on the boot) is the likelier one. The boot hands over
+state no module writes before the first period. In the hang,
+`SPM_SW_RSV_5` read `0xffffffff`, which sets `r6` bits 23 and 24
+together.
+
+**Added to D5o, D5p and every later run:** before any module loads, the
+custodian reads read-only `PCM_CON1` (`0x01c`), `PCM_WDT_VAL` (`0x034`)
+and `SPM_SW_FLAG` to `SPM_SW_RSV_5` (`0x600`-`0x61c`), and records them
+with the boot. A boot that passes can then be compared with one that
+hangs.
+
 ### The latches after the no-event hang (SPM program session)
 
 The SPM program session decoded the latches from the D5m no-event hang. Its
