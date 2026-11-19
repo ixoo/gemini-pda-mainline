@@ -153,7 +153,7 @@ period() {
 		fi
 		dmesg | tail -n +"$((n0 + 1))"
 		dmesg | tail -n +"$((n0 + 1))" | grep -q 'stuck=1' &&
-			stop "the IM fetch did not settle; period refused before the kick (D5q)"
+			stop "the IM fetch was not ready; period refused before the kick (D5q)"
 		stop "sodi_once_ms failed without a refusal"
 	done
 	out=$(dmesg | tail -n +"$((n0 + 1))")

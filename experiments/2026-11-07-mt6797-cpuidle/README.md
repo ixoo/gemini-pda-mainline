@@ -4749,6 +4749,29 @@ master state at 2 (idle 1), and only `EXT_SRCCLKEN` (bit 23) changed.
 which would explain the `r6` 0 hangs. The encodings are undocumented, so
 a reference from passing periods decides it.
 
+**The IM state is one-hot (SPM program session).** The vendor's CPU-DVFS
+SPM driver uses the same PCM block, with the same `PCM_FSM_STA` layout. It
+names bits 7, 8 and 9 IM empty, filling and ready, and after its IM kick
+it spins until IM ready. Read that way:
+- idle `0x48490` is "PC idle, IM empty";
+- run 1's `0x02c48910` and `0x02448910` are "PC idle, IM filling", still
+  filling 200 us after the kick. **Run 1's stuck fetch was real.**
+- 0827's test waited for IM empty, which never returns after an IM kick.
+  So as written it would have refused every period, good fetch or not.
+  [`0829`](../../patches/proposals/0829-soc-mediatek-mt6797-spm-sleep-wait-for-IM-ready-not-.patch)
+  waits for bit 9 (IM ready) instead. It is compile-checked with `W=1`,
+  and checkpatch `--strict` is quiet.
+- Bit 11 is the master state moving from its idle bit (10) to the next.
+  It is unnamed, and is perhaps "master transaction issued".
+- That driver also wraps its IM fetch in an EMI hardware semaphore, held
+  from before the IM kick until IM ready. *Inference:* the vendor saw IM
+  fetches from DRAM conflict with another EMI user.
+
+The reference below stays, now with a module built from the commit
+recording 0829. Part 1 times a good fetch, and part 2 checks the
+corrected test on the passing setup. Its table reads with "IM ready" for
+"1/1" and "filling" for "2/2".
+
 **Next: an IM reference** (proposed, needs the owner's approval). On one
 fresh boot, the same module, with no cpuidle driver, so `d4.sh` can
 unload it between parts. This is the D5d setup that passed 377 periods.
