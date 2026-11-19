@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; IM reference: "filling" before the kick is normal; D5q run 2 (reuse) proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; D5q: the hang survives IM reuse, so the fetch is cleared |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4854,6 +4854,53 @@ IM when the previous one returned, and each logs `reused=1`.
 - A two-state hang after `reused=1` periods, with `LATCH_1` 0 again, would
   rule out the DRAM fetch. The stall would then be in the kick or the first
   instruction. The owner's catch of the bootloader matters for this run.
+
+### D5q run 2: a hang after 17 reused periods (custodian, 2026-11-18)
+
+**Approved** by the owner.
+
+**Setup.** Power-on boot d16289fb. The pre-module read matched
+d5994d6b's. Module 0d25e7fe, `d4.sh` 589a5738 with `D4_CIRQ_LEVEL=1
+D4_IM_REUSE=1`, no `D4_IM_WAIT`, two states, no cap. Wi-Fi power save on,
+cable out, battery 69 %.
+
+**Observed.** Window C started at 21:20:02 with pings, and 18 periods
+returned:
+- Period 1 fetched: `im fsm 02c48910>02c48910 reused=0`.
+- The 17 periods with `reused=1` logged `02c48610>02c48610` 12 times and
+  `02c48610>02448610` 5 times. **In IM slave mode the IM reads ready**
+  (bit 9).
+- The `io` line stayed `val1 00015830`, `r7 01415830`.
+- Returned periods alternated between two kinds:
+  - CONN2AP through SYS_CIRQ (`r12` `00400020`), slept 60-176 ms;
+  - `r12` `00400000` (SYS_CIRQ alone), slept 0 ms, with `timer_out` 0,
+    `event` `900f0000` and every SYS_CIRQ status word zero.
+- The last return, at 21:20:29.257, was of the second kind, with
+  `reused=1`. Period 19 never returned. The journal ends at 21:20:29.26.
+- After the reset the first start did not complete and restarted by
+  itself. The second came up on boot2: boot 45dfa658, with the kernel
+  starting at 21:21:28.
+- Latches read at uptime 0, before any module: `04248000`, `0`,
+  `ffffffff`, `0000c0ff`, `2a00005c`, `003dff08`. They are identical to
+  D5l and D5o part 2.
+
+**Result.**
+- **The per-period IM fetch is cleared.** Periods ran from a resident IM
+  that read ready, and the two-state hang came anyway, with the same latch
+  signature (`r6` 0).
+- By the SPM program session's reading, the stall is in the PCM kick or
+  the first instruction, not in the fetch.
+- 0827's reuse option stays available but is not a fix.
+- *Not yet explained:* the zero-length SYS_CIRQ returns, which show a
+  SYS_CIRQ wake with no line recorded. Their `event` `900f0000` differs
+  from the main wait's `90100000`. The period just before the hang was one
+  of them. In D5o part 2 the last return before the hang was an ordinary
+  CONN2AP return, so this is not a rule.
+
+**Next, before any new code:** the station image carries pstore with a
+RAM console. After a reset caught to boot2, the console of the hung boot
+may hold kernel lines journald never wrote. The custodian checks it
+read-only on 45dfa658.
 
 ### Request D5n (proposed): two states with no resource events
 
