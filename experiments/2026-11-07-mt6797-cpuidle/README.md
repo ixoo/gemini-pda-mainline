@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; D5q: the hang survives IM reuse, so the fetch is cleared |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; D5q: the hang survives IM reuse, so the fetch is cleared; D5r proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4901,6 +4901,57 @@ returned:
 RAM console. After a reset caught to boot2, the console of the hung boot
 may hold kernel lines journald never wrote. The custodian checks it
 read-only on 45dfa658.
+
+### Request D5r (proposed): r7 from the vendor's value
+
+**The SPM program session's reading of D5q run 2.**
+- The reused periods read `02c48610`: PC idle, IM ready, master idle. The
+  program was resident, yet the hung kick never wrote `r6`. **The PCM never
+  started executing:** its clock failed, or the kick did not take.
+- The zero-length returns are the program's early abort at `0x434`-`0x436`.
+  A wake was already pending (a SYS_CIRQ level line from the pings), so the
+  program went straight to its exit, before the bus pause or clock cut.
+  That is a legitimate path, and a hang does not need one before it.
+- `LATCH_0` `04248000` has the PCM kick bit and no PC, IM or master bit, in
+  every hang. It is probably taken mid-reset, so it reads only as
+  "kicked".
+
+**The candidate.** Every boot so far reads `POWER_ON_VAL1` `0x00015830`.
+The vendor's driver writes `0x00015820`. The difference is bit 4
+(`R7_PCM_CK_SEL0`), so `r7` starts with both PCM clock-select bits set.
+The vendor never uses that combination, and the program's 26 MHz handlers
+always set exactly one.
+
+*Inference:* if the clock selects drive the PCM's clock mux at the kick,
+two at once could leave it unclocked, depending on timing. That would
+give "kicked, never ran `0x402`". Against it:
+- the 230 periods of the IM reference passed with the same value;
+- the FSM's clock-select status reads 1 even in the hang latch.
+
+So it can only be a timing-dependent cause.
+
+[`0830`](../../patches/proposals/0830-soc-mediatek-mt6797-spm-sleep-optionally-start-r7-fr.patch)
+(module only) adds `sodi_r7_vendor` (default off). For test periods, `r7`
+starts from `0x00015820`. Only the value of the approved
+`PCM_REG_DATA_INI` write changes. `POWER_ON_VAL1` itself is not written,
+so the `io` line's `val1` still shows the boot value, and `r7` after
+each return shows the effect. It is compile-checked with `W=1`, with and
+without `CONFIG_CPU_IDLE`, and checkpatch `--strict` is quiet. `d4.sh`
+takes `D4_R7_VENDOR=1`.
+
+- **Candidate:** image 137 on a fresh boot, with `mt6797-spm-sleep.ko`
+  from a Buildbox build of the commit recording this stage (0826-0828 and
+  0830). No boot2 write.
+- **Run:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_IM_REUSE=1 D4_R7_VENDOR=1`,
+  two states, no cap, pings in C: D5q run 2 with one change. The
+  pre-module read, and latches after a reset.
+- *Hypothesis:* `r7` starting with both clock selects set is why some
+  kicks never start the PCM.
+
+| Outcome | Decision |
+| --- | --- |
+| All windows pass (C, A, B), `r7` after returns with bit 4 clear | The double clock select is implicated. Repeat once, then make the vendor value the default |
+| Hang, same latches | Not the clock select. Next: the CPU8 observer, or the one-state driver as the practical route |
 
 ### Request D5n (proposed): two states with no resource events
 

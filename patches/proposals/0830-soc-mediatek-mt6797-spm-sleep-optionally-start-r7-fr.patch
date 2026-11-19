@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 18 Nov 2026 21:24:44 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally start r7 from the
+ vendor's value
+
+The module starts the PCM's r7 from SPM_POWER_ON_VAL1 as found,
+0x00015830 on every boot read so far. The vendor's driver writes
+0x00015820 at boot. The difference is bit 4, the second PCM clock
+select, so r7 starts with both selects set, which the program's own
+handlers never do. Hung periods are kicked but never reach the program's
+first register writes.
+
+Add sodi_r7_vendor (default off). In test periods r7 then starts from
+0x00015820. Only the value written to PCM_REG_DATA_INI changes;
+POWER_ON_VAL1 itself is not written (stage D5r).
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 2872ed1cf..6a8b00444 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -91,6 +91,8 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define POWERON_CONFIG_EN	0x000
+ #define SPM_POWER_ON_VAL0	0x004
+ #define SPM_POWER_ON_VAL1	0x008
++/* The vendor's POWER_ON_VAL1 at boot: one PCM clock select, CK_SEL1 (D5r) */
++#define SPM_R7_VENDOR		0x00015820
+ #define SPM_CLK_CON		0x00c
+ #define SPM_CLK_SETTLE		0x010
+ #define SPM_AP_STANDBY_CON	0x014
+@@ -247,6 +249,10 @@ static bool sodi_im_reuse;
+ module_param(sodi_im_reuse, bool, 0644);
+ MODULE_PARM_DESC(sodi_im_reuse, "SODI: run the program already in IM instead of fetching it again");
+ 
++static bool sodi_r7_vendor;
++module_param(sodi_r7_vendor, bool, 0644);
++MODULE_PARM_DESC(sodi_r7_vendor, "SODI: start r7 from the vendor's POWER_ON_VAL1, not the value found");
++
+ /* The I2C controller the programs reset (I2C6: the CPU bucks) */
+ #define I2C6_PHYS		0x1100e000
+ 
+@@ -319,6 +325,7 @@ struct spm_scen {
+ 	bool pcm_wdt;		/* the PCM watchdog wakes the program (D5p) */
+ 	bool im_wait;		/* wait for the IM fetch, or refuse (D5q) */
+ 	bool im_reuse;		/* IM slave mode when the program is resident (D5q) */
++	bool r7_vendor;		/* r7 starts from SPM_R7_VENDOR (D5r) */
+ 	bool ready;
+ };
+ 
+@@ -899,7 +906,7 @@ static int spm_run(const struct spm_scen *sc)
+ 	spm_wr(PCM_REG_DATA_INI, spm_rd(SPM_POWER_ON_VAL0));
+ 	spm_wr(PCM_PWR_IO_EN, PCM_RF_SYNC_R0);
+ 	spm_wr(PCM_PWR_IO_EN, 0);
+-	spm_wr(PCM_REG_DATA_INI, spm_rd(SPM_POWER_ON_VAL1));
++	spm_wr(PCM_REG_DATA_INI, sc->r7_vendor ? SPM_R7_VENDOR : spm_rd(SPM_POWER_ON_VAL1));
+ 	spm_wr(PCM_PWR_IO_EN, PCM_RF_SYNC_R7);
+ 	spm_wr(PCM_PWR_IO_EN, 0);
+ 
+@@ -1253,6 +1260,7 @@ static int sodi_once(u64 ms)
+ 	s.sodi.pcm_wdt = READ_ONCE(sodi_pcm_wdt);
+ 	s.sodi.im_wait = READ_ONCE(sodi_im_wait);
+ 	s.sodi.im_reuse = READ_ONCE(sodi_im_reuse);
++	s.sodi.r7_vendor = READ_ONCE(sodi_r7_vendor);
+ 	if (s.sodi.pcm_wdt)
+ 		s.sodi.wake_src |= WAKE_PCM_WDT;
+ 	if (sodi_pdn)
+-- 
+2.43.0
+

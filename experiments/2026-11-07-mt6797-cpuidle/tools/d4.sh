@@ -20,6 +20,8 @@
 # D4_IM_WAIT=1 sets sodi_im_wait (refuse a period whose IM fetch has not
 # settled) and D4_IM_REUSE=1 sets sodi_im_reuse (IM slave mode for a resident
 # program); both 0827, stage D5q.
+# D4_R7_VENDOR=1 sets sodi_r7_vendor: r7 starts from the vendor's
+# POWER_ON_VAL1, 0x00015820 (0830, stage D5r).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -268,6 +270,10 @@ if [ "${D4_PCM_WDT:-0}" = 1 ]; then
 fi
 [ "${D4_IM_WAIT:-0}" = 1 ] && level="$level sodi_im_wait=1"
 [ "${D4_IM_REUSE:-0}" = 1 ] && level="$level sodi_im_reuse=1"
+if [ "${D4_R7_VENDOR:-0}" = 1 ]; then
+	grep -q 'sodi_r7_vendor' "$KO" || stop "the module has no sodi_r7_vendor parameter (0830)"
+	level="$level sodi_r7_vendor=1"
+fi
 case $level in
 *sodi_im_*) grep -q 'sodi_im_reuse' "$KO" || stop "the module has no sodi_im_* parameters (0827)" ;;
 esac
