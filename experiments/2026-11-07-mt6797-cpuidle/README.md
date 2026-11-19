@@ -4605,6 +4605,29 @@ with `W=1`, with and without `CONFIG_CPU_IDLE`, and checkpatch
 `0x00015820` at load and refresh `POWER_ON_VAL0` from the last `r0`, as
 the vendor does. That is a new write and needs its own request.
 
+**First read, and the lead demoted (custodian, SPM program session).**
+Boot 3e7b6268, which came through Gemian and a warm restart, read at 6 min
+uptime with no module loaded:
+
+| Register | Value |
+| --- | --- |
+| `POWER_ON_VAL0` | `0x00000000` |
+| `POWER_ON_VAL1` | `0x00015830` |
+| `SPM_CLK_CON` | `0x00008000` |
+
+- `POWER_ON_VAL1` has bits 11 (`SRCVOLTEN`) and 14 (`SRCCLKENO_0`) set,
+  so `r7` starts each period with the VCORE and 26 MHz requests up.
+- These values are static and applied at every kick, so they cannot by
+  themselves split passes from hangs.
+- `r0` `0` drives the DRAM PHY controls, but 800 passing periods show
+  that is harmless at the kick. Mainline switches no DRAM or VCORE state.
+- *Inference:* the hang latches' clear `SRCVOLTEN` is better explained by
+  the latch being taken during the TOPRGU reset, after `r7` lost control.
+  That is unverified.
+
+0828's logging stays. No `POWER_ON_VAL` write unless the logs show these
+values changing near a hang.
+
 ### Request D5q (proposed): the IM fetch before the kick
 
 **The two-state hangs may stop before the program's first words (SPM
