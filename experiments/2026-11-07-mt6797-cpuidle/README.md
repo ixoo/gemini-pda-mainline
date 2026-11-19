@@ -5067,9 +5067,24 @@ pre-module read matched earlier power-on boots.
     real periods, not 88.
   - A hang must follow an abort in that pattern, so "a hang after an
     abort" says nothing.
-  - *Inference (SPM program session):* reuse leaves a state that the next
-    kick's pre-pause check consumes. Logging `SPM_WAKEUP_STA` and its raw
-    value just before each kick would show it.
+  - Within those runs both kinds were reused periods (D5r: 44 aborts and
+    43 normal among 87 reused), so the alternation is not fetch against
+    reuse.
+  - *Inference (SPM program session, from the 0824 source):*
+    - `spm_cirq_enable()` acknowledges every SYS_CIRQ status word, and
+      since 0817 it runs after the kick. `spm_cirq_disable()` flushes but
+      never acknowledges.
+    - A normal period ends on a recorded line, and that status stays set.
+    - With resident code, the next kick reaches the pre-pause check
+      (`0x434`) within microseconds, before the enable acknowledges. The
+      stale status wakes SYS_CIRQ, and the period aborts.
+    - That abort's enable then clears everything, which is why aborts read
+      status all zero. So the next period is normal again.
+    - A fetching kick reaches `0x434` more slowly, after the enable.
+  - *Proposed fix, not prepared:* acknowledge every status word in
+    `spm_cirq_disable()` after the flush, as the vendor's exit flushes,
+    then disables. It would make reuse usable, but it does not touch the
+    `r6` 0 hang.
 - Aborts also came in window B, with no pings. That supports a SYS_CIRQ
   pulse while SYS_CIRQ is configured after the kick.
 - The vector enable is live through the pre-pause wait (`0x42e`), until
