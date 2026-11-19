@@ -15,6 +15,8 @@
 # the WFI state alone (0820, stage D5e).
 # D4_NO_EVENT=1 sets sodi_no_event, so periods arm no resource event (0825,
 # stage D5n).
+# D4_PCM_WDT=1 sets sodi_pcm_wdt: the PCM watchdog, in wake mode, ends a
+# stuck period 2 s after its timer (0826, stage D5p).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -178,7 +180,7 @@ wake_names() {
 	v=$((0x${1:-0}))
 	names=""
 	for pair in 0:timer 2:keypad 4:apxgpt 5:conn2ap 6:eint 7:conn_wdt 8:ccif0 \
-		10:scp 14:usb_cdsc 15:usb_pdn 16:c2k_wdt 17:sec_eint 18:ccif1 \
+		10:scp 13:pcm_wdt 14:usb_cdsc 15:usb_pdn 16:c2k_wdt 17:sec_eint 18:ccif1 \
 		20:afe 22:cirq 24:csyspwreq 25:md_wdt 26:cldma 27:sej; do
 		bit=${pair%%:*}
 		[ $(( (v >> bit) & 1 )) -eq 1 ] && names="$names ${pair#*:}"
@@ -251,6 +253,10 @@ level=""
 [ "${D4_STATES:-2}" = 1 ] && level="$level sodi_idle_states=1"
 [ "${D4_TIMER_CAP:-0}" = 1 ] && level="$level sodi_timer_cap=1"
 [ "${D4_NO_EVENT:-0}" = 1 ] && level="$level sodi_no_event=1"
+if [ "${D4_PCM_WDT:-0}" = 1 ]; then
+	grep -q 'sodi_pcm_wdt' "$KO" || stop "the module has no sodi_pcm_wdt parameter (0826)"
+	level="$level sodi_pcm_wdt=1"
+fi
 # shellcheck disable=SC2086 # empty parameters must vanish
 insmod "$KO" ${D4_WAKE:+sodi_wake_src=$D4_WAKE} $level || stop "insmod failed"
 [ -n "$level" ] && log "sodi_cirq_level $(cat /sys/module/mt6797_spm_sleep/parameters/sodi_cirq_level)"

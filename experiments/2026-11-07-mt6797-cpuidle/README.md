@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o and D5p proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4303,7 +4303,7 @@ explanations fit all runs:
   need but do not set themselves;
 - boot b8d5a469 was good by chance.
 
-### Request D5o (proposed): the 0806 module first, on a fresh boot
+### Request D5o (approved 2026-11-18): the 0806 module first, on a fresh boot
 
 - **Candidate:** image 137 on a fresh boot, module 9cf7b397 (0806), the
   D5c run. No build, no new write (D4b's list), no boot2 write.
@@ -4346,6 +4346,68 @@ and `SPM_SW_FLAG` to `SPM_SW_RSV_5` (`0x600`-`0x61c`), and records them
 with the boot. A boot that passes can then be compared with one that
 hangs.
 
+### D5o: 0806 passes, then 0825 hangs on the same boot (custodian, 2026-11-18)
+
+**Approved** by the owner.
+
+**Setup.** Image 137, boot 34034169, reached straight from the D5m
+no-event reset with the bootloader caught. No module was loaded before
+the run. Radio modules e989cbc1, 0f3a9a9e and ea4e60fe, as in D5c. Wi-Fi
+power save on, cable out. `d4.sh` 04633082 with `D4_CIRQ_LEVEL=1`. The
+pre-module SPM read was not yet in place for this boot.
+
+**Observed.**
+- **Part 1**, module 9cf7b397 (0806), 19:51:14-19:57:23: "C 60 early, 60
+  by packet; A 20 early; B key 0". Window B got no key because the request
+  reached the owner too late. Every period read `r12` `00400020`, conn2ap
+  through SYS_CIRQ. There were no refusals and taint stayed 0.
+- **Part 2**, module 74a05731 (0825), two states, no cap, no pin, after
+  `d4.sh` unloaded 0806:
+  - the SODI idle state was registered;
+  - blank at 19:59:22, `online: 0` at 19:59:23, window C from 19:59:29
+    with pings;
+  - 22 periods returned normally (`r12` `00400020`). The last, at
+    20:00:04.357, left `fsm` `02048490`, `r13` `0006e410` and `event`
+    `90100000`;
+  - the next period, started at 20:00:04.36, never returned, and the
+    journal ends there;
+  - the next boot, 58ab0d70, started at 20:01:03, about 50 s after the
+    last line.
+- Read before any module on 58ab0d70, at uptime 0:
+
+| Register | Value |
+| --- | --- |
+| Latches `0x190`/`194`/`198`/`19c`/`1c4`/`1c8` | `04248000` / `0` / `ffffffff` / `0000c0ff` / `2a00005c` / `003dff08`, identical to D5l's |
+| `PCM_CON1` `0x01c` | `0x00006c00`: watchdog enable and wake mode clear |
+| `PCM_WDT_VAL` `0x034` | `0xffffffff` |
+| `0x600`-`0x614` (`SPM_SW_FLAG` onwards) | `0` |
+| `0x618`, `0x61c` (`SPM_SW_RSV_5`) | `0xffffffff`, `0xffffffff` |
+| TOPRGU `MODE` / `STA` | `0x15` / `0` |
+
+These were read after a reset, so they may be reset or boot-loader values,
+not the hung state.
+
+**Result.** This is D5o's second row.
+- A boot straight from a hang ran 0806 cleanly. Then, on the same boot,
+  0825 with the two-state driver hung at period 23. **The boot alone does
+  not decide.** The difference is the module and its configuration.
+- The SPM program session found no load-path difference between the
+  modules. So the two-state cpuidle driver remains the factor that raises
+  the hang rate. D5m showed that a timer-only period can hang without it.
+- **Two latch signatures:**
+
+| Hang | `LATCH_0` | `LATCH_1` | `DRAMC_DBG_LATCH` |
+| --- | --- | --- | --- |
+| Two-state driver (D5l, D5o part 2) | `04248000` | `0` | `0000c0ff` |
+| No driver, timer only, no events (D5m) | `04248000` | `fd8d3239` | `00003d3d` |
+
+- *Inference:* the PCM watchdog was off at boot (`PCM_CON1` bits 8 and 9
+  clear). Unless a program exit turns it on, the resets come from the
+  TOPRGU watchdog once the kernel's pings stop, not from the PCM's.
+
+**D5p now covers both setups.** `d4.sh` takes `D4_PCM_WDT=1` and names
+wake bit 13. The Buildbox build of eb5f46ea already contains 0826.
+
 ### The latches after the no-event hang (SPM program session)
 
 The SPM program session decoded the latches from the D5m no-event hang. Its
@@ -4380,11 +4442,14 @@ checkpatch `--strict` is quiet.
 to skip the deliberate reset. It now logs each period's full return line.
 
 - **Candidate:** image 137 on a fresh boot, with `mt6797-spm-sleep.ko`
-  from a Buildbox build of the commit recording this stage. No boot2
-  write.
-- **Run:** `d5m.sh` with `D5M_PCM_WDT=1 D5M_RESET=0`: no cpuidle driver,
-  timer-only wake, Wi-Fi joined with power save on, pings from the laptop,
-  cable out. This setup hung in period 1-3 twice (D5m, D5m no-event).
+  from the Buildbox build of eb5f46ea (0826 included). No boot2 write.
+- **Run, part 1:** `d5m.sh` with `D5M_PCM_WDT=1 D5M_RESET=0`: no cpuidle
+  driver, timer-only wake, Wi-Fi joined with power save on, pings from the
+  laptop, cable out. This setup hung in periods 1-3 twice (D5m, D5m
+  no-event).
+- **Run, part 2, same boot:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_PCM_WDT=1`,
+  two states, no cap, pings in C: the D5o part 2 setup. It runs last
+  because the registered driver pins the module.
 - *Hypothesis:* the PCM is stuck short of its exit while CPU0 waits, and
   the PCM watchdog in wake mode can drive it to the exit.
 - *Unique observation:* the full return record of a period that would
