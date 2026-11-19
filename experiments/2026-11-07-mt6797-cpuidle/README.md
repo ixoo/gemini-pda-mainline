@@ -4998,6 +4998,18 @@ so D5r also reads the vector enable:
 - if it reads `0xc0c0`, a run with `D4_VEC_CLEAR=1` follows. That run
   needs the owner's approval for the new write.
 
+**Weight (SPM program session): low for the two-state hang.**
+- `0x080` is confirmed by the vendor's register map and by the program's
+  own stores.
+- The handlers overwrite registers the main path holds live across
+  straight-line code. So the program is written as if vectors fire only
+  in its waits.
+- There is no wait between `0x400` and `0x402`, so a stale enable could
+  not act before `r6` is written.
+- *Inference:* it could still stall at the first wait (`0x42e`), with `r6`
+  already written. That is the no-driver signature (`LATCH_1`
+  `fd8d3239`), not the two-state one. The log stays.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
