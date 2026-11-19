@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 is next |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 is next |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5380,7 +5380,7 @@ no cap. Console log level 8, cable out, battery 91 %.
   board or battery limiter) probably lowered the effective maximum during
   the run. Not checked on the device.
 
-### Request D5t run 2 (proposed): the same run again
+### Request D5t run 2 (run 2026-11-19): the same run again
 
 The measurement D5t was built for, a stuck period seen by the observer, has
 not happened yet. Run 2 repeats D5t with the same module (d452e299) and
@@ -5391,6 +5391,54 @@ not happened yet. Run 2 repeats D5t with the same module (d452e299) and
   pass (about 530 periods), run D5n's no-event setup without `D4_OBS` and
   with CPU8 offline. That separates the observer setup (CPU8 up) from 0832
   and `SODI_NO_EVENT`.
+
+### D5t run 2: period 2 hung again; the reset went to Gemian (custodian, 2026-11-19)
+
+**Approved** by the owner ("Approve run 2").
+
+**Setup.** Power-on boot 6a4fdc32, image 137, init status
+`a72=loaded cpus=0-9`; the latches read zero before the module. Module
+d452e299, `d4.sh` 29ec1867 (blob fb2b0c34), as D5t. Console log level 8,
+cable out, battery 88 %.
+
+**Observed.**
+- Blank at 18:10:22. CPU8 pinned at 338000 kHz at 18:10:23; its maximum
+  already read 1001000, lowered by the battery cap. `watchdogd` confined
+  to CPU0, 9 tasks left on CPU8.
+- Window C started at 18:10:30 with pings arriving.
+- Period 1 returned: `r12` `00400020`, slept 247 ms, CONN2AP through
+  SYS_CIRQ (word 7 `00080000`), IM `02c48910>02c48910`, `r7` `01415830`.
+- Period 2 started at 18:10:32. `d4.log` ends there. The journal ends at
+  18:10:31.82 with period 2's `sodi cirq` line; its only observer line is
+  `sampling on CPU8`. 71 of 240 pings were answered.
+- At 18:13:28 the device was unreachable. The owner missed the bootloader
+  and found Gemian, so the latches and the RAM console were lost. When the
+  reset came is not known.
+
+**Result.**
+- The second hang under the observer setup, again in period 2 right after
+  one returned period. The journal cannot hold observer lines from a stuck
+  period, since its writer runs on the stuck CPU0; only the RAM console can.
+- **Period 2 is not specific to CPU8.** Earlier hangs with CPU8 offline came
+  in period 1 (D5h, D5l, D5p part 2), period 2 (D5f, D5p part 1) and later
+  (15, 19, 22, 23 and 89 periods: D5b, D5q run 2, D5a, D5o, D5r).
+- **Correction to D5s's reading.** D5p part 1 already had a reset with all
+  latches zero, which the bootloader logged as a power-key boot with no
+  watchdog reboot, with CPU8 offline and no observer. So a latch-clearing
+  reset happens without `emergency_restart()`, and D5s's reading (a) is
+  weaker than recorded there. D5p part 1 ran the PCM watchdog
+  (`sodi_pcm_wdt=1`); D5s did not.
+- Reset delays have ranged from about 50 s (D5o) to 2 min 20 s (D5p
+  part 1) after the hung period.
+
+### Request D5t run 3 (proposed): the same run, with the bootloader caught
+
+Run 2's measurement was lost to the missed catch, not to the setup. Run 3
+repeats it with the same module and `d4.sh` blob, from a fresh boot with
+`a72-at-boot` set. The custodian warns the owner at the start of window C
+to watch for the bootloader from about 30 s to 3 min after the pings stop.
+After the reset, D5t's request and table apply. If it passes, D5t's plan
+(three passes in a row, then D5n's setup) applies.
 
 ### Request D5n (proposed): two states with no resource events
 
