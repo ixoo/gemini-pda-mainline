@@ -5059,6 +5059,24 @@ pre-module read matched earlier power-on boots.
   RAM console. So the kick, or the first moments after it, freeze CPU0
   itself, not only the PCM.
 
+**Counts and the SPM program session's reading.**
+- Early aborts were 44 of 88 returns in D5r and 9 of 18 in D5q run 2. So
+  a hang right after an abort, in 2 of 3 hangs, is chance.
+- Aborts also came in window B, with no pings. That supports a SYS_CIRQ
+  pulse while SYS_CIRQ is configured after the kick.
+- The vector enable is live through the pre-pause wait (`0x42e`), until
+  the program clears it at `0x47a`. That does not match the program's
+  intent, and `sodi_vec_clear` is cheap. It cannot explain the two-state
+  hangs (no wait before `0x402`), or D5n, whose period 1 had it at 0.
+- The session has no program-side explanation left for "kicked, resident
+  code, never runs `0x402`". It names three candidates outside the program:
+  - the kick write itself;
+  - `PCM_CK_EN` in `PCM_CON0`;
+  - the SPM's APB side.
+
+  Only an observer during a hung period, or a kick sequence equivalent to
+  the vendor's, can separate them.
+
 **Where this leaves D5.** Tested and cleared as the cause of the two-state
 hang:
 - the moved CIRQ order;
