@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); the watchdog reset is next (D5t) |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 is next |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5303,7 +5303,7 @@ level 8, cable out, battery 97 %.
   retained firmware does not show what PSCI `SYSTEM_RESET` does on this
   ATF.
 
-### Request D5t (proposed): the observer leaves the reset to the watchdog
+### Request D5t (run 2026-11-19): the observer leaves the reset to the watchdog
 
 **0834** (`let the watchdog reset after a stuck observed period`) removes
 the observer's `emergency_restart()`. After the stuck period and its 3 s
@@ -5340,6 +5340,57 @@ script then stops before any period.
 | Latches zero and RAM console empty again | Reading (b): a cold reset with CPU8 up. Next: the same run with CPU8 online but no observer (`D4_OBS` without `sodi_obs`), to tell the A72 cluster from the observer's reads |
 | No reset within 120 s of the hang | `watchdogd` or something else pinged it. The owner resets with the keys; record and stop |
 | All windows pass | As in D5s's table |
+
+### D5t: every window passed with the observer (custodian, 2026-11-19)
+
+**Setup.** Power-on boot 16c56d74, image 137, init status
+`a72=loaded cpus=0-9`; the latches read zero before the module. Module
+d452e299 (Buildbox 5758d1571, 0826-0828 and 0830-0834). `d4.sh` 29ec1867
+(blob fb2b0c34) with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_OBS=1`, two states,
+no cap. Console log level 8, cable out, battery 91 %.
+
+**Observed.**
+- CPU8 pinned at 338000 kHz (was 338000-1495000), `watchdogd` confined
+  to CPU0, 11 tasks left on CPU8.
+- **C:** 60 of 60 ended early, all by CONN2AP or the WLAN line, with 95
+  echo requests in the window. Hash equal.
+- **A:** 20 of 20 ended early.
+- **B:** the owner pressed one key. The script logged that the screen lit
+  with no key wake seen, then no key wake within the window. The keypad
+  IRQ count went from 0 to 1.
+- No refusal, CPUs back to 0-9, taint 0. No hang and no reset.
+- **Early aborts nearly gone:** of 176 periods, 175 read `r12` `00400020`.
+  One read `00400000`, the early-abort signature, which alternated with
+  normal periods before 0832 (D5q run 2, D5r).
+- IM `fsm`: 110 periods read `02c48910>02c48910`, 66 `02c48910>02448910`
+  (bit 23 clears after the fetch).
+- The observer logged only `sodi obs: sampling on CPU8`: no period
+  stuck.
+- CPU8's policy was restored to 338000-1131000 kHz, not 1495000.
+
+**Result.**
+- **0832's SYS_CIRQ acknowledgement works:** the stale-status early
+  aborts dropped from about half of all periods to 1 of 176.
+- D5s hung in period 2 under the same conditions apart from the restart
+  path, which acts only after a hang. So the hang is intermittent under
+  the observer setup. One passing run does not separate "a changed
+  condition avoids the hang" from chance.
+- *Inference:* the restored maximum reads the policy's effective limit.
+  `d4.sh` writes back the saved 1495000; another cap on CPU8's policy (a
+  board or battery limiter) probably lowered the effective maximum during
+  the run. Not checked on the device.
+
+### Request D5t run 2 (proposed): the same run again
+
+The measurement D5t was built for, a stuck period seen by the observer, has
+not happened yet. Run 2 repeats D5t with the same module (d452e299) and
+`d4.sh` blob, from a fresh boot with `a72-at-boot` set. No code change.
+
+- After a hang: as in D5t's request and table.
+- If run 2 passes too, run it once more. If three observer runs in a row
+  pass (about 530 periods), run D5n's no-event setup without `D4_OBS` and
+  with CPU8 offline. That separates the observer setup (CPU8 up) from 0832
+  and `SODI_NO_EVENT`.
 
 ### Request D5n (proposed): two states with no resource events
 
