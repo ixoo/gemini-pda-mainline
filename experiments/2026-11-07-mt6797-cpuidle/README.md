@@ -4902,6 +4902,20 @@ RAM console. After a reset caught to boot2, the console of the hung boot
 may hold kernel lines journald never wrote. The custodian checks it
 read-only on 45dfa658.
 
+**pstore after D5q run 2 (custodian).** systemd-pstore had archived a
+single `console-ramoops-0` (286 bytes, three warning lines up to 28 s of
+uptime). It is the console of the failed first start after the reset,
+which ran at least 28 s before dying, not of the hung boot. There was no
+`dmesg-ramoops` record. The station DT reserves ramoops with a 64 KiB
+console. The console keeps only messages at the console log level, so the
+module's `dev_info` lines never reach it.
+- **From D5r on**, the run sets the console log level to 8
+  (`/proc/sys/kernel/printk`) before loading the module. The RAM console
+  then holds the module's lines up to the hang, and they can be read after
+  a reset caught to boot2.
+- *Not yet explained:* after the D5p part 1 and D5q run 2 resets, the next
+  start died on its own. This time it happened with no SODI module loaded.
+
 ### Request D5r (proposed): r7 from the vendor's value
 
 **The SPM program session's reading of D5q run 2.**
@@ -4944,7 +4958,8 @@ takes `D4_R7_VENDOR=1`.
   0830). No boot2 write.
 - **Run:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_IM_REUSE=1 D4_R7_VENDOR=1`,
   two states, no cap, pings in C: D5q run 2 with one change. The
-  pre-module read, and latches after a reset.
+  pre-module read, console log level 8 before the load, and after a reset
+  the latches and the archived RAM console.
 - *Hypothesis:* `r7` starting with both clock selects set is why some
   kicks never start the PCM.
 
