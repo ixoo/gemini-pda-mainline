@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 19 Nov 2026 16:48:38 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: let the watchdog reset after
+ a stuck observed period
+
+After printing a stuck period, the CPU8 observer called emergency_restart().
+In stage D5s that reset cleared the SPM's reset latches and the RAM console,
+so none of its lines survived. The TOPRGU watchdog reset that follows a
+stuck period once CPU0 stops pinging the watchdog kept both in D5r.
+
+So the observer now stops after its tail and leaves the reset to the
+watchdog.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 56adb1a01..b06bf7a8d 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -37,7 +37,6 @@
+ #include <linux/of_reserved_mem.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
+-#include <linux/reboot.h>
+ #include <linux/regmap.h>
+ #include <linux/seq_file.h>
+ #include <linux/smp.h>
+@@ -270,7 +269,10 @@ MODULE_PARM_DESC(sodi_r7_vendor, "SODI: start r7 from the vendor's POWER_ON_VAL1
+  * while a period is in flight, into memory only, so CPU8 sends CPU0 nothing
+  * during a period. A period still in flight 500 ms after its end means CPU0
+  * is stuck: CPU8 then prints a reference period and the stuck one at
+- * console level, samples 3 s more every 200 ms and restarts the system.
++ * console level, samples 3 s more every 200 ms and stops. It does not restart
++ * the system: a software restart clears the SPM latches (and in D5s lost the
++ * RAM console too), while the TOPRGU watchdog reset that follows once CPU0
++ * stops pinging it keeps both.
+  */
+ #define SODI_OBS_CPU		8
+ #define SODI_OBS_NS		(10 * NSEC_PER_MSEC)
+@@ -280,7 +282,7 @@ MODULE_PARM_DESC(sodi_r7_vendor, "SODI: start r7 from the vendor's POWER_ON_VAL1
+ 
+ static bool sodi_obs;
+ module_param(sodi_obs, bool, 0444);
+-MODULE_PARM_DESC(sodi_obs, "SODI: CPU8 samples the PCM in periods, prints and restarts after a stuck one");
++MODULE_PARM_DESC(sodi_obs, "SODI: CPU8 samples the PCM in periods, prints after a stuck one");
+ 
+ struct sodi_obs_sample {
+ 	u32 us, rd_ns, fsm, ev, r15, r6, r7, tout, con0;
+@@ -1266,8 +1268,7 @@ static enum hrtimer_restart sodi_obs_tick(struct hrtimer *t)
+ 	}
+ 	if (obs.late < SODI_OBS_TAIL)
+ 		return HRTIMER_RESTART;
+-	dev_info(&s.pdev->dev, "sodi obs: restarting\n");
+-	emergency_restart();
++	dev_info(&s.pdev->dev, "sodi obs: stopped; the watchdog resets the system\n");
+ 	return HRTIMER_NORESTART;
+ }
+ 
+-- 
+2.43.0
+

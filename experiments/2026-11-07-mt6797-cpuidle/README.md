@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer is next (D5s) |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); the watchdog reset is next (D5t) |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5127,7 +5127,7 @@ registers do not record. Two ways on, for the owner to choose:
    raises the hang rate, is not used, and measure whether real idle
    entries hang. This works around the hang without explaining it.
 
-### Request D5s (proposed): the CPU8 observer
+### Request D5s (run 2026-11-19): the CPU8 observer
 
 The owner chose option 1, the CPU8 observer.
 
@@ -5249,6 +5249,90 @@ exists.
 | `r6` nonzero in the stuck period | The timer-only signature (past `0x411`); the stuck `ev` and `r15` name the wait |
 | No `sodi obs` lines from the hung period; TOPRGU reset with latches | CPU8 stopped too: a system-level freeze. Next: an observer that does not read the SPM, to tell its reads from the freeze |
 | All windows pass | One of the changed conditions avoids the hang. Next: the same run without `D4_OBS`, which separates the observer from the acknowledgement and `SODI_NO_EVENT` |
+
+### D5s: period 2 hung, and the reset lost the latches and the RAM console (custodian, 2026-11-19)
+
+**Setup.** Power-on boot 2d63e1b4, image 137, `a72-at-boot` set, init
+status `a72=loaded cpus=0-9`. Module 3c331721 (Buildbox 515ff190e,
+0826-0828 and 0830-0833). `d4.sh` 2d24d45c (blob 1ebcec80) with
+`D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_OBS=1`, two states, no cap. Console log
+level 8, cable out, battery 97 %.
+
+**Observed.**
+- The module loaded at 16:28:10 and logged `sodi obs: sampling on CPU8`.
+  The screen blanked at 16:28:12.
+- At 16:28:13 CPU8's policy was pinned at 338000 kHz, 8 tasks stayed on
+  CPU8 (its per-CPU threads), and `online` read `0,8`.
+- Window C started at 16:28:19 with pings arriving.
+- Period 1 returned: `r12` `00400020`, slept 110 ms, woken by CONN2AP
+  through SYS_CIRQ (word 7 `00080000`), IM `fsm` `02c48910` (fill),
+  `r7` `01415830`.
+- Period 2 started at 16:28:21. `d4.log` ends there. The journal ends at
+  16:28:21.189 with period 2's `sodi cirq` line, with no `sodi obs` line.
+- The device reset on its own; the owner pressed no key. The owner caught
+  the bootloader and selected boot2. The next kernel (boot 3374f06c)
+  started at 16:29:25, 64 s after period 2 began.
+- Read before any module: **all six latches zero**. VAL1 `0x15830`,
+  `SPM_CLK_CON` `0x8000`, `PCM_CON1` `0x6c00`, `0x618`/`0x61c`
+  `ffffffff`: power-on defaults. TOPRGU `MODE` `0x15`, `STA` 0.
+- **pstore was empty**: no RAM console.
+
+**Result.**
+- The hang came with CPU8 online and observing, on the second period.
+- The reset was not the kind D5r saw. A TOPRGU watchdog reset after a hung
+  period, with the bootloader caught, has kept the latch signature (D5l,
+  D5o, D5q run 2, D5r) and the RAM console (D5r). Here both were lost.
+- *Inference:* two readings fit, and 64 s does not separate them.
+  - **(a) The observer's restart.** After a stuck period the module called
+    `emergency_restart()` about 4 s after the period's start. A software
+    restart clears the latches ([latch calibration](#d5l-pinned-at-221-mhz-the-first-period-still-hangs-custodian-2026-11-18):
+    zero after a clean reboot). It kept the RAM console after an idle
+    `reboot` and a panic
+    ([pstore T1](../2026-11-03-gemini-pstore-retention/README.md#t1-result)),
+    but that has not been tested with a period hung, and DRAM may not be
+    in a state that survives it then.
+  - **(b) A power-level reset.** Something tied to CPU8 being up (the A72
+    rail, or CPU8 itself freezing) caused a cold reset, which clears both
+    (a key restart lost the RAM in the pstore experiment).
+- No observer line exists, so none of the decision table's rows can be
+  read.
+
+### Request D5t (proposed): the observer leaves the reset to the watchdog
+
+**0834** (`let the watchdog reset after a stuck observed period`) removes
+the observer's `emergency_restart()`. After the stuck period and its 3 s
+tail, CPU8 logs `sodi obs: stopped; the watchdog resets the system` and
+stops its timer. CPU0 stays stuck, so nothing pings the TOPRGU watchdog
+and it resets the chip about 31 s later, as in D5r. Compile-checked with
+`W=1` with and without `CONFIG_CPU_IDLE`; no other change.
+
+`d4.sh` (blob fb2b0c34) adds one check with `D4_OBS=1`: after the move to
+CPU0, the `watchdogd` thread must be allowed on CPU0 only. Otherwise CPU8
+could keep pinging the watchdog and a stuck system would never reset; the
+script then stops before any period.
+
+- **Candidate:** as D5s: image 137 booted fresh with `a72-at-boot` set,
+  init status `a72=loaded cpus=0-9`, with `mt6797-spm-sleep.ko` from a
+  Buildbox build of the commit recording this stage (0826-0828,
+  0830-0834). No boot2 write.
+- **Run:** as D5s: `d4.sh` with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1
+  D4_OBS=1`, two states, no cap, pings in C, cable out, hands off,
+  console log level 8.
+- **After the reset:** the owner catches the bootloader and selects boot2;
+  read the latches before any module; archive the RAM console and
+  `d4.log`.
+- *Hypothesis:* D5s's reset was the observer's software restart (reading
+  a).
+- *Unique observation:* a stuck observed period whose only reset is the
+  TOPRGU watchdog's.
+
+| Outcome | Decision |
+| --- | --- |
+| Latches kept, RAM console with `sodi obs` lines | Reading (a). Read the lines with D5s's table |
+| Latches kept, RAM console without `sodi obs` lines | CPU8 stopped too: D5s's table's system-level freeze row |
+| Latches zero and RAM console empty again | Reading (b): a cold reset with CPU8 up. Next: the same run with CPU8 online but no observer (`D4_OBS` without `sodi_obs`), to tell the A72 cluster from the observer's reads |
+| No reset within 120 s of the hang | `watchdogd` or something else pinged it. The owner resets with the keys; record and stop |
+| All windows pass | As in D5s's table |
 
 ### Request D5n (proposed): two states with no resource events
 

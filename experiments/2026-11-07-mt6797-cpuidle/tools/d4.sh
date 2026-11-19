@@ -30,7 +30,9 @@
 # wakes nothing on CPU0 during a period, and moved back at the end. CPU8's
 # cpufreq policy, if any, is pinned at its lowest frequency for the run, so
 # no A72 rail changes during it. After a
-# stuck period the module prints its samples and restarts the system.
+# stuck period the module prints its samples and stops (0834); the TOPRGU
+# watchdog then resets the system, since its pinging thread, watchdogd, must
+# be confined to CPU0 too (the script stops otherwise).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -363,6 +365,11 @@ if [ "${D4_OBS:-0}" = 1 ]; then
 	else
 		log "CPU8 has no cpufreq policy"
 	fi
+	wd=$(pgrep -x watchdogd | head -n 1)
+	[ -n "$wd" ] || stop "no watchdogd thread: nothing would reset a stuck period"
+	wdc=$(awk '/^Cpus_allowed_list:/ {print $2}' "/proc/$wd/status")
+	[ "$wdc" = 0 ] || stop "watchdogd may run on CPUs $wdc, so CPU8 could keep a stuck system alive"
+	log "observer: watchdogd confined to CPU0"
 	log "observer: tasks on CPU8 after the move (its per-CPU threads stay): $(ps -eo psr= | awk '$1 == 8' | wc -l)"
 fi
 log "online: $(cat "$CPUS/online")"
