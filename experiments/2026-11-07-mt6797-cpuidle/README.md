@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p and D5q proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; D5q proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4425,7 +4425,7 @@ with `PCM_FSM_STA`, `r6` and `SPM_SW_RSV_5`:
   enabled in reset mode, a period stuck for 30 s resets the chip and fills
   these latches. That fits the 30-36 s from hang to reset.
 
-### Request D5p (proposed): the PCM watchdog ends a stuck period
+### Request D5p (approved 2026-11-18): the PCM watchdog ends a stuck period
 
 [`0826`](../../patches/proposals/0826-soc-mediatek-mt6797-spm-sleep-optionally-end-stuck-t.patch)
 (module only) adds `sodi_pcm_wdt` (default off). For test periods it sets
@@ -4482,6 +4482,64 @@ to skip the deliberate reset. It now logs each period's full return line.
 D5o and D5p are independent: D5o needs no build, so it can run while D5p
 is built.
 
+### D5p: the PCM watchdog does not end a stuck period (custodian, 2026-11-18)
+
+**Approved** by the owner.
+
+**Pre-module read** on power-on boot 348d87b7, at uptime 0:
+- latches all 0;
+- `PCM_CON1` `0x00006c00`;
+- `PCM_WDT_VAL` `0xffffffff`;
+- `0x600`-`0x614` 0;
+- `0x618` and `0x61c` `0xffffffff`;
+- TOPRGU `MODE` `0x15`, `STA` `0`.
+
+These match the reads after the D5o reset, so they are boot defaults. The
+PCM watchdog is off at boot.
+
+**Part 1**, boot 348d87b7. Module 06c21076 (Buildbox eb5f46ea, 0826),
+`d5m.sh` e41dd3c9 with `D5M_PCM_WDT=1 D5M_RESET=0`, loaded with
+`sodi_idle=0 sodi_wake_src=0 sodi_pcm_wdt=1`. The Wi-Fi modules were
+`mt6797_consys` and `mt6797_wlan_core`, with power save on, pings and the
+cable out.
+- Blank at 20:32:54, then `online: 0`.
+- Period 1 returned on the PCM timer: `r12` `00000001`, `fsm` `02048490`,
+  `r13` `00066400`, `timer_out` `0000199c`, `event` `90100000`.
+- Period 2 started at 20:32:55 and never returned. The journal ends with
+  period 1's lines.
+- The next boot, 0aae3786, started at 20:35:22, about 2 min 20 s later.
+  The owner confirms that no key was pressed.
+- The boot loader's log for that boot reads a power-key boot, boot reason
+  0, RGU status 0, and no watchdog reboot.
+- The latches read all zero at uptime 0. After every earlier TOPRGU reset
+  they held values.
+
+**Part 2**, boot 0aae3786. The same module, `d4.sh` 2b63da9b with
+`D4_CIRQ_LEVEL=1 D4_PCM_WDT=1`, two states, no cap.
+- Blank at 20:37:42, `online: 0` at 20:37:43. Pings arrived at 20:37:50,
+  with 60 periods planned.
+- No period line was logged, so it hung in the first period of C. The
+  laptop got 24 of 240 replies.
+- The owner missed the catch, so the device went to Gemian, which clears
+  the latches. The next boot2 was 3e7b6268, at 20:42:38.
+
+**Result.**
+- **No period returned through the PCM watchdog** (`r12` bit 13) in
+  either setup. Per D5p's table, the PCM either ignores its watchdog wake
+  (a loop) or its counter has stopped.
+- Part 1's reset was not the usual one. It came 2 min 20 s after the hang
+  instead of about 30 s, it cleared the latches, and the boot loader saw
+  a power-key boot with no watchdog.
+- *Inference, not tested:* the TOPRGU watchdog did not fire this time.
+  Something stopped both watchdog counters, and something outside them
+  (perhaps the PMIC) restarted the device later. A stopped clock, rather
+  than a loop, fits both watchdogs failing to fire.
+- Arming the PCM watchdog may itself have changed the reset path. That
+  cannot be told from one run.
+
+**D5q is changed:** it runs without `D4_PCM_WDT`. The watchdog gave no
+wake, and it may have changed the reset path and cost the latches.
+
 ### Request D5q (proposed): the IM fetch before the kick
 
 **The two-state hangs may stop before the program's first words (SPM
@@ -4524,8 +4582,8 @@ stuck fetch.
 - **Candidate:** image 137, with `mt6797-spm-sleep.ko` from a Buildbox
   build of the commit recording this stage (it has 0826 and 0827). No
   boot2 write.
-- **Run 1, fresh boot:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_PCM_WDT=1
-  D4_IM_WAIT=1`, two states, no cap, pings in C: the setup that hung at
+- **Run 1, fresh boot:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_IM_WAIT=1`
+  (no `D4_PCM_WDT`, after D5p), two states, no cap, pings in C: the setup that hung at
   period 23 in D5o.
 - **Run 2, another fresh boot** (the driver pins the module): the same,
   plus `D4_IM_REUSE=1`.
@@ -4536,7 +4594,6 @@ stuck fetch.
 | --- | --- |
 | Run 1 stops on a stuck fetch, device alive | The IM fetch is where the two-state periods stall. Run 2 tests the vendor's reuse as the fix |
 | Run 1 hangs with every logged fetch settled | Not the fetch, or the settle test reads the wrong bits. Compare the logged FSM values with the SPM program session |
-| A period returns with `r12` bit 13 | The PCM was past the fetch and stuck in a wait (as in D5p) |
 | Run 2 passes all windows | The vendor's reuse avoids the hang. Next: make it the default and repeat on a quiet link |
 
 **0827 checked against the vendor's reset, fetch and kick (SPM program
@@ -4563,8 +4620,8 @@ Two more differences from the vendor's reset, not addressed by 0827:
   `SPM_SW_RSV_5`. The module never writes it, so the program sees
   `0xffffffff`, with both bits set.
 
-If D5p is approved first, its module (eb5f46ea) lacks 0827. A D5q build can
-also run D5p's part 1, so one build covers both.
+The module is the Buildbox build of 2f9f200f (1918268c), with 0826 and
+0827.
 
 ### Request D5n (proposed): two states with no resource events
 
