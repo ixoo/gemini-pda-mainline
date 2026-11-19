@@ -23,6 +23,11 @@
 # D5M_NO_EVENT=1 loads the module with sodi_no_event=1 (0825): periods arm no
 # resource event. The script logs whether the Wi-Fi driver is loaded; to run
 # with the radios unloaded, remove the Wi-Fi and CONSYS modules first.
+#
+# D5M_PCM_WDT=1 loads it with sodi_pcm_wdt=1 (0826): the PCM watchdog, in
+# wake mode, ends a stuck period 2 s after its timer (stage D5p).
+# D5M_RESET=0 skips the deliberate watchdog reset: after the three periods
+# the CPUs come back and the script ends.
 set -u
 
 KO=${1:-}
@@ -71,6 +76,11 @@ if [ "${D5M_NO_EVENT:-0}" = 1 ]; then
 	grep -q 'sodi_no_event' "$KO" || stop "the module has no sodi_no_event parameter (0825)"
 	ARGS="$ARGS sodi_no_event=1"
 fi
+if [ "${D5M_PCM_WDT:-0}" = 1 ]; then
+	grep -q 'sodi_pcm_wdt' "$KO" || stop "the module has no sodi_pcm_wdt parameter (0826)"
+	ARGS="$ARGS sodi_pcm_wdt=1"
+fi
+log "insmod args: $ARGS"
 log "wlan modules: $(lsmod | awk '/wlan|wmt|consys|gen4m/ {printf "%s ", $1}')"
 # shellcheck disable=SC2086
 insmod "$KO" $ARGS || stop "insmod failed"
@@ -105,11 +115,17 @@ while [ "$n" -lt 3 ]; do
 	sleep 1
 	echo 200 >"$SODI" 2>/dev/null || continue
 	n=$((n + 1))
-	dmesg | grep 'sodi cg: returned' | tail -n 1 |
-		sed 's/.*\(returned=[0-9]*\).*\(fsm=[0-9a-f]*\).* \(r13=[0-9a-f]*\).*/    \1 \2 \3/'
+	dmesg | grep 'sodi cg: returned' | tail -n 1 | sed 's/.*sodi cg: /    /'
 	sync
 done
 [ "$(dmesg | grep -c 'sodi cg: returned=1')" -ge 3 ] || stop "a period did not return"
+if [ "${D5M_RESET:-1}" = 0 ]; then
+	for cpu in $TAKEN; do
+		echo 1 >"$CPUS/cpu$cpu/online"
+	done
+	log "three periods returned; no deliberate reset (D5M_RESET=0); done"
+	exit 0
+fi
 log "three periods returned; opening the watchdog, reset expected in about 31 s"
 
 # From here the watchdog is ours and never pinged, and no period runs.

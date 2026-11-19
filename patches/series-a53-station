@@ -983,3 +983,4 @@ proposals/0822-soc-mediatek-mt6797-spm-sleep-check-CPU0-s-SGIs-and-.patch
 proposals/0823-power-supply-mt6351-fuel-gauge-learn-the-resistance-.patch
 proposals/0824-soc-mediatek-mt6797-spm-sleep-bound-the-SODI-wait-wi.patch
 proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch
+proposals/0826-soc-mediatek-mt6797-spm-sleep-optionally-end-stuck-t.patch

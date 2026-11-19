@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o and D5p proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4322,6 +4322,61 @@ explanations fit all runs:
 | 0806 passes, then 0825 passes | 0806's load leaves state the later modules need. Next: diff the two modules' load and program-load paths |
 | 0806 passes, 0825 hangs | The cause is in 0816's period changes, whatever the driver. Next: diff 0806's and 0816's `sodi_once` and program load |
 | 0806 hangs | Passes depend on the boot, not the module. Next: compare what the bootloader leaves in the SPM between boots |
+
+### The latches after the no-event hang (SPM program session)
+
+The SPM program session decoded the latches from the D5m no-event hang. Its
+reference is the vendor's CPU-DVFS SPM fallback, which fills the latch slots
+with `PCM_FSM_STA`, `r6` and `SPM_SW_RSV_5`:
+- `LATCH_0` `0x04248000` is `PCM_FSM_STA`: the PCM is kicked and not idle
+  (**reading A**). Reading B is dropped.
+- `LATCH_1` `0xfd8d3239` matches `r6` exactly as the program builds it near
+  its start: `SPM_SW_FLAG` (`0x000d3239`), bits 23 and 24 from
+  `SPM_SW_RSV_5`, and `0xfd000000`. No handler had run.
+- `LATCH_2` `0xffffffff` is probably `SPM_SW_RSV_5`.
+- Every program exit sets the PCM watchdog to `0xf0000` (30 s) and kicks
+  it. The module keeps `PCM_CON1` bits 8 and 9 (watchdog enable, wake mode)
+  as it finds them. *Inference:* if the boot loader left the watchdog
+  enabled in reset mode, a period stuck for 30 s resets the chip and fills
+  these latches. That fits the 30-36 s from hang to reset.
+
+### Request D5p (proposed): the PCM watchdog ends a stuck period
+
+[`0826`](../../patches/proposals/0826-soc-mediatek-mt6797-spm-sleep-optionally-end-stuck-t.patch)
+(module only) adds `sodi_pcm_wdt` (default off). For test periods it sets
+`PCM_WDT_VAL` (`0x034`) to the PCM timer plus 65,536 ticks (2 s), sets
+`PCM_CON1` watchdog enable and wake mode before the kick, and adds wake
+source bit 13 (`PCM_WDT_WAKEUP_B`). After the period it restores the
+watchdog bits and value it found. The vendor's driver clears the enable
+after each period. The new writes are `PCM_WDT_VAL`, and a new value for
+the approved `PCM_CON1` and `SPM_WAKEUP_EVENT_MASK` writes. It is
+compile-checked with `W=1`, with and without `CONFIG_CPU_IDLE`, and
+checkpatch `--strict` is quiet.
+
+[`tools/d5m.sh`](tools/d5m.sh) takes `D5M_PCM_WDT=1`, and `D5M_RESET=0`
+to skip the deliberate reset. It now logs each period's full return line.
+
+- **Candidate:** image 137 on a fresh boot, with `mt6797-spm-sleep.ko`
+  from a Buildbox build of the commit recording this stage. No boot2
+  write.
+- **Run:** `d5m.sh` with `D5M_PCM_WDT=1 D5M_RESET=0`: no cpuidle driver,
+  timer-only wake, Wi-Fi joined with power save on, pings from the laptop,
+  cable out. This setup hung in period 1-3 twice (D5m, D5m no-event).
+- *Hypothesis:* the PCM is stuck short of its exit while CPU0 waits, and
+  the PCM watchdog in wake mode can drive it to the exit.
+- *Unique observation:* the full return record of a period that would
+  have hung: `r12`, `fsm`, `r13`, `event`, `debug`, `timer_out`.
+- **Stops:** as in D5m. After a reset, the owner catches the bootloader
+  and the custodian reads the latches.
+
+| Outcome | Decision |
+| --- | --- |
+| A period returns with `r12` bit 13 | The PCM was stuck in a wait that a wake ends. Next: place the wait from `debug`, `event` and `r13` with the SPM program session |
+| Three periods return without bit 13 | No hang this time. Rerun once; if it passes again, compare with D5o |
+| Reset, latches as before | The PCM ignores even its watchdog wake: it is stuck in a loop or the SPM's clock is off. Next: the SPM's own clock and the 26 MHz path |
+
+D5o and D5p are independent: D5o needs no build, so it can run while D5p
+is built.
 
 ### Request D5n (proposed): two states with no resource events
 
