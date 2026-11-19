@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver; D5n proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4242,6 +4242,86 @@ SPM program session proposed three variants, all pending owner approval:
 `D5M_NO_EVENT=1` for 1, and logs which Wi-Fi modules are loaded, so 2
 needs only the modules removed before the run. Both 1 and D5n need the
 0825 module from a Buildbox build of a521f913d or later.
+
+### D5m with no resource events: period 1 still hangs (custodian, 2026-11-18)
+
+**Approved** by the owner ("D5m, events off").
+
+**Setup.** Image 137, boot a3ea3ef3, with no SODI module loaded before
+the run. Module 74a05731 (0825), loaded with `sodi_idle=0
+sodi_wake_src=0 sodi_no_event=1`. The script was the custodian's variant
+e44e65bd of `d5m.sh` df07a768: it adds the `sodi_no_event` check and
+logs each period's line, synced, right after the period. Wi-Fi was joined
+with power save on, cable out, battery 75 %, and pings from the laptop
+from 19:47:04. The script did not log the Wi-Fi modules.
+
+**Observed.**
+- The log ends at `19:46:53 online: 0`. No period line was written.
+- The device reset at about 19:47:29. The owner caught the bootloader
+  straight from the reset; the next boot, 34034169, started at 19:47:34.
+- Read-only before any module loaded:
+
+| Register | After D5l | After this run |
+| --- | --- | --- |
+| `PCM_WDT_LATCH_0` `0x190` | `0x04248000` | `0x04248000` |
+| `PCM_WDT_LATCH_1` `0x194` | `0x00000000` | `0xfd8d3239` |
+| `PCM_WDT_LATCH_2` `0x198` | `0xffffffff` | `0xffffffff` |
+| `DRAMC_DBG_LATCH` `0x19c` | `0x0000c0ff` | `0x00003d3d` |
+| `PCM_WDT_LATCH_3` `0x1c4` | `0x2a00005c` | `0x2b00005e` |
+| `PCM_WDT_LATCH_4` `0x1c8` | `0x003dff08` | `0x00398008` |
+
+TOPRGU `MODE` was `0x15` and `STA` `0`.
+
+**Result.**
+- **The resource handlers are not needed for the hang.** With
+  `SODI_NO_EVENT` set, the first period hung, with no cpuidle driver and
+  the timer as the only wake source. D5n's premise is weakened.
+- `LATCH_0` is identical to D5l's. Under reading B it would mean the APSRC
+  handler's EMI clock-off, which `SODI_NO_EVENT` should prevent.
+  *Inference:* reading A ("kicked, not idle") is the likelier one, or the
+  latch does not depend on the handler path. The SPM program session has
+  the values.
+
+**A confound in the bisection.** Every pass on image 137 (D5c, D5d and
+D5e) came from one boot, b8d5a469, whose first SODI module was the 0806
+build (9cf7b397). Every run whose boot started with an 0816 or later
+module hung:
+
+| Boot | First module on the boot | Outcome |
+| --- | --- | --- |
+| c9ee1c96 (D5 run 1) | 0816 | reset |
+| e40ab1c4 (D5a) | 0816 | reset at period 22 |
+| ea40fba9 (D5b) | 0817 | reset at period 15 |
+| b8d5a469 (D5c, D5d, D5e) | **0806**, then 0819 and 0820 | about 1,900 periods passed |
+| a4b787c7, 69228e22, 685c02c8, 09980766, 6c447b07 (D5f-D5l) | 0821-0824 | reset, D5h and D5l in period 1 |
+| 2f6b40ad (D5m) | 0824 | hang in periods 1-3 |
+| a3ea3ef3 (this run) | 0825 | hang in period 1 |
+
+*Inference:* the driver registration may not be the cause. Two other
+explanations fit all runs:
+- the 0806 module's load path leaves state that 0816 and later modules
+  need but do not set themselves;
+- boot b8d5a469 was good by chance.
+
+### Request D5o (proposed): the 0806 module first, on a fresh boot
+
+- **Candidate:** image 137 on a fresh boot, module 9cf7b397 (0806), the
+  D5c run. No build, no new write (D4b's list), no boot2 write.
+- **Run:** `d4.sh` with `D4_CIRQ_LEVEL=1`, exactly as D5c. If the windows
+  pass, a second `d4.sh` run on the same boot takes module 74a05731
+  (0825) with two states and no cap, the D5l setup. `d4.sh` unloads the
+  0806 module first; it has no cpuidle driver, so it is not pinned.
+- *Hypothesis:* passes need the 0806 module loaded first on the boot.
+- *Unique observation:* whether 0806 passes on a second fresh boot, and
+  whether a later module passes after it.
+- **Stops:** as in D4. After a reset, the owner catches the bootloader and
+  the custodian reads the latches.
+
+| Outcome | Decision |
+| --- | --- |
+| 0806 passes, then 0825 passes | 0806's load leaves state the later modules need. Next: diff the two modules' load and program-load paths |
+| 0806 passes, 0825 hangs | The cause is in 0816's period changes, whatever the driver. Next: diff 0806's and 0816's `sodi_once` and program load |
+| 0806 hangs | Passes depend on the boot, not the module. Next: compare what the bootloader leaves in the SPM between boots |
 
 ### Request D5n (proposed): two states with no resource events
 
