@@ -4843,6 +4843,18 @@ IM when the previous one returned, and each logs `reused=1`.
 | Hangs after periods logged `reused=1` | The fetch is not the cause. Next: the CPU8 observer |
 | Hangs in period 1, before any reuse | No answer. Rerun once |
 
+**Run 2 checked (SPM program session).**
+- The vendor's CPU-DVFS SPM reaches IM ready with no PCM kick. Our SPM
+  uses IM sleep DVS and non-replace IM, which are the vendor SPM's own
+  settings for these programs.
+- *Inference:* one of those keeps IM filling until the PCM runs, so a
+  fetch at load without a kick may not be possible. Run 2 does not need
+  one. Reuse after a period that returned runs IM content that ran to
+  completion, in the same mode the vendor's reuse uses.
+- A two-state hang after `reused=1` periods, with `LATCH_1` 0 again, would
+  rule out the DRAM fetch. The stall would then be in the kick or the first
+  instruction. The owner's catch of the bootloader matters for this run.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
