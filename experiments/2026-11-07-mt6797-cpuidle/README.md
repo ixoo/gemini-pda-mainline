@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; D5q proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; D5q run 1 refused, IM reference proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4628,7 +4628,7 @@ uptime with no module loaded:
 0828's logging stays. No `POWER_ON_VAL` write unless the logs show these
 values changing near a hang.
 
-### Request D5q (proposed): the IM fetch before the kick
+### Request D5q (approved 2026-11-18): the IM fetch before the kick
 
 **The two-state hangs may stop before the program's first words (SPM
 program session).** In both two-state hangs (D5l, D5o part 2) `LATCH_1`
@@ -4711,6 +4711,47 @@ Two more differences from the vendor's reset, not addressed by 0827:
 The module is a Buildbox build of the commit recording 0828, with 0826,
 0827 and 0828, so each period also logs `r0`, `r7` and their start
 values.
+
+### D5q run 1: the first fetch reads unsettled; refused, no hang (custodian, 2026-11-18)
+
+**Approved** by the owner.
+
+**Setup.** Boot 3e7b6268 (through Gemian, then a warm boot2). Module
+0d25e7fe, a Buildbox build of e224824b (0826-0828). `d4.sh` 589a5738 with
+`D4_CIRQ_LEVEL=1 D4_IM_WAIT=1`, two states, no cap, no PCM watchdog.
+Wi-Fi power save on, radio modules e989cbc1, 0f3a9a9e and ea4e60fe, cable
+out, battery 71 %.
+
+**Observed.** The first period of window C, the first fetch since the
+module loaded:
+- `im fsm 02c48910>02448910 after 200 us, reused=0 stuck=1`;
+- `io val0=00000000 val1=00015830` (`r0` and `r7` 0, since the PCM
+  was not kicked).
+
+`d4.sh` stopped: "the IM fetch did not settle; period refused before
+the kick". CPUs came back, taint stayed 0, and the device stayed alive.
+
+**Result: not yet evidence of a stuck fetch.**
+- The IM state (bits 9:7) read 2 right after the IM kick and 2 again
+  200 us later. No returned period has logged the IM state before its
+  PCM kick.
+- So 2 may be the normal "fetched, waiting for the kick" state, not a
+  stuck one. 0827's test assumed "back to 1".
+- If 2 is normal, every period with `sodi_im_wait` refuses. Run 2 as
+  planned would refuse its first period too, since the first period
+  always fetches.
+- One more change from IM idle (`0x48490`): bit 9 is clear and bit 11
+  set, in both reads.
+
+**Next: a reference run** (proposed, needs the owner's approval). Fresh
+boot, the same module, `d4.sh` with `D4_CIRQ_LEVEL=1 D4_IDLE=0`: the D5d
+setup with no cpuidle driver, which passed 377 periods. No `D4_IM_WAIT`.
+Each returned period still logs its `im fsm` pair and the `io` line.
+
+| Returned periods at the poll | Decision |
+| --- | --- |
+| IM state 2, as in run 1 | 2 is normal, and run 1 shows nothing. Fix 0827's test to the observed value. Run 2 becomes `D4_IM_REUSE=1` without `D4_IM_WAIT` |
+| IM state 1 | Run 1 caught a fetch that had not finished. Run 2 as planned tests reuse as the fix |
 
 ### Request D5n (proposed): two states with no resource events
 
