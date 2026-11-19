@@ -5191,7 +5191,8 @@ sign-off, like the other proposals).
   threads and the observer stay there.
 
 **Changed conditions.** All of these differ from D5r:
-- a second CPU online, with its cluster powered and snooped;
+- a second CPU online, with its cluster powered and snooped, and the
+  A72 module and policy loaded (CPU8 pinned at its lowest frequency);
 - the whole load on CPU0;
 - no resource events;
 - the SYS_CIRQ acknowledgement;
@@ -5201,9 +5202,29 @@ sign-off, like the other proposals).
 So the hang may not reproduce. `r15` is read as "advancing or not", not as
 an exact PC, until the reference period shows it moving.
 
-- **Candidate:** image 137 on a fresh boot, with `mt6797-spm-sleep.ko`
-  from a Buildbox build of the commit recording this stage (0826-0828,
-  0830-0833). No boot2 write.
+**Bringing CPU8 up.** On image 137 the A72s are online only with
+`mt6797-a72.ko`, and nothing loads it unless `/mnt/data/a72-at-boot`
+exists.
+- The init loads it before the CPU frequency modules, as it must: the
+  cluster clock driver keeps the words it finds at its probe, and bringing
+  the A72s up changes some of them
+  ([all-cores T9](../2026-11-01-mt6797-all-cores/README.md)). A hand load
+  after those modules would break that order.
+- So D5s boots with `a72-at-boot` set, the default the owner chose on
+  2026-11-17, and `cpufreq-at-boot` as it is now. That gives `online 0-9`,
+  with A72 policies when cpufreq loads.
+- The observer is not moved to CPU7: the A53 clusters are in `WFI_EN`, and
+  the program's clock cut stops their ARM PLLs in a passing period, while
+  that cluster would still be taking snoops.
+- `d4.sh` takes CPU9 offline with the others. When CPU8 has a cpufreq
+  policy, it pins it at its lowest frequency (min = max) for the run, so
+  no A72 rail changes during a period, and restores it at the end.
+
+- **Candidate:** image 137, booted fresh with `a72-at-boot` set (and
+  `cpufreq-at-boot` unchanged), with `mt6797-spm-sleep.ko` from a
+  Buildbox build of the commit recording this stage (0826-0828,
+  0830-0833). No boot2 write. The init status line must show
+  `a72=loaded cpus=0-9`.
 - **Run:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_OBS=1`, two
   states, no cap, pings in C, cable out, hands off. Console log level 8
   before the load.

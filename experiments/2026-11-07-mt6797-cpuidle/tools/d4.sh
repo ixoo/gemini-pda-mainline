@@ -27,7 +27,9 @@
 # D4_OBS=1 sets sodi_obs (0833, stage D5s) and needs D4_NO_EVENT=1, so DRAM
 # never enters self-refresh while CPU8 runs. CPU8 stays online as the
 # observer; every task, IRQ and unbound workqueue is moved to CPU0, so CPU8
-# wakes nothing on CPU0 during a period, and moved back at the end. After a
+# wakes nothing on CPU0 during a period, and moved back at the end. CPU8's
+# cpufreq policy, if any, is pinned at its lowest frequency for the run, so
+# no A72 rail changes during it. After a
 # stuck period the module prints its samples and restarts the system.
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
@@ -74,6 +76,9 @@ PIN_MIN=""
 PIN_MAX=""
 USB_CONTROL=""
 OBS_MASK=""
+OBS_POL=""
+OBS_POL_MIN=""
+OBS_POL_MAX=""
 
 exec >>"$LOG" 2>&1
 
@@ -97,6 +102,11 @@ restore() {
 			echo 1 >"$CPUS/cpu$cpu/online" || log "cpu$cpu did not come back"
 		done
 		log "CPUs back: $(cat "$CPUS/online")"
+	fi
+	if [ -n "$OBS_POL" ]; then
+		echo "$OBS_POL_MAX" >"$OBS_POL/scaling_max_freq"
+		echo "$OBS_POL_MIN" >"$OBS_POL/scaling_min_freq"
+		log "CPU8 policy back to $(cat "$OBS_POL/scaling_min_freq")-$(cat "$OBS_POL/scaling_max_freq") kHz"
 	fi
 	if [ -n "$OBS_MASK" ]; then
 		obs_affinity "$OBS_MASK"
@@ -340,6 +350,19 @@ done
 if [ "${D4_OBS:-0}" = 1 ]; then
 	OBS_MASK=$(cat /proc/irq/default_smp_affinity)
 	obs_affinity 1
+	if [ -d "$CPUS/cpu8/cpufreq" ]; then
+		pol=$CPUS/cpu8/cpufreq
+		OBS_POL_MIN=$(cat "$pol/scaling_min_freq")
+		OBS_POL_MAX=$(cat "$pol/scaling_max_freq")
+		OBS_POL=$pol
+		lo=$(cat "$pol/cpuinfo_min_freq")
+		echo "$lo" >"$pol/scaling_min_freq"
+		echo "$lo" >"$pol/scaling_max_freq"
+		[ "$(cat "$pol/scaling_cur_freq")" = "$lo" ] || stop "CPU8's policy did not pin at $lo kHz"
+		log "CPU8 policy pinned at $lo kHz (was $OBS_POL_MIN-$OBS_POL_MAX)"
+	else
+		log "CPU8 has no cpufreq policy"
+	fi
 	log "observer: tasks on CPU8 after the move (its per-CPU threads stay): $(ps -eo psr= | awk '$1 == 8' | wc -l)"
 fi
 log "online: $(cat "$CPUS/online")"
