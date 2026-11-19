@@ -4743,15 +4743,35 @@ the kick". CPUs came back, taint stayed 0, and the device stayed alive.
 - One more change from IM idle (`0x48490`): bit 9 is clear and bit 11
   set, in both reads.
 
-**Next: a reference run** (proposed, needs the owner's approval). Fresh
-boot, the same module, `d4.sh` with `D4_CIRQ_LEVEL=1 D4_IDLE=0`: the D5d
-setup with no cpuidle driver, which passed 377 periods. No `D4_IM_WAIT`.
-Each returned period still logs its `im fsm` pair and the `io` line.
+**The SPM program session's reading.** Both reads also hold the FSM's
+master state at 2 (idle 1), and only `EXT_SRCCLKEN` (bit 23) changed.
+*Inference:* the SPM's bus read for the IM fetch was still outstanding,
+which would explain the `r6` 0 hangs. The encodings are undocumented, so
+a reference from passing periods decides it.
 
-| Returned periods at the poll | Decision |
-| --- | --- |
-| IM state 2, as in run 1 | 2 is normal, and run 1 shows nothing. Fix 0827's test to the observed value. Run 2 becomes `D4_IM_REUSE=1` without `D4_IM_WAIT` |
-| IM state 1 | Run 1 caught a fetch that had not finished. Run 2 as planned tests reuse as the fix |
+**Next: an IM reference** (proposed, needs the owner's approval). On one
+fresh boot, the same module, with no cpuidle driver, so `d4.sh` can
+unload it between parts. This is the D5d setup that passed 377 periods.
+1. `d4.sh` with `D4_CIRQ_LEVEL=1 D4_IDLE=0`, no `D4_IM_WAIT`. Each
+   returned period logs its IM state right after the IM kick and just
+   before the PCM kick. This part runs first, so no earlier refused fetch
+   can be outstanding.
+2. The same with `D4_IM_WAIT=1`.
+
+| Part 1, before the PCM kick | Part 2 | Decision |
+| --- | --- | --- |
+| IM and master state 1 | periods return, few polls | A settled fetch reads 1/1. Run 1 caught a real stuck fetch in the two-state setup. Next: the fixes below |
+| 2/2 | stops on a "stuck" fetch | 2/2 is normal at that point, or fetches are slow everywhere. 0827's test cannot separate them; run 1 shows nothing |
+| 2/2 | periods return | Fetches finish within 200 us. Run 1's fetch was blocked |
+
+Fixes held until the reference, from the SPM program session:
+- set `SPM_LOCK_INFRA_DCM` before the IM kick, so the infra bus clock
+  stays up for the SPM's read (one line);
+- fetch once while the system is active and reuse afterwards, as the
+  vendor does. 0827's reuse still fetches on the first period after
+  loading, which is where run 1 stuck;
+- after a stuck fetch, stop SODI for the boot, since the PCM reset may not
+  cancel an outstanding bus read.
 
 ### Request D5n (proposed): two states with no resource events
 
