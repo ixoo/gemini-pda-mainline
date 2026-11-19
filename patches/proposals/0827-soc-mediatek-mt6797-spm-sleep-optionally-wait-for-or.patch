@@ -1,0 +1,167 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 18 Nov 2026 20:05:34 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally wait for or skip
+ the IM fetch
+
+The latches after the two-state hangs read r6 as never written, so the
+PCM may not have run its first words. The module fetches the program
+into IM on every period and kicks the PCM straight after. The vendor's
+driver reuses a resident program in IM slave mode, and fetches again only
+when the pointer or length change.
+
+Add two test-period options, both off by default:
+- sodi_im_wait polls PCM_FSM_STA's IM state before the PCM kick for up to
+  200 us and refuses the period if it has not settled;
+- sodi_im_reuse sets PCM_CON1 IM slave instead of fetching when the same
+  program returned from IM last time.
+A log line gives the FSM after the IM kick and before the PCM kick, the
+polls taken, and whether IM was reused (stage D5q).
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 58 ++++++++++++++++++++++++-
+ 1 file changed, 57 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index d80ea262f..15253de18 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -143,10 +143,14 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define EN_IM_SLEEP_DVS		BIT(3)
+ #define PCM_SW_RESET		BIT(15)
+ #define PCM_TIMER_EN		BIT(5)
++#define PCM_IM_SLAVE		BIT(0)	/* run the program already in IM */
+ #define PCM_WDT_BITS		(BIT(9) | BIT(8))	/* WDT_WAKE_MODE, WDT_EN */
+ /* event lock, SRAM isolation and sleep, non-replace IM, MIF and SCP APB */
+ #define PCM_CON1_INIT		0x5c48
+ #define PCM_FSM_STA_DEF		0x48490
++#define PCM_FSM_IM_STATE(v)	(((v) >> 7) & 7)
++/* How long the IM fetch may take before the PCM kick (D5q) */
++#define SODI_IM_WAIT_US		200
+ #define PCM_RF_SYNC_R0		BIT(16)
+ #define PCM_RF_SYNC_R7		BIT(23)
+ #define PCM_PWRIO_R0_R7		0x81
+@@ -233,6 +237,14 @@ static bool sodi_pcm_wdt;
+ module_param(sodi_pcm_wdt, bool, 0644);
+ MODULE_PARM_DESC(sodi_pcm_wdt, "SODI: the PCM watchdog ends a stuck test period 2 s late");
+ 
++static bool sodi_im_wait;
++module_param(sodi_im_wait, bool, 0644);
++MODULE_PARM_DESC(sodi_im_wait, "SODI: refuse a test period whose IM fetch has not settled before the kick");
++
++static bool sodi_im_reuse;
++module_param(sodi_im_reuse, bool, 0644);
++MODULE_PARM_DESC(sodi_im_reuse, "SODI: run the program already in IM instead of fetching it again");
++
+ /* The I2C controller the programs reset (I2C6: the CPU bucks) */
+ #define I2C6_PHYS		0x1100e000
+ 
+@@ -303,6 +315,8 @@ struct spm_scen {
+ 	bool cirq;		/* clone edge interrupts into SYS_CIRQ */
+ 	bool idle;		/* from cpuidle: own the SPM's GIC enable, RCU idle */
+ 	bool pcm_wdt;		/* the PCM watchdog wakes the program (D5p) */
++	bool im_wait;		/* wait for the IM fetch, or refuse (D5q) */
++	bool im_reuse;		/* IM slave mode when the program is resident (D5q) */
+ 	bool ready;
+ };
+ 
+@@ -311,6 +325,9 @@ struct spm_wake {
+ 	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
+ 	u32 wfi_loops;
+ 	u32 fsm;		/* PCM_FSM_STA after the wait */
++	u32 im_fsm0, im_fsm1;	/* after the IM kick, before the PCM kick */
++	u32 im_us;		/* polls until IM_STATE settled */
++	bool im_reused, im_stuck;
+ 	bool backstop;		/* CPU0's timer ended the wait, not the PCM */
+ 	u32 rd_en, rd_pend;	/* CPU0's SGIs and PPIs at entry */
+ 	u64 isr_el1;		/* at entry */
+@@ -365,6 +382,7 @@ static struct {
+ 	struct spm_wake wake;
+ 	int last_err;
+ 	bool entered;
++	u32 im_resident;	/* the program IM holds after a return, or 0 */
+ } s;
+ 
+ static unsigned int timer_sec = 30;
+@@ -856,12 +874,20 @@ static int spm_run(const struct spm_scen *sc)
+ 	spm_wr(PCM_CON1, SPM_KEY | PCM_CON1_INIT | con1);
+ 	spm_wr(SPM_SW_INT_CLEAR, BIT(0));
+ 
+-	/* S5-S6: fetch the program from the carveout */
++	/*
++	 * S5-S6: fetch the program from the carveout. As the vendor does, IM
++	 * slave mode reuses a program already resident instead (D5q).
++	 */
+ 	spm_wr(PCM_IM_PTR, sc->im_ptr);
+ 	spm_wr(PCM_IM_LEN, sc->im_len);
++	s.wake.im_reused = sc->im_reuse && s.im_resident == sc->im_ptr;
++	if (s.wake.im_reused)
++		spm_wr(PCM_CON1, spm_rd(PCM_CON1) | SPM_KEY | PCM_IM_SLAVE);
++	s.im_resident = 0;
+ 	con0 = spm_rd(PCM_CON0) & ~(IM_KICK_L | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | IM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN);
++	s.wake.im_fsm0 = spm_rd(PCM_FSM_STA);
+ 
+ 	/* S7: r0 and r7 from POWER_ON_VAL0/1 */
+ 	spm_wr(PCM_REG_DATA_INI, spm_rd(SPM_POWER_ON_VAL0));
+@@ -908,6 +934,30 @@ static int spm_run(const struct spm_scen *sc)
+ 	spm_wr(SPM_SW_FLAG, sc->flags);
+ 	spm_wr(SPM_SW_RSV_0, 0);
+ 	spm_wr(SPM_CLK_CON, spm_rd(SPM_CLK_CON) | SPM_LOCK_INFRA_DCM);
++
++	/* D5q: has the IM fetch settled? Refuse the period if not */
++	for (i = 0; ; i++) {
++		s.wake.im_fsm1 = spm_rd(PCM_FSM_STA);
++		if (!sc->im_wait || i >= SODI_IM_WAIT_US ||
++		    PCM_FSM_IM_STATE(s.wake.im_fsm1) ==
++		    PCM_FSM_IM_STATE(PCM_FSM_STA_DEF))
++			break;
++		udelay(1);
++	}
++	s.wake.im_us = i;
++	if (sc->im_wait && i >= SODI_IM_WAIT_US) {
++		s.wake.im_stuck = true;
++		spm_restore();
++		if (sc->pcm_wdt) {
++			spm_wr(PCM_CON1, SPM_KEY | (spm_rd(PCM_CON1) & ~PCM_WDT_BITS) | con1);
++			spm_wr(PCM_WDT_VAL, wdt_val);
++		}
++		writel(axi[0], s.mcucfg + MP0_AXI_CONFIG);
++		writel(axi[1], s.mcucfg + MP1_AXI_CONFIG);
++		writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
++		return -ETIMEDOUT;
++	}
++
+ 	spm_wr(PCM_PWR_IO_EN, PCM_PWRIO_R0_R7);
+ 	con0 = spm_rd(PCM_CON0) & ~(IM_KICK_L | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | PCM_KICK_L);
+@@ -958,6 +1008,7 @@ static int spm_run(const struct spm_scen *sc)
+ 		wfi();
+ 		if (spm_rd(SPM_IRQ_STA) & ISRS_PCM_RETURN) {
+ 			s.wake.returned = true;
++			s.im_resident = sc->im_ptr;
+ 			break;
+ 		}
+ 		if (sc->cirq && (read_sysreg(cntp_ctl_el0) & ARCH_TIMER_CTRL_IT_STAT)) {
+@@ -1080,6 +1131,9 @@ static void spm_log_wake(const char *what)
+ 		 s.wake.assert_pc);
+ 	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x\n", what, s.dummy1,
+ 		 spm_rd(SPM_PASR_DPD_0));
++	dev_info(&s.pdev->dev, "%s: im fsm %08x>%08x after %u us, reused=%d stuck=%d\n",
++		 what, s.wake.im_fsm0, s.wake.im_fsm1, s.wake.im_us,
++		 s.wake.im_reused, s.wake.im_stuck);
+ }
+ 
+ /*
+@@ -1187,6 +1241,8 @@ static int sodi_once(u64 ms)
+ 	if (READ_ONCE(sodi_no_event))
+ 		s.sodi.flags |= SODI_FLAG_NO_EVENT;
+ 	s.sodi.pcm_wdt = READ_ONCE(sodi_pcm_wdt);
++	s.sodi.im_wait = READ_ONCE(sodi_im_wait);
++	s.sodi.im_reuse = READ_ONCE(sodi_im_reuse);
+ 	if (s.sodi.pcm_wdt)
+ 		s.sodi.wake_src |= WAKE_PCM_WDT;
+ 	if (sodi_pdn)
+-- 
+2.43.0
+

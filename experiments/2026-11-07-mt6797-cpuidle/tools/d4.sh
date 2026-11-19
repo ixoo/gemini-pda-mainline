@@ -17,6 +17,9 @@
 # stage D5n).
 # D4_PCM_WDT=1 sets sodi_pcm_wdt: the PCM watchdog, in wake mode, ends a
 # stuck period 2 s after its timer (0826, stage D5p).
+# D4_IM_WAIT=1 sets sodi_im_wait (refuse a period whose IM fetch has not
+# settled) and D4_IM_REUSE=1 sets sodi_im_reuse (IM slave mode for a resident
+# program); both 0827, stage D5q.
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -149,6 +152,8 @@ period() {
 			continue
 		fi
 		dmesg | tail -n +"$((n0 + 1))"
+		dmesg | tail -n +"$((n0 + 1))" | grep -q 'stuck=1' &&
+			stop "the IM fetch did not settle; period refused before the kick (D5q)"
 		stop "sodi_once_ms failed without a refusal"
 	done
 	out=$(dmesg | tail -n +"$((n0 + 1))")
@@ -166,6 +171,8 @@ period() {
 	STA3=$(echo "$sta" | awk '{print $7}')
 	STA6=$(echo "$sta" | awk '{print $10}')
 	log "    r12 $R12, slept $SLEPT ms; $(wake_names "$R12"); cirq $sta"
+	im=$(echo "$out" | grep -o 'im fsm.*' | tail -n 1)
+	[ -n "$im" ] && log "    $im"
 	if [ "$SLEPT" -eq 0 ] && [ "$R12" = "$LAST_R12" ]; then
 		INSTANT=$((INSTANT + 1))
 	else
@@ -257,6 +264,11 @@ if [ "${D4_PCM_WDT:-0}" = 1 ]; then
 	grep -q 'sodi_pcm_wdt' "$KO" || stop "the module has no sodi_pcm_wdt parameter (0826)"
 	level="$level sodi_pcm_wdt=1"
 fi
+[ "${D4_IM_WAIT:-0}" = 1 ] && level="$level sodi_im_wait=1"
+[ "${D4_IM_REUSE:-0}" = 1 ] && level="$level sodi_im_reuse=1"
+case $level in
+*sodi_im_*) grep -q 'sodi_im_reuse' "$KO" || stop "the module has no sodi_im_* parameters (0827)" ;;
+esac
 # shellcheck disable=SC2086 # empty parameters must vanish
 insmod "$KO" ${D4_WAKE:+sodi_wake_src=$D4_WAKE} $level || stop "insmod failed"
 [ -n "$level" ] && log "sodi_cirq_level $(cat /sys/module/mt6797_spm_sleep/parameters/sodi_cirq_level)"

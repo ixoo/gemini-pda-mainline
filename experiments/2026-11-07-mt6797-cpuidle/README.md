@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p and D5q proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4481,6 +4481,66 @@ to skip the deliberate reset. It now logs each period's full return line.
 
 D5o and D5p are independent: D5o needs no build, so it can run while D5p
 is built.
+
+### Request D5q (proposed): the IM fetch before the kick
+
+**The two-state hangs may stop before the program's first words (SPM
+program session).** In both two-state hangs (D5l, D5o part 2) `LATCH_1`
+read `0`. If `LATCH_1` is `r6`, the PCM never ran word `0x402`. Words
+`0x400`-`0x402` set `r1` and load `SPM_SW_FLAG`, which cannot stall.
+*Inference:* the stall is in the IM fetch, the DMA that copies the
+program from the DRAM carveout into the SPM's IM.
+- The module starts that fetch and kicks the PCM soon after, without
+  waiting, and it fetches again on every period.
+- The vendor's driver fetches again only when `PCM_IM_PTR` or
+  `PCM_IM_LEN` change (or for a newer program session). Otherwise it sets
+  `PCM_CON1` bit 0 (`IM_SLAVE`) and reuses the resident program. All three
+  vendor programs are session 2, so steady SODI idle never fetches again.
+- The vendor's driver does not poll for the fetch either, so the missing
+  wait alone is not the difference.
+
+The no-driver hang (`LATCH_1` `fd8d3239`) ran past `0x411`, so it is
+probably a different stall. D5p's part 1 still covers it.
+
+[`0827`](../../patches/proposals/0827-soc-mediatek-mt6797-spm-sleep-optionally-wait-for-or.patch)
+(module only) adds two test-period options, both off by default:
+- `sodi_im_wait`: just before the PCM kick, poll `PCM_FSM_STA` for up to
+  200 us until its IM state (bits 9:7) is back at its idle value. If it
+  is not, refuse the period before the kick and restore the SPM. This only
+  reads.
+- `sodi_im_reuse`: when the same program returned from IM last time, set
+  `IM_SLAVE` instead of fetching, as the vendor does. The first period and
+  any period after a failure still fetch. This is a new value for the
+  approved `PCM_CON1` write.
+
+A log line gives the FSM after the IM kick and before the PCM kick, the
+polls taken, and whether IM was reused. The encoding of "fetch done" is
+unknown, so the first returned periods give the reference. It is
+compile-checked with `W=1`, with and without `CONFIG_CPU_IDLE`, and
+checkpatch `--strict` is quiet. `d4.sh` takes `D4_IM_WAIT=1` and
+`D4_IM_REUSE=1`, logs the IM line for each period, and stops cleanly on a
+stuck fetch.
+
+- **Candidate:** image 137, with `mt6797-spm-sleep.ko` from a Buildbox
+  build of the commit recording this stage (it has 0826 and 0827). No
+  boot2 write.
+- **Run 1, fresh boot:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_PCM_WDT=1
+  D4_IM_WAIT=1`, two states, no cap, pings in C: the setup that hung at
+  period 23 in D5o.
+- **Run 2, another fresh boot** (the driver pins the module): the same,
+  plus `D4_IM_REUSE=1`.
+- The pre-module SPM read on each boot. After a reset, the owner catches
+  the bootloader and the custodian reads the latches.
+
+| Outcome | Decision |
+| --- | --- |
+| Run 1 stops on a stuck fetch, device alive | The IM fetch is where the two-state periods stall. Run 2 tests the vendor's reuse as the fix |
+| Run 1 hangs with every logged fetch settled | Not the fetch, or the settle test reads the wrong bits. Compare the logged FSM values with the SPM program session |
+| A period returns with `r12` bit 13 | The PCM was past the fetch and stuck in a wait (as in D5p) |
+| Run 2 passes all windows | The vendor's reuse avoids the hang. Next: make it the default and repeat on a quiet link |
+
+If D5p is approved first, its module (eb5f46ea) lacks 0827. A D5q build can
+also run D5p's part 1, so one build covers both.
 
 ### Request D5n (proposed): two states with no resource events
 
