@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m and D5n proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver; D5n proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4149,7 +4149,7 @@ would stall even after the backstop woke it, which fits D5i. Why the
 APSRC wake handler or the exit never ran would stay open. `LATCH_3` and
 `LATCH_4` fit neither `r7` nor `r0`.
 
-### Request D5m (proposed): calibrate the latch, A or B
+### Request D5m (run 2026-11-18): calibrate the latch, A or B
 
 [`tools/d5m.sh`](tools/d5m.sh) (df07a768) loads the module as follows:
 - no cpuidle driver (`sodi_idle=0`);
@@ -4173,6 +4173,56 @@ the device is open, so the hardware watchdog resets the chip after its
 | `LATCH_0` close to the logged `fsm` (about `0x02048490`) | Reading A. The hang latch says only "kicked, not idle" |
 | `LATCH_0` close to the logged `r13` (about `0x0006e410`) | Reading B. The hung period reached DRAM self-refresh with the EMI clock off |
 | No reset within 120 s | The watchdog did not take over from the kernel's pings. Record and stop |
+
+### D5m: a hang with no cpuidle driver, before the watchdog step (custodian, 2026-11-18)
+
+**Setup.** Image 137, fresh boot 2f6b40ad. Module 97add2b2 (0824),
+`d5m.sh` df07a768. `watchdog0` was inactive with a 31 s timeout. At
+17:52:27 the module loaded with `sodi_wake_src` `00000000`
+(`sodi_cirq_level` on by default), and the cpuidle driver did not
+register. The screen was already blank. CPU7-1 went offline between
+17:52:27.85 and 17:52:28.33.
+
+**Observed.**
+- The log's last line is `17:52:28 online: 0`. There is no
+  `sodi cg: returned` line in the journal and no "opening the watchdog".
+  The journal ends at 17:52:28.33, at CPU1's offline.
+- The device reset. The owner missed the bootloader, so it went to Gemian,
+  which reinitialises the latches. On the next boot2 (a3ea3ef3), read
+  before any module: all six latches zero, TOPRGU `MODE` `0x15`,
+  `STA` `0`.
+
+**Result.**
+- The hang came in or just before the first `echo 200` (after `sleep 1`),
+  with only CPU0 online and **no cpuidle driver**. journald may drop the
+  last second, so a returned first period cannot be strictly excluded, but
+  no period line reached disk.
+- **The bisection does not hold as stated.** D5c and D5d passed about 800
+  periods without the driver, but a period can hang without it. The driver
+  raises the rate under pings; it is not the only way in.
+- This run differed from D5c and D5d in three ways:
+  - **Wake set:** the PCM timer only. CONN2AP was masked, so a CONN
+    request for DRAM during the period could not end it. The program had
+    to serve it through its resource handler, the path reading B points
+    at. In D5c and D5d every period was ended by CONN2AP.
+  - **Settle time:** the first period started about 1 s after the last
+    CPU went offline. `d4.sh` waits 5 s, then for the first ping.
+  - **Length:** 200 ms periods, not 2000 ms.
+- D3's 14 timer-only periods returned, but on an earlier image, before
+  cpufreq and `CONFIG_CPU_IDLE`.
+- *Inference:* the first difference fits reading B best. It does not
+  separate A from B, and the latches were lost.
+
+| Question | State |
+| --- | --- |
+| A or B | Open; the calibration needs a setup whose periods return, and a caught bootloader |
+| Driver necessary for a hang | No |
+| Resource path | Still the leading candidate; D5n tests it directly |
+
+**Decision.** D5n is unchanged and is the next run: it removes the
+resource events under the configuration that hangs most often. D5m is not
+repeated as it stands. If D5n passes, a D5m variant with
+`sodi_no_event=1` could calibrate the latch from returned periods.
 
 ### Request D5n (proposed): two states with no resource events
 
