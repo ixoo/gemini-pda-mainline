@@ -4539,6 +4539,30 @@ stuck fetch.
 | A period returns with `r12` bit 13 | The PCM was past the fetch and stuck in a wait (as in D5p) |
 | Run 2 passes all windows | The vendor's reuse avoids the hang. Next: make it the default and repeat on a quiet link |
 
+**0827 checked against the vendor's reset, fetch and kick (SPM program
+session).**
+- IM state 1 means "IM idle", and it already reads 1 after a reset. After
+  an IM kick, 1 therefore means the fetch has finished. The first normal
+  periods' "after the IM kick" value should differ from 1.
+- Both hang latches have IM state 0, including D5m's, whose program ran
+  past `0x411`. So 0 is at least "PCM running", and the latch cannot show
+  a fetch in progress; 0827's poll can.
+- `PCM_CON1` bit 0 is `IM_SLAVE`. The vendor toggles `IM_KICK` in either
+  case, as 0827 does. The `PCM_CON1` re-init after each reset clears bit 0,
+  so a later fetch is not left in slave mode.
+- The vendor resets the PCM before every scenario and then reuses IM, so
+  IM survives the software reset. The programs are non-replace (IM
+  non-replace is set in `0x5c48`).
+
+Two more differences from the vendor's reset, not addressed by 0827:
+- The vendor never resets a PCM mid-program. If `r1` reads 1 and `r15` is
+  not 0, it raises `SPM_CPU_WAKEUP_EVENT` and waits up to 5 ms. The module
+  refuses a period when `r1` reads 1 at entry, so it does not reset a
+  running program either.
+- At each reset the vendor copies `r6` bits 24:23 (the VCORE state) into
+  `SPM_SW_RSV_5`. The module never writes it, so the program sees
+  `0xffffffff`, with both bits set.
+
 If D5p is approved first, its module (eb5f46ea) lacks 0827. A D5q build can
 also run D5p's part 1, so one build covers both.
 
