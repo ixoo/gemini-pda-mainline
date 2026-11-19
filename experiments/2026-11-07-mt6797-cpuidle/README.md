@@ -5296,6 +5296,12 @@ level 8, cable out, battery 97 %.
     (a key restart lost the RAM in the pstore experiment).
 - No observer line exists, so none of the decision table's rows can be
   read.
+- *Inference (SPM program session):* all-zero latches differ from every
+  watchdog hang, which always latched `LATCH_0` `0x04248000`. That fits a
+  reset that bypassed or preceded the SPM's capture. An empty RAM console
+  fits a reset that did not take the preloader's DDR-reserve path. The
+  retained firmware does not show what PSCI `SYSTEM_RESET` does on this
+  ATF.
 
 ### Request D5t (proposed): the observer leaves the reset to the watchdog
 
@@ -5330,6 +5336,7 @@ script then stops before any period.
 | --- | --- |
 | Latches kept, RAM console with `sodi obs` lines | Reading (a). Read the lines with D5s's table |
 | Latches kept, RAM console without `sodi obs` lines | CPU8 stopped too: D5s's table's system-level freeze row |
+| Latches kept, RAM console empty | The watchdog reset did not keep DRAM this time. Next: the observer writes its lines somewhere other than DRAM (the console UART or USB) before it stops |
 | Latches zero and RAM console empty again | Reading (b): a cold reset with CPU8 up. Next: the same run with CPU8 online but no observer (`D4_OBS` without `sodi_obs`), to tell the A72 cluster from the observer's reads |
 | No reset within 120 s of the hang | `watchdogd` or something else pinged it. The owner resets with the keys; record and stop |
 | All windows pass | As in D5s's table |
