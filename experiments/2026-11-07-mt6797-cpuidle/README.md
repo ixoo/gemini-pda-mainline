@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; D5q run 1 refused, IM reference proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; IM reference: "filling" before the kick is normal; D5q run 2 (reuse) proposed |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4758,7 +4758,7 @@ it spins until IM ready. Read that way:
   filling 200 us after the kick. **Run 1's stuck fetch was real.**
 - 0827's test waited for IM empty, which never returns after an IM kick.
   So as written it would have refused every period, good fetch or not.
-  [`0829`](../../patches/proposals/0829-soc-mediatek-mt6797-spm-sleep-wait-for-IM-ready-not-.patch)
+  `0829` (added in 2677aae7a)
   waits for bit 9 (IM ready) instead. It is compile-checked with `W=1`,
   and checkpatch `--strict` is quiet.
 - Bit 11 is the master state moving from its idle bit (10) to the next.
@@ -4795,6 +4795,53 @@ Fixes held until the reference, from the SPM program session:
   loading, which is where run 1 stuck;
 - after a stuck fetch, stop SODI for the boot, since the PCM reset may not
   cancel an outstanding bus read.
+
+### IM reference part 1: passing periods show "IM filling" before the kick (custodian, 2026-11-18)
+
+**Approved** by the owner.
+
+**Setup.** Power-on boot d5994d6b. Pre-module read:
+- latches 0;
+- `POWER_ON_VAL0` 0, `POWER_ON_VAL1` `00015830`;
+- `SPM_CLK_CON` `00008000`, `PCM_CON1` `00006c00`;
+- `PCM_WDT_VAL` `ffffffff`, `SPM_SW_FLAG` 0, `SPM_SW_RSV_5` `ffffffff`.
+
+Module 0d25e7fe (0826-0828), `d4.sh` 589a5738 with `D4_CIRQ_LEVEL=1
+D4_IDLE=0`, no `D4_IM_WAIT`. Wi-Fi up, pings in C.
+
+**Observed.** "C 60 early, 60 by packet; A 20 early; B key 0", with no
+refusals. The run finished at 21:12:07. B saw no key because it was
+pressed after the window. Across all 230 logged periods:
+- `im fsm` was `02c48910>02448910` 72 times and `02c48910>02c48910` 158
+  times. Bit 9 (IM ready) never appeared.
+- The `io` line was identical every time: `val0=00000000
+  val1=00015830 r0=00000000 r7=01415830`.
+
+**Result.**
+- **D5q run 1's "stuck" fetch was not a stall.** Its values are exactly
+  those of periods that return. In this SPM, IM filling with no IM ready is
+  the normal state just before the PCM kick. The fetch evidently completes
+  after the kick, or IM ready is not shown here.
+- The vendor's CPU-DVFS spin does not carry over. 0827's wait option
+  cannot separate a good fetch from a bad one by these bits, in either form.
+  `0829` (added in 2677aae7a)
+  would refuse every period. It is **withdrawn** from both series and was
+  never loaded. 0827's `sodi_im_wait` stays off.
+- Returned periods leave `r7` `01415830`: bits 11 (`SRCVOLTEN`) and 14
+  (`SRCCLKENO_0`) set, as `POWER_ON_VAL1` seeds them.
+- The two-state hangs still stop before `0x402` by the latch reading. That
+  the IM fetch causes them is now neither shown nor ruled out.
+
+**Next: D5q run 2, revised** (needs the owner's approval). Fresh boot,
+module 0d25e7fe, `d4.sh` with `D4_CIRQ_LEVEL=1 D4_IM_REUSE=1`, no
+`D4_IM_WAIT`, two states, pings in C. Period 1 fetches. Later periods reuse
+IM when the previous one returned, and each logs `reused=1`.
+
+| Outcome | Decision |
+| --- | --- |
+| Passes all windows | Fetching on every period is implicated. Next: a fetch at load, so no SODI period fetches |
+| Hangs after periods logged `reused=1` | The fetch is not the cause. Next: the CPU8 observer |
+| Hangs in period 1, before any reuse | No answer. Rerun once |
 
 ### Request D5n (proposed): two states with no resource events
 
