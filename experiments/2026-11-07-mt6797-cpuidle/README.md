@@ -5145,9 +5145,17 @@ it applies to every SODI period, with no parameter.
   while CPU8 runs; that is one approved write left out. The A72 cluster
   is outside the program's `WFI_EN` already.
 - **Sampling.** A timer pinned to CPU8 samples every 10 ms while a period
-  is in flight: `PCM_FSM_STA`, `PCM_EVENT_REG_STA` (`0x14c`),
-  `PCM_REG15_DATA` (`0x13c`), `PCM_REG7_DATA` and `PCM_TIMER_OUT`
-  (`0x150`), with the time since the kick. These are reads only.
+  is in flight. These are reads only:
+  - `PCM_FSM_STA`, `PCM_EVENT_REG_STA` (`0x14c`), `PCM_REG15_DATA`
+    (`0x13c`), `PCM_REG6_DATA` (`0x118`), `PCM_REG7_DATA`,
+    `PCM_TIMER_OUT` (`0x150`) and `PCM_CON0`;
+  - readbacks of what the period wrote: `PCM_CON1`, `PCM_PWR_IO_EN` and
+    `SPM_CLK_CON`;
+  - `SPM_POWER_ON_VAL1`, as a known constant;
+  - the time since the kick, and how long the reads took.
+
+  The SPM program session asked for the reads after the first five, and
+  for the read timing.
 - **No printing during a period.** The samples stay in memory, so CPU8
   sends CPU0 no interrupt during a period. A pending interrupt would keep
   CPU0's wait loop from sleeping. The first period sampled 20 times or
@@ -5155,9 +5163,15 @@ it applies to every SODI period, with no parameter.
 - **A stuck period.** If a period is still in flight 500 ms after its end,
   CPU0 is taken as stuck. CPU8 then prints, at console level:
   - `sodi obs: period N in flight 500 ms after its end; CPU0 is stuck`;
-  - the reference (`sodi obs ref`, every second sample);
+  - the reference (`sodi obs ref`, every fourth sample);
   - the stuck period (`sodi obs stuck`);
-  - one `sodi obs late` sample every 100 ms for 3 s.
+  - one `sodi obs late` sample every 200 ms for 3 s.
+
+  Each sample line holds the time since the kick in µs, the read time in
+  ns, then `FSM`, `EVENT_REG_STA`, `r15`, `r6`, `r7`, `TIMER_OUT` and
+  `CON0`. The readbacks and the constant come on a line of their own for
+  the first and last sample of each group. That keeps the output under
+  the RAM console's 64 KiB.
 
   It then restarts the system with `emergency_restart()`, the same reset
   path as `reboot`. A period that does end after all is logged
@@ -5184,7 +5198,8 @@ sign-off, like the other proposals).
 - the IM fetch every period (no `D4_IM_REUSE`);
 - `r7` from the boot value.
 
-So the hang may not reproduce.
+So the hang may not reproduce. `r15` is read as "advancing or not", not as
+an exact PC, until the reference period shows it moving.
 
 - **Candidate:** image 137 on a fresh boot, with `mt6797-spm-sleep.ko`
   from a Buildbox build of the commit recording this stage (0826-0828,
@@ -5205,9 +5220,12 @@ So the hang may not reproduce.
 
 | Outcome | Decision |
 | --- | --- |
-| Stuck period printed; `tout` frozen and `fsm` as at the kick from the first sample | The PCM never ran: its clock or the kick. Next: compare the kick sequence (`PCM_CK_EN`, `PCM_CON0` order) with the vendor's |
-| Stuck period printed; `tout` advances, `ev` or `r15` fixed | The PCM runs and waits. The SPM program session decodes the wait from `ev` and `r15` |
-| Stuck period printed; samples read `0` or `ffffffff` | The SPM's APB side failed, not the PCM |
+| Stuck period printed; `FSM` bit 21 (`PCM_KICK`) 0, PC idle, `CON0` sane | The kick never registered: the kick write or its ordering |
+| `PCM_KICK` 1, `CON0` bit 2 (`PCM_CK_EN`) 1, `r6` 0, `r15` not advancing, `TIMER_OUT` advancing | The core is not clocked or is stalled, while the timer runs |
+| As above, with `TIMER_OUT` frozen too | The PCM's whole clock domain stopped. *Inference:* the SPM program session assumes the timer and the core share a clock |
+| `CON0` bit 2 0, or bit 15 (`PCM_SW_RESET`) 1 | The clock enable was lost, or the reset is stuck |
+| Long read times, a wrong `val1`, or readbacks that do not match | The SPM's APB side, not the PCM |
+| `r6` nonzero in the stuck period | The timer-only signature (past `0x411`); the stuck `ev` and `r15` name the wait |
 | No `sodi obs` lines from the hung period; TOPRGU reset with latches | CPU8 stopped too: a system-level freeze. Next: an observer that does not read the SPM, to tell its reads from the freeze |
 | All windows pass | One of the changed conditions avoids the hang. Next: the same run without `D4_OBS`, which separates the observer from the acknowledgement and `SODI_NO_EVENT` |
 
