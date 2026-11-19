@@ -4554,6 +4554,18 @@ cable out.
   register-only loop during a period. *Not prepared:* it changes the SODI
   conditions, and its samples would need a store that survives the reset.
   It is held until D5q says whether the two-state stall is the IM fetch.
+  If it returns, it should sample every 10 ms or so:
+  - `PCM_TIMER_OUT` (`0x150`): elapsed timer ticks. Advancing means the
+    32 kHz time base is alive.
+  - `PCM_EVENT_REG_STA` (`0x14c`): the current wait. `0x90100000` is the
+    main wait, `0xd00f0000` the pre-pause wait, `0x2000xxxx` a delay.
+  - `PCM_REG15_DATA` (`0x13c`): the return address, which names the
+    subroutine but cannot show a stall.
+  - `PCM_REG7_DATA` (`0x11c`): bits 11 and 14, the VCORE and 26 MHz
+    requests.
+
+  If the reads themselves stall, the SPM's bus side is frozen, not just
+  the PCM.
 
 **D5q is changed:** it runs without `D4_PCM_WDT`. The watchdog gave no
 wake, and it may have changed the reset path and cost the latches.
