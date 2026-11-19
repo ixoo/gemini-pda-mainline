@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); observer or practical route next |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer is next (D5s) |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5126,6 +5126,90 @@ registers do not record. Two ways on, for the owner to choose:
    idle so that the governor's two-state path, the configuration that
    raises the hang rate, is not used, and measure whether real idle
    entries hang. This works around the hang without explaining it.
+
+### Request D5s (proposed): the CPU8 observer
+
+The owner chose option 1, the CPU8 observer.
+
+[`0832`](../../patches/proposals/0832-soc-mediatek-mt6797-spm-sleep-acknowledge-SYS_CIRQ-w.patch)
+(module only) is the fix for the early aborts above. `spm_cirq_disable()`
+now writes `~0` to every `CIRQ_ACK` word right after the flush, so no
+status is left for the next kick. That is a new write at a new time, and
+it applies to every SODI period, with no parameter.
+
+[`0833`](../../patches/proposals/0833-soc-mediatek-mt6797-spm-sleep-optionally-observe-the.patch)
+(module only) adds `sodi_obs` (default off, load time only):
+- **What may stay online.** CPU8 may stay online beside CPU0. Test and idle
+  periods then accept CPU0 and CPU8 as the only online CPUs. A period
+  leaves `MP2_AXI_CONFIG` alone, so the A72 cluster keeps taking snoops
+  while CPU8 runs; that is one approved write left out. The A72 cluster
+  is outside the program's `WFI_EN` already.
+- **Sampling.** A timer pinned to CPU8 samples every 10 ms while a period
+  is in flight: `PCM_FSM_STA`, `PCM_EVENT_REG_STA` (`0x14c`),
+  `PCM_REG15_DATA` (`0x13c`), `PCM_REG7_DATA` and `PCM_TIMER_OUT`
+  (`0x150`), with the time since the kick. These are reads only.
+- **No printing during a period.** The samples stay in memory, so CPU8
+  sends CPU0 no interrupt during a period. A pending interrupt would keep
+  CPU0's wait loop from sleeping. The first period sampled 20 times or
+  more is kept as a reference.
+- **A stuck period.** If a period is still in flight 500 ms after its end,
+  CPU0 is taken as stuck. CPU8 then prints, at console level:
+  - `sodi obs: period N in flight 500 ms after its end; CPU0 is stuck`;
+  - the reference (`sodi obs ref`, every second sample);
+  - the stuck period (`sodi obs stuck`);
+  - one `sodi obs late` sample every 100 ms for 3 s.
+
+  It then restarts the system with `emergency_restart()`, the same reset
+  path as `reboot`. A period that does end after all is logged
+  (`ended after all`), and sampling goes on.
+
+Both patches are compile-checked with `W=1`, with and without
+`CONFIG_CPU_IDLE`, and checkpatch `--strict` is quiet (both lack a
+sign-off, like the other proposals).
+
+[`d4.sh`](tools/d4.sh) takes `D4_OBS=1`, which needs `D4_NO_EVENT=1`:
+- With no resource event the APSRC handler cannot put DRAM in
+  self-refresh while CPU8 runs. Hangs occurred without resource events
+  (D5m).
+- CPU8 is left online. After the other CPUs go offline, every task, IRQ
+  and unbound workqueue is moved to CPU0 (`taskset`, `smp_affinity`, the
+  workqueue cpumask), and moved back at the end. Only CPU8's per-CPU
+  threads and the observer stay there.
+
+**Changed conditions.** All of these differ from D5r:
+- a second CPU online, with its cluster powered and snooped;
+- the whole load on CPU0;
+- no resource events;
+- the SYS_CIRQ acknowledgement;
+- the IM fetch every period (no `D4_IM_REUSE`);
+- `r7` from the boot value.
+
+So the hang may not reproduce.
+
+- **Candidate:** image 137 on a fresh boot, with `mt6797-spm-sleep.ko`
+  from a Buildbox build of the commit recording this stage (0826-0828,
+  0830-0833). No boot2 write.
+- **Run:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_OBS=1`, two
+  states, no cap, pings in C, cable out, hands off. Console log level 8
+  before the load.
+- **After a restart or reset:**
+  - the owner catches the bootloader and selects boot2;
+  - read the latches as after D5r;
+  - archive the RAM console and `d4.log`;
+  - the `sodi obs` lines are the result.
+- *Hypothesis:* after a hung kick, the PCM either does not run at all
+  (its timer and state frozen from the first sample), or runs and waits
+  somewhere the registers name.
+- *Unique observation:* the PCM's live state during a hung period, read
+  by a CPU that keeps running.
+
+| Outcome | Decision |
+| --- | --- |
+| Stuck period printed; `tout` frozen and `fsm` as at the kick from the first sample | The PCM never ran: its clock or the kick. Next: compare the kick sequence (`PCM_CK_EN`, `PCM_CON0` order) with the vendor's |
+| Stuck period printed; `tout` advances, `ev` or `r15` fixed | The PCM runs and waits. The SPM program session decodes the wait from `ev` and `r15` |
+| Stuck period printed; samples read `0` or `ffffffff` | The SPM's APB side failed, not the PCM |
+| No `sodi obs` lines from the hung period; TOPRGU reset with latches | CPU8 stopped too: a system-level freeze. Next: an observer that does not read the SPM, to tell its reads from the freeze |
+| All windows pass | One of the changed conditions avoids the hang. Next: the same run without `D4_OBS`, which separates the observer from the acknowledgement and `SODI_NO_EVENT` |
 
 ### Request D5n (proposed): two states with no resource events
 

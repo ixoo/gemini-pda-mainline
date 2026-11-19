@@ -1,0 +1,294 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 19 Nov 2026 06:26:53 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally observe the PCM
+ from CPU8
+
+When a SODI period hangs, CPU0 stops and the SPM records nothing that
+says where the PCM stopped (stage D5r). Add sodi_obs (default off, load
+time only), an observer on CPU8.
+
+With it set, CPU8 may stay online beside CPU0: the A72 cluster is outside
+the program's WFI_EN, and the period leaves MP2_AXI_CONFIG alone, so
+that cluster keeps taking snoops. A timer pinned to CPU8 samples
+PCM_FSM_STA, PCM_EVENT_REG_STA, PCM_REG15_DATA, PCM_REG7_DATA and
+PCM_TIMER_OUT every 10 ms while a period is in flight. The samples stay in
+memory, so CPU8 sends CPU0 nothing during a period. The first period
+sampled 20 times or more is kept as a reference.
+
+If a period is still in flight 500 ms after its end, CPU0 is taken as
+stuck. CPU8 prints the reference (every second sample) and the stuck
+period at console level, so they reach the RAM console. It samples every
+100 ms for 3 s more and then restarts the system. A period that does end
+after all is logged and the observer goes on.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 170 +++++++++++++++++++++++-
+ 1 file changed, 167 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 09d27b575..200a77ae9 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -24,6 +24,7 @@
+ #include <linux/debugfs.h>
+ #include <linux/delay.h>
+ #include <linux/firmware.h>
++#include <linux/hrtimer.h>
+ #include <linux/i2c.h>
+ #include <linux/io.h>
+ #include <linux/irq.h>
+@@ -36,6 +37,7 @@
+ #include <linux/of_reserved_mem.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
++#include <linux/reboot.h>
+ #include <linux/regmap.h>
+ #include <linux/seq_file.h>
+ #include <linux/smp.h>
+@@ -118,7 +120,10 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define PCM_REG1_DATA		0x104
+ #define PCM_REG7_DATA		0x11c
+ #define PCM_REG13_DATA		0x134
++#define PCM_REG15_DATA		0x13c
+ #define PCM_REG12_EXT_DATA	0x144
++#define PCM_EVENT_REG_STA	0x14c
++#define PCM_TIMER_OUT		0x150
+ #define SPM_IRQ_STA		0x158
+ #define SPM_WAKEUP_STA		0x15c
+ #define SPM_WAKEUP_EXT_STA	0x160
+@@ -258,6 +263,49 @@ static bool sodi_r7_vendor;
+ module_param(sodi_r7_vendor, bool, 0644);
+ MODULE_PARM_DESC(sodi_r7_vendor, "SODI: start r7 from the vendor's POWER_ON_VAL1, not the value found");
+ 
++/*
++ * D5s: an observer on CPU8, which stays online (the A72 cluster is outside
++ * the program's WFI_EN). A timer pinned to CPU8 samples the PCM every 10 ms
++ * while a period is in flight, into memory only, so CPU8 sends CPU0 nothing
++ * during a period. A period still in flight 500 ms after its end means CPU0
++ * is stuck: CPU8 then prints a reference period and the stuck one at
++ * console level, samples 3 s more every 100 ms and restarts the system.
++ */
++#define SODI_OBS_CPU		8
++#define SODI_OBS_NS		(10 * NSEC_PER_MSEC)
++#define SODI_OBS_SAMPLES	256
++#define SODI_OBS_REF_MIN	20	/* samples in a reference period */
++#define SODI_OBS_TAIL		300	/* ticks after the stuck print */
++
++static bool sodi_obs;
++module_param(sodi_obs, bool, 0444);
++MODULE_PARM_DESC(sodi_obs, "SODI: CPU8 samples the PCM in periods, prints and restarts after a stuck one");
++
++struct sodi_obs_sample {
++	u32 us, fsm, ev, r15, r7, tout;
++};
++
++static struct {
++	bool on;
++	struct hrtimer timer;
++	/* Set by CPU0 before the kick; live is written last */
++	u64 kick, end;
++	u32 seq;
++	int live;
++	/* CPU8 only */
++	u32 cur_seq, ref_seq;
++	unsigned int n, ref_n, late;
++	struct sodi_obs_sample cur[SODI_OBS_SAMPLES], ref[SODI_OBS_SAMPLES];
++} obs;
++
++/* CPU0 alone, or with the observer's CPU8 */
++static bool spm_cpus_alone(void)
++{
++	unsigned int n = num_online_cpus();
++
++	return n == 1 || (n == 2 && obs.on && cpu_online(SODI_OBS_CPU));
++}
++
+ /* The I2C controller the programs reset (I2C6: the CPU bucks) */
+ #define I2C6_PHYS		0x1100e000
+ 
+@@ -828,12 +876,13 @@ static int spm_run(const struct spm_scen *sc)
+ {
+ 	u32 con0, con1, settle, axi[3], v, wdt_val = 0;
+ 	u64 cntp_cval = 0, cntp_ctl = 0;
++	bool obs_cpu = obs.on && cpu_online(SODI_OBS_CPU);
+ 	int i;
+ 
+ 	s.entered = false;
+ 	memset(&s.wake, 0, sizeof(s.wake));
+ 
+-	if (num_online_cpus() != 1 || smp_processor_id() != 0)
++	if (!spm_cpus_alone() || smp_processor_id() != 0)
+ 		return -EBUSY;
+ 	if ((spm_rd(PCM_FSM_STA) & 0x7fffff) != PCM_FSM_STA_DEF ||
+ 	    spm_rd(PCM_REG1_DATA) == 1)
+@@ -854,7 +903,9 @@ static int spm_run(const struct spm_scen *sc)
+ 	axi[2] = readl(s.mcucfg + MP2_AXI_CONFIG);
+ 	writel(axi[0] | ACINACTM, s.mcucfg + MP0_AXI_CONFIG);
+ 	writel(axi[1] | ACINACTM, s.mcucfg + MP1_AXI_CONFIG);
+-	writel(axi[2] | ACINACTM | BIT(0), s.mcucfg + MP2_AXI_CONFIG);
++	/* With the observer running on CPU8, its cluster keeps taking snoops */
++	if (!obs_cpu)
++		writel(axi[2] | ACINACTM | BIT(0), s.mcucfg + MP2_AXI_CONFIG);
+ 	if (!(readl(s.mcucfg + MP0_AXI_CONFIG) & ACINACTM)) {
+ 		writel(axi[0], s.mcucfg + MP0_AXI_CONFIG);
+ 		writel(axi[1], s.mcucfg + MP1_AXI_CONFIG);
+@@ -990,6 +1041,14 @@ static int spm_run(const struct spm_scen *sc)
+ 	if (sc->vec_clear)
+ 		spm_wr(PCM_EVENT_VECTOR_EN, 0);
+ 	s.wake.vec_en_kick = spm_rd(PCM_EVENT_VECTOR_EN);
++	if (obs_cpu) {
++		obs.kick = __arch_counter_get_cntvct();
++		obs.end = obs.kick + mul_u64_u64_div_u64(sc->ticks, arch_timer_get_cntfrq(),
++							 32768);
++		WRITE_ONCE(obs.seq, obs.seq + 1);
++		/* Pairs with sodi_obs_tick: kick, end and seq are seen with live */
++		smp_store_release(&obs.live, 1);
++	}
+ 	spm_wr(PCM_PWR_IO_EN, PCM_PWRIO_R0_R7);
+ 	con0 = spm_rd(PCM_CON0) & ~(IM_KICK_L | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | PCM_KICK_L);
+@@ -1056,6 +1115,10 @@ static int spm_run(const struct spm_scen *sc)
+ 		isb();
+ 	}
+ 	s.wake.cnt_return = __arch_counter_get_cntvct();
++	if (obs_cpu) {
++		/* Pairs with sodi_obs_tick: the period is over for the observer */
++		smp_store_release(&obs.live, 0);
++	}
+ 	s.wake.wfi_loops = i;
+ 	if (sc->cirq)
+ 		spm_cirq_disable();
+@@ -1103,6 +1166,102 @@ static int spm_run(const struct spm_scen *sc)
+ 	return s.wake.returned ? 0 : -ETIMEDOUT;
+ }
+ 
++static void sodi_obs_read(struct sodi_obs_sample *o, u64 now)
++{
++	o->us = mul_u64_u64_div_u64(now - obs.kick, USEC_PER_SEC, arch_timer_get_cntfrq());
++	o->fsm = spm_rd(PCM_FSM_STA);
++	o->ev = spm_rd(PCM_EVENT_REG_STA);
++	o->r15 = spm_rd(PCM_REG15_DATA);
++	o->r7 = spm_rd(PCM_REG7_DATA);
++	o->tout = spm_rd(PCM_TIMER_OUT);
++}
++
++static void sodi_obs_print(const char *what, u32 seq, const struct sodi_obs_sample *o,
++			   unsigned int n, unsigned int step)
++{
++	unsigned int i;
++
++	for (i = 0; i < n; i += step)
++		dev_info(&s.pdev->dev,
++			 "sodi obs %s %u: %7u us fsm=%08x ev=%08x r15=%08x r7=%08x tout=%08x\n",
++			 what, seq, o[i].us, o[i].fsm, o[i].ev, o[i].r15, o[i].r7, o[i].tout);
++}
++
++static enum hrtimer_restart sodi_obs_tick(struct hrtimer *t)
++{
++	struct sodi_obs_sample o;
++	u64 now;
++	u32 seq;
++	int live;
++
++	if (smp_processor_id() != SODI_OBS_CPU)
++		return HRTIMER_NORESTART;
++	hrtimer_forward_now(t, ns_to_ktime(SODI_OBS_NS));
++	/* Pairs with spm_run's releases: kick, end and seq belong to live */
++	live = smp_load_acquire(&obs.live);
++	seq = READ_ONCE(obs.seq);
++	if (!live || seq != obs.cur_seq) {
++		/* The period sampled last has ended; keep the first long one */
++		if (!obs.ref_n && obs.n >= SODI_OBS_REF_MIN) {
++			memcpy(obs.ref, obs.cur, obs.n * sizeof(*obs.cur));
++			obs.ref_n = obs.n;
++			obs.ref_seq = obs.cur_seq;
++		}
++		if (obs.late) {
++			dev_info(&s.pdev->dev, "sodi obs: period %u ended after all\n",
++				 obs.cur_seq);
++			obs.late = 0;
++		}
++		obs.n = 0;
++		obs.cur_seq = seq;
++		if (!live)
++			return HRTIMER_RESTART;
++	}
++	now = __arch_counter_get_cntvct();
++	if (!obs.late) {
++		if (obs.n < SODI_OBS_SAMPLES)
++			sodi_obs_read(&obs.cur[obs.n++], now);
++		if (now < obs.end + arch_timer_get_cntfrq() / 2)
++			return HRTIMER_RESTART;
++		dev_info(&s.pdev->dev,
++			 "sodi obs: period %u in flight 500 ms after its end; CPU0 is stuck\n",
++			 seq);
++		sodi_obs_print("ref", obs.ref_seq, obs.ref, obs.ref_n, 2);
++		sodi_obs_print("stuck", seq, obs.cur, obs.n, 1);
++	}
++	if (++obs.late % 10 == 0) {
++		sodi_obs_read(&o, now);
++		sodi_obs_print("late", seq, &o, 1, 1);
++	}
++	if (obs.late < SODI_OBS_TAIL)
++		return HRTIMER_RESTART;
++	dev_info(&s.pdev->dev, "sodi obs: restarting\n");
++	emergency_restart();
++	return HRTIMER_NORESTART;
++}
++
++static void sodi_obs_start_here(void *unused)
++{
++	hrtimer_start(&obs.timer, ns_to_ktime(SODI_OBS_NS), HRTIMER_MODE_REL_PINNED_HARD);
++}
++
++static void sodi_obs_start(void)
++{
++	if (!sodi_obs)
++		return;
++	if (!cpu_online(SODI_OBS_CPU)) {
++		dev_info(&s.pdev->dev, "sodi obs: CPU%d is offline, observer off\n",
++			 SODI_OBS_CPU);
++		return;
++	}
++	hrtimer_setup(&obs.timer, sodi_obs_tick, CLOCK_MONOTONIC,
++		      HRTIMER_MODE_REL_PINNED_HARD);
++	if (smp_call_function_single(SODI_OBS_CPU, sodi_obs_start_here, NULL, 1))
++		return;
++	obs.on = true;
++	dev_info(&s.pdev->dev, "sodi obs: sampling on CPU%d\n", SODI_OBS_CPU);
++}
++
+ static int spm_enter(suspend_state_t state)
+ {
+ 	if (state != PM_SUSPEND_MEM)
+@@ -1471,7 +1630,7 @@ static int sodi_idle_enter(struct cpuidle_device *dev,
+ 	st.tried++;
+ 	if (st.broken)
+ 		return sodi_idle_refuse(NO_BROKEN);
+-	if (num_online_cpus() != 1)
++	if (!spm_cpus_alone())
+ 		return sodi_idle_refuse(NO_CPUS);
+ 	if (!backlight_is_blank(s.bl))
+ 		return sodi_idle_refuse(NO_LIT);
+@@ -1863,6 +2022,7 @@ static int __init spm_sleep_init(void)
+ 		goto err;
+ 
+ 	suspend_set_ops(&spm_suspend_ops);
++	sodi_obs_start();
+ 	sodi_idle_register();
+ 	dev_info(&s.pdev->dev, "mem suspend ready: flags %08x, HWCID %04x, timer %u s\n",
+ 		 s.flags, hwcid, timer_sec);
+@@ -1875,6 +2035,10 @@ static int __init spm_sleep_init(void)
+ static void __exit spm_sleep_exit(void)
+ {
+ 	sodi_idle_unregister();
++	if (obs.on) {
++		obs.on = false;
++		hrtimer_cancel(&obs.timer);
++	}
+ 	debugfs_remove(s.debugfs);
+ 	suspend_set_ops(NULL);
+ 	free_irq(s.irq, NULL);
+-- 
+2.43.0
+

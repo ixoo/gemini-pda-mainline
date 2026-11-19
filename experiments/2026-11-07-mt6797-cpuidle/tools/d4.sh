@@ -24,6 +24,11 @@
 # POWER_ON_VAL1, 0x00015820 (0830, stage D5r).
 # D4_VEC_CLEAR=1 sets sodi_vec_clear: PCM_EVENT_VECTOR_EN is written 0 before
 # each kick (0831).
+# D4_OBS=1 sets sodi_obs (0833, stage D5s) and needs D4_NO_EVENT=1, so DRAM
+# never enters self-refresh while CPU8 runs. CPU8 stays online as the
+# observer; every task, IRQ and unbound workqueue is moved to CPU0, so CPU8
+# wakes nothing on CPU0 during a period, and moved back at the end. After a
+# stuck period the module prints its samples and restarts the system.
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -68,6 +73,7 @@ POLICY=/sys/devices/system/cpu/cpufreq/policy0
 PIN_MIN=""
 PIN_MAX=""
 USB_CONTROL=""
+OBS_MASK=""
 
 exec >>"$LOG" 2>&1
 
@@ -91,6 +97,10 @@ restore() {
 			echo 1 >"$CPUS/cpu$cpu/online" || log "cpu$cpu did not come back"
 		done
 		log "CPUs back: $(cat "$CPUS/online")"
+	fi
+	if [ -n "$OBS_MASK" ]; then
+		obs_affinity "$OBS_MASK"
+		log "tasks, IRQs and workqueues back to mask $OBS_MASK"
 	fi
 	if [ -n "$USB_CONTROL" ]; then
 		echo "$USB_CONTROL" >"/sys/bus/platform/devices/$USB/power/control" &&
@@ -121,6 +131,18 @@ check_hash() {
 		exit 1
 	fi
 	log "    hash equal"
+}
+
+# Every task, IRQ and unbound workqueue to the CPUs in mask $1
+obs_affinity() {
+	echo "$1" >/proc/irq/default_smp_affinity
+	for f in /proc/irq/*/smp_affinity; do
+		echo "$1" >"$f" 2>/dev/null
+	done
+	echo "$1" >/sys/devices/virtual/workqueue/cpumask
+	for p in /proc/[0-9]*; do
+		taskset -a -p "$1" "${p#/proc/}" >/dev/null 2>&1
+	done
 }
 
 check_dmesg() {
@@ -280,6 +302,13 @@ if [ "${D4_VEC_CLEAR:-0}" = 1 ]; then
 	grep -q 'sodi_vec_clear' "$KO" || stop "the module has no sodi_vec_clear parameter (0831)"
 	level="$level sodi_vec_clear=1"
 fi
+if [ "${D4_OBS:-0}" = 1 ]; then
+	grep -q 'sodi_obs' "$KO" || stop "the module has no sodi_obs parameter (0833)"
+	[ "${D4_NO_EVENT:-0}" = 1 ] || stop "D4_OBS=1 needs D4_NO_EVENT=1"
+	command -v taskset >/dev/null || stop "no taskset"
+	[ "$(cat "$CPUS/cpu8/online" 2>/dev/null)" = 1 ] || stop "CPU8 is offline"
+	level="$level sodi_obs=1"
+fi
 case $level in
 *sodi_im_*) grep -q 'sodi_im_reuse' "$KO" || stop "the module has no sodi_im_* parameters (0827)" ;;
 esac
@@ -289,6 +318,9 @@ insmod "$KO" ${D4_WAKE:+sodi_wake_src=$D4_WAKE} $level || stop "insmod failed"
 log "sodi_wake_src $(printf '%08x' "$(cat /sys/module/mt6797_spm_sleep/parameters/sodi_wake_src)")"
 new_dmesg | grep -E 'mt6797-spm-sleep|pcm_' | sed 's/^/    /'
 [ -e "$SODI" ] || stop "no $SODI: the SODI program was not loaded"
+if [ "${D4_OBS:-0}" = 1 ]; then
+	new_dmesg | grep -q 'sodi obs: sampling on CPU8' || stop "the observer did not start"
+fi
 
 log "waiting up to 300 s for the idle blank; do not touch any input"
 t=0
@@ -300,10 +332,16 @@ done
 log "blanked"
 
 for cpu in 9 8 7 6 5 4 3 2 1; do
+	[ "$cpu" = 8 ] && [ "${D4_OBS:-0}" = 1 ] && continue
 	[ "$(cat "$CPUS/cpu$cpu/online" 2>/dev/null)" = 1 ] || continue
 	echo 0 >"$CPUS/cpu$cpu/online" || stop "cpu$cpu did not go offline"
 	TAKEN="$cpu $TAKEN"
 done
+if [ "${D4_OBS:-0}" = 1 ]; then
+	OBS_MASK=$(cat /proc/irq/default_smp_affinity)
+	obs_affinity 1
+	log "observer: tasks on CPU8 after the move (its per-CPU threads stay): $(ps -eo psr= | awk '$1 == 8' | wc -l)"
+fi
 log "online: $(cat "$CPUS/online")"
 sleep 5
 if [ -n "${D4_PIN_KHZ:-}" ]; then

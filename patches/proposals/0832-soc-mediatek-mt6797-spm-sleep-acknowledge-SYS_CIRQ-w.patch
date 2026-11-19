@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 19 Nov 2026 06:24:47 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: acknowledge SYS_CIRQ when a
+ period ends
+
+spm_cirq_disable() replays the recorded edges into the GIC and disables
+SYS_CIRQ, but leaves its status set. The status is acknowledged only by
+the next period's spm_cirq_enable(), which runs after the kick. A program
+reused from IM (sodi_im_reuse) reaches its wake check within microseconds
+of the kick, sees the previous period's status as a wake and returns at
+once. In stage D5r every second period ended this way.
+
+Acknowledge every status word right after the flush, as the vendor's exit
+does.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 10fd72c04..09d27b575 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -799,7 +799,13 @@ static void spm_cirq_enable(void)
+ 	       (level ? 0 : CIRQ_EDGE), s.cirq + CIRQ_CON);
+ }
+ 
+-/* Before the GIC is restored: note, replay and disable (mt_cirq_flush) */
++/*
++ * Before the GIC is restored: note, replay, acknowledge and disable
++ * (mt_cirq_flush). Without the acknowledgement the status recorded in this
++ * period stays set until the next period's spm_cirq_enable, which runs after
++ * the kick; a resident program reaches its wake check before that and ends
++ * at once on the stale status (D5r).
++ */
+ static void spm_cirq_disable(void)
+ {
+ 	unsigned int w;
+@@ -807,6 +813,8 @@ static void spm_cirq_disable(void)
+ 	for (w = 0; w < CIRQ_WORDS; w++)
+ 		s.cirq_sta[w] = readl(s.cirq + CIRQ_STA + 4 * w);
+ 	writel(readl(s.cirq + CIRQ_CON) | CIRQ_FLUSH, s.cirq + CIRQ_CON);
++	for (w = 0; w < CIRQ_WORDS; w++)
++		writel(~0u, s.cirq + CIRQ_ACK + 4 * w);
+ 	writel(readl(s.cirq + CIRQ_CON) & ~(CIRQ_EN | CIRQ_EDGE), s.cirq + CIRQ_CON);
+ 	for (w = 0; w < CIRQ_WORDS; w++)
+ 		writel(~0u, s.cirq + CIRQ_MASK_SET + 4 * w);
+-- 
+2.43.0
+
