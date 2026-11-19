@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; D5q: the hang survives IM reuse, so the fetch is cleared; D5r proposed |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); observer or practical route next |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -4916,7 +4916,7 @@ module's `dev_info` lines never reach it.
 - *Not yet explained:* after the D5p part 1 and D5q run 2 resets, the next
   start died on its own. This time it happened with no SODI module loaded.
 
-### Request D5r (proposed): r7 from the vendor's value
+### Request D5r (approved 2026-11-18): r7 from the vendor's value
 
 **The SPM program session's reading of D5q run 2.**
 - The reused periods read `02c48610`: PC idle, IM ready, master idle. The
@@ -5009,6 +5009,82 @@ so D5r also reads the vector enable:
 - *Inference:* it could still stall at the first wait (`0x42e`), with `r6`
   already written. That is the no-driver signature (`LATCH_1`
   `fd8d3239`), not the two-state one. The log stays.
+
+### D5r: the vendor's r7 does not stop the hang (custodian, 2026-11-18)
+
+**Approved** by the owner ("Approve D5r").
+
+**Setup.** Power-on boot e87e134c. Module 45a0e7e1 (Buildbox 7895e88c:
+0826-0828, 0830 and 0831). `d4.sh` 1407eb33 with `D4_CIRQ_LEVEL=1
+D4_IM_REUSE=1 D4_R7_VENDOR=1`, no `D4_VEC_CLEAR`, two states, no cap.
+Console log level 8. Wi-Fi power save on, cable out, battery 67 %. The
+pre-module read matched earlier power-on boots.
+
+**Observed.**
+- **C:** 60 of 60 ended early, 30 by CONN2AP or the WLAN line.
+- **A:** 20 of 20 ended early.
+- **B:** started at 21:46:14 and ran 8 periods, with no key pressed.
+- **88 periods returned**, then one hung.
+- `r7` read `01415820` in every period, so bit 4 was clear and the change
+  took.
+- `vec_en` read `00000000>00000000` in period 1 (fetched), and
+  `0000c0c0>0000c0c0` in every reused period. **The vector enable survives
+  the PCM reset**, so every later kick starts with `0xc0c0`, in the
+  periods that return too.
+- The last return, at 21:46:28, was an early abort: `r12` `00400000`,
+  slept 0, `timer_out` 0, SYS_CIRQ status all zero. The next period's
+  start line was logged at 21:46:28, and that period never returned.
+- The next boot, 66a4a99a, started its kernel at 21:47:34.
+- Latches at uptime 0: `04248000`, `0`, `ffffffff`, `0000c0ff`,
+  `2a00005c`, `003dff08`, identical to D5l, D5o and D5q run 2.
+- **The RAM console reached the hang.** `console-ramoops-0` (64 KiB, kept
+  privately) ends at [411.132], with the early-abort period's SYS_CIRQ
+  line. Nothing was printed after the hung period was entered: no RCU
+  stall, Oops or watchdog line.
+
+**Result.**
+- **The double clock select is not the cause.** With the vendor's `r7`, a
+  two-state period still hung with the same latch signature. It came
+  later than usual (88 periods), but one run does not show a rate change.
+- **The vector enable stays at `0xc0c0` across resets**, in passing periods
+  as in hung ones. Alone it does not cause the hang, which fits the
+  session's low weight.
+- In both reuse runs (D5q run 2, D5r) the hung period directly followed an
+  early abort. In D5o (no reuse) it followed a normal return, and D5h and
+  D5l hung in period 1. So an early abort is not needed.
+  - The no-reuse passing runs (D5c-D5e, the IM reference) logged only
+    CONN2AP returns. D5a's and D5o's reported returns were CONN2AP too.
+  - *Inference:* early aborts may come with IM reuse.
+- **CPU0 never prints again once the hung period is entered**, even to the
+  RAM console. So the kick, or the first moments after it, freeze CPU0
+  itself, not only the PCM.
+
+**Where this leaves D5.** Tested and cleared as the cause of the two-state
+hang:
+- the moved CIRQ order;
+- the pending check;
+- the tick inside the period;
+- a pending SGI or PPI;
+- the OPP;
+- resource events (for the no-driver hang);
+- the PCM watchdog;
+- the per-period IM fetch;
+- the double clock select.
+
+What is left points at the instant of the kick, in a way the SPM's
+registers do not record. Two ways on, for the owner to choose:
+1. **The CPU8 observer.** Keep CPU8 online (MP2 is outside `WFI_EN`) and
+   sample `PCM_TIMER_OUT`, `PCM_EVENT_REG_STA`, `PCM_REG15_DATA`,
+   `PCM_REG7_DATA` and `PCM_FSM_STA` every 10 ms during each period,
+   printing at console level. The RAM console now survives the reset, so
+   the samples from the hung period would be read afterwards. It changes
+   the SODI conditions (a second CPU online), so the hang may not
+   reproduce. Its own reads stalling would itself show a frozen bus. This
+   is a module change of moderate size.
+2. **The practical route.** The WFI-only driver passed (D5e). Build SODI
+   idle so that the governor's two-state path, the configuration that
+   raises the hang rate, is not used, and measure whether real idle
+   entries hang. This works around the hang without explaining it.
 
 ### Request D5n (proposed): two states with no resource events
 
