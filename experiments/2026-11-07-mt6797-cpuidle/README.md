@@ -5060,8 +5060,16 @@ pre-module read matched earlier power-on boots.
   itself, not only the PCM.
 
 **Counts and the SPM program session's reading.**
-- Early aborts were 44 of 88 returns in D5r and 9 of 18 in D5q run 2. So
-  a hang right after an abort, in 2 of 3 hangs, is chance.
+- Early aborts were 44 of 88 returns in D5r and 9 of 18 in D5q run 2.
+  They **strictly alternate** with normal periods, but only with IM reuse:
+  D5o part 2 (22), the IM reference (230) and D5o part 1 logged none.
+  - So half of the reuse runs' periods did not sleep at all. D5r had 44
+    real periods, not 88.
+  - A hang must follow an abort in that pattern, so "a hang after an
+    abort" says nothing.
+  - *Inference (SPM program session):* reuse leaves a state that the next
+    kick's pre-pause check consumes. Logging `SPM_WAKEUP_STA` and its raw
+    value just before each kick would show it.
 - Aborts also came in window B, with no pings. That supports a SYS_CIRQ
   pulse while SYS_CIRQ is configured after the kick.
 - The vector enable is live through the pre-pause wait (`0x42e`), until
