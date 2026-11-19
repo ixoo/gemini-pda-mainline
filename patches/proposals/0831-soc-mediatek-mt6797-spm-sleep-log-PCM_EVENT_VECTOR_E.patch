@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 18 Nov 2026 21:27:27 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: log PCM_EVENT_VECTOR_EN,
+ optionally clear it
+
+The SODI program enables its event vectors (0xc0c0 in CG mode) in
+PCM_EVENT_VECTOR_EN on its main path, and nothing clears it on exit;
+neither the vendor's driver nor this module writes it. If the PCM reset
+does not clear it either, the next kick starts with the vectors enabled,
+and a pending event could vector into a handler (APSRC sleep among them)
+before the program's first instructions. Hung periods never reach those
+instructions.
+
+Log the register after the PCM reset and just before the kick. Add
+sodi_vec_clear (default off) to write it to 0 before the kick in test
+periods, as the program itself does first on its main path (stage D5r).
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 6a8b00444..10fd72c04 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -105,6 +105,7 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define PCM_TIMER_VAL		0x030
+ #define PCM_WDT_VAL		0x034
+ #define PCM_EVENT_VECTOR0	0x040
++#define PCM_EVENT_VECTOR_EN	0x080	/* written by the programs, D5r */
+ #define SPM_SW_INT_CLEAR	0x094
+ #define SPM_SCP_MAILBOX		0x098
+ #define SPM_CPU_WAKEUP_EVENT	0x0b0
+@@ -249,6 +250,10 @@ static bool sodi_im_reuse;
+ module_param(sodi_im_reuse, bool, 0644);
+ MODULE_PARM_DESC(sodi_im_reuse, "SODI: run the program already in IM instead of fetching it again");
+ 
++static bool sodi_vec_clear;
++module_param(sodi_vec_clear, bool, 0644);
++MODULE_PARM_DESC(sodi_vec_clear, "SODI: clear PCM_EVENT_VECTOR_EN before the kick, as the program does first");
++
+ static bool sodi_r7_vendor;
+ module_param(sodi_r7_vendor, bool, 0644);
+ MODULE_PARM_DESC(sodi_r7_vendor, "SODI: start r7 from the vendor's POWER_ON_VAL1, not the value found");
+@@ -326,6 +331,7 @@ struct spm_scen {
+ 	bool im_wait;		/* wait for the IM fetch, or refuse (D5q) */
+ 	bool im_reuse;		/* IM slave mode when the program is resident (D5q) */
+ 	bool r7_vendor;		/* r7 starts from SPM_R7_VENDOR (D5r) */
++	bool vec_clear;		/* PCM_EVENT_VECTOR_EN 0 before the kick (D5r) */
+ 	bool ready;
+ };
+ 
+@@ -338,6 +344,7 @@ struct spm_wake {
+ 	u32 im_us;		/* polls until IM_STATE settled */
+ 	u32 on_val0, on_val1;	/* r0 and r7 start values, at entry */
+ 	u32 r0, r7;		/* after the return */
++	u32 vec_en_reset, vec_en_kick;	/* PCM_EVENT_VECTOR_EN */
+ 	bool im_reused, im_stuck;
+ 	bool backstop;		/* CPU0's timer ended the wait, not the PCM */
+ 	u32 rd_en, rd_pend;	/* CPU0's SGIs and PPIs at entry */
+@@ -880,6 +887,7 @@ static int spm_run(const struct spm_scen *sc)
+ 		writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
+ 		return -EIO;
+ 	}
++	s.wake.vec_en_reset = spm_rd(PCM_EVENT_VECTOR_EN);
+ 	spm_wr(PCM_CON0, SPM_KEY | PCM_CK_EN | EN_IM_SLEEP_DVS);
+ 	con1 = spm_rd(PCM_CON1) & PCM_WDT_BITS;
+ 	spm_wr(PCM_CON1, SPM_KEY | PCM_CON1_INIT | con1);
+@@ -971,6 +979,9 @@ static int spm_run(const struct spm_scen *sc)
+ 		return -ETIMEDOUT;
+ 	}
+ 
++	if (sc->vec_clear)
++		spm_wr(PCM_EVENT_VECTOR_EN, 0);
++	s.wake.vec_en_kick = spm_rd(PCM_EVENT_VECTOR_EN);
+ 	spm_wr(PCM_PWR_IO_EN, PCM_PWRIO_R0_R7);
+ 	con0 = spm_rd(PCM_CON0) & ~(IM_KICK_L | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | PCM_KICK_L);
+@@ -1149,8 +1160,9 @@ static void spm_log_wake(const char *what)
+ 	dev_info(&s.pdev->dev, "%s: im fsm %08x>%08x after %u us, reused=%d stuck=%d\n",
+ 		 what, s.wake.im_fsm0, s.wake.im_fsm1, s.wake.im_us,
+ 		 s.wake.im_reused, s.wake.im_stuck);
+-	dev_info(&s.pdev->dev, "%s: io val0=%08x val1=%08x r0=%08x r7=%08x\n",
+-		 what, s.wake.on_val0, s.wake.on_val1, s.wake.r0, s.wake.r7);
++	dev_info(&s.pdev->dev, "%s: io val0=%08x val1=%08x r0=%08x r7=%08x vec_en=%08x>%08x\n",
++		 what, s.wake.on_val0, s.wake.on_val1, s.wake.r0, s.wake.r7,
++		 s.wake.vec_en_reset, s.wake.vec_en_kick);
+ }
+ 
+ /*
+@@ -1261,6 +1273,7 @@ static int sodi_once(u64 ms)
+ 	s.sodi.im_wait = READ_ONCE(sodi_im_wait);
+ 	s.sodi.im_reuse = READ_ONCE(sodi_im_reuse);
+ 	s.sodi.r7_vendor = READ_ONCE(sodi_r7_vendor);
++	s.sodi.vec_clear = READ_ONCE(sodi_vec_clear);
+ 	if (s.sodi.pcm_wdt)
+ 		s.sodi.wake_src |= WAKE_PCM_WDT;
+ 	if (sodi_pdn)
+-- 
+2.43.0
+

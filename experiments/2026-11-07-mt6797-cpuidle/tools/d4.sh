@@ -22,6 +22,8 @@
 # program); both 0827, stage D5q.
 # D4_R7_VENDOR=1 sets sodi_r7_vendor: r7 starts from the vendor's
 # POWER_ON_VAL1, 0x00015820 (0830, stage D5r).
+# D4_VEC_CLEAR=1 sets sodi_vec_clear: PCM_EVENT_VECTOR_EN is written 0 before
+# each kick (0831).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -273,6 +275,10 @@ fi
 if [ "${D4_R7_VENDOR:-0}" = 1 ]; then
 	grep -q 'sodi_r7_vendor' "$KO" || stop "the module has no sodi_r7_vendor parameter (0830)"
 	level="$level sodi_r7_vendor=1"
+fi
+if [ "${D4_VEC_CLEAR:-0}" = 1 ]; then
+	grep -q 'sodi_vec_clear' "$KO" || stop "the module has no sodi_vec_clear parameter (0831)"
+	level="$level sodi_vec_clear=1"
 fi
 case $level in
 *sodi_im_*) grep -q 'sodi_im_reuse' "$KO" || stop "the module has no sodi_im_* parameters (0827)" ;;

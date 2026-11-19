@@ -4954,8 +4954,8 @@ without `CONFIG_CPU_IDLE`, and checkpatch `--strict` is quiet. `d4.sh`
 takes `D4_R7_VENDOR=1`.
 
 - **Candidate:** image 137 on a fresh boot, with `mt6797-spm-sleep.ko`
-  from a Buildbox build of the commit recording this stage (0826-0828 and
-  0830). No boot2 write.
+  from a Buildbox build of the commit recording 0831 (see below). No boot2
+  write.
 - **Run:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_IM_REUSE=1 D4_R7_VENDOR=1`,
   two states, no cap, pings in C: D5q run 2 with one change. The
   pre-module read, console log level 8 before the load, and after a reset
@@ -4966,7 +4966,37 @@ takes `D4_R7_VENDOR=1`.
 | Outcome | Decision |
 | --- | --- |
 | All windows pass (C, A, B), `r7` after returns with bit 4 clear | The double clock select is implicated. Repeat once, then make the vendor value the default |
-| Hang, same latches | Not the clock select. Next: the CPU8 observer, or the one-state driver as the practical route |
+| Hang, same latches | Not the clock select. Next: the event vectors below, then the CPU8 observer, or the one-state driver as the practical route |
+
+**A second candidate: event vectors left enabled (SPM program session).**
+- The program enables its event vectors in `PCM_EVENT_VECTOR_EN`
+  (`0x080`): first 0, then `0xc0c0` in CG mode (vectors 6, 7, 14 and 15).
+  No exit path clears it, and neither the vendor's driver nor this module
+  writes it.
+- If the PCM reset does not clear it, every kick after a normal period
+  starts with the vectors enabled. An event pending at the kick could then
+  vector into a handler before `0x402`, leaving `r6` 0. Vector 15 is the
+  APSRC sleep handler: EMI clock off, then DRAM self-refresh. Entered at
+  the kick, while CPU0 still needs DRAM, that would freeze everything.
+- *Inference.* Unknown: whether vectors preempt straight-line code or only
+  fire in waits. The first wait is at `0x42e`, after `0x402`.
+- The zero-length returns stop at the pre-pause wait (`0x42e`) and exit
+  before `0x47a`, where the program writes the enable.
+
+[`0831`](../../patches/proposals/0831-soc-mediatek-mt6797-spm-sleep-log-PCM_EVENT_VECTOR_E.patch)
+(module only) logs `PCM_EVENT_VECTOR_EN` after the PCM reset and just
+before the kick (`vec_en=A>B` on the `io` line). This only reads. It also
+adds `sodi_vec_clear` (default off), which writes 0 there before the kick
+in test periods, as the program does first. That is a new register write,
+not used in D5r. It is compile-checked with `W=1`, with and without
+`CONFIG_CPU_IDLE`, and checkpatch `--strict` is quiet. `d4.sh` takes
+`D4_VEC_CLEAR=1`.
+
+**D5r's build** is the commit recording 0831 (0826-0828, 0830 and 0831),
+so D5r also reads the vector enable:
+- if it reads 0 at every kick, this candidate is dead;
+- if it reads `0xc0c0`, a run with `D4_VEC_CLEAR=1` follows. That run
+  needs the owner's approval for the new write.
 
 ### Request D5n (proposed): two states with no resource events
 

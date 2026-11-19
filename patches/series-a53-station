@@ -987,3 +987,4 @@ proposals/0826-soc-mediatek-mt6797-spm-sleep-optionally-end-stuck-t.patch
 proposals/0827-soc-mediatek-mt6797-spm-sleep-optionally-wait-for-or.patch
 proposals/0828-soc-mediatek-mt6797-spm-sleep-log-r0-r7-and-their-st.patch
 proposals/0830-soc-mediatek-mt6797-spm-sleep-optionally-start-r7-fr.patch
+proposals/0831-soc-mediatek-mt6797-spm-sleep-log-PCM_EVENT_VECTOR_E.patch
