@@ -4193,10 +4193,10 @@ register. The screen was already blank. CPU7-1 went offline between
   `STA` `0`.
 
 **Result.**
-- The hang came in or just before the first `echo 200` (after `sleep 1`),
-  with only CPU0 online and **no cpuidle driver**. journald may drop the
-  last second, so a returned first period cannot be strictly excluded, but
-  no period line reached disk.
+- The hang came after CPU1 went offline, with only CPU0 online and **no
+  cpuidle driver**. `d5m.sh` df07a768 printed the period lines only after
+  all three periods, so the hang can be in any of periods 1-3 or the
+  sleeps between them (corrected by the custodian).
 - **The bisection does not hold as stated.** D5c and D5d passed about 800
   periods without the driver, but a period can hang without it. The driver
   raises the rate under pings; it is not the only way in.
@@ -4208,8 +4208,18 @@ register. The screen was already blank. CPU7-1 went offline between
   - **Settle time:** the first period started about 1 s after the last
     CPU went offline. `d4.sh` waits 5 s, then for the first ping.
   - **Length:** 200 ms periods, not 2000 ms.
-- D3's 14 timer-only periods returned, but on an earlier image, before
-  cpufreq and `CONFIG_CPU_IDLE`.
+- D3's 14 timer-only periods returned, but with the radios unloaded, on
+  an earlier image. **D5m was the first timer-only run with Wi-Fi joined**
+  (SPM program session). Every Wi-Fi-up pass used the full wake set. CONN's
+  APSRC and DDR requests are honoured whatever the wake mask
+  (`SPM_SRC2_MASK` `0x08ff009f`), so in D5m they could reach the resource
+  handlers with no CONN2AP wake to end the period.
+- The two-state hangs (D5a-D5l) did not mask CONN2AP. Their test periods
+  ran the same `sodi_once` as D5d, with the same wake set (`0f57c5e5`),
+  level recording and CIRQ clone; only CPU0's idle between periods
+  differed. In D5a, 21 periods ended on CONN2AP through SYS_CIRQ before
+  the one that hung. Whether CONN2AP failed to end the hung periods is not
+  known: no wake was recorded for them.
 - *Inference:* the first difference fits reading B best. It does not
   separate A from B, and the latches were lost.
 
@@ -4219,10 +4229,19 @@ register. The screen was already blank. CPU7-1 went offline between
 | Driver necessary for a hang | No |
 | Resource path | Still the leading candidate; D5n tests it directly |
 
-**Decision.** D5n is unchanged and is the next run: it removes the
-resource events under the configuration that hangs most often. D5m is not
-repeated as it stands. If D5n passes, a D5m variant with
-`sodi_no_event=1` could calibrate the latch from returned periods.
+**Decision.** D5n is unchanged: it removes the resource events under the
+configuration that hangs most often. D5m is not repeated as it stands. The
+SPM program session proposed three variants, all pending owner approval:
+1. D5m with `sodi_no_event=1` (`D5M_NO_EVENT=1`). Under the resource-path
+   reading it should pass, and its returned periods then calibrate the
+   latch with a deliberate reset as planned.
+2. D5m with the Wi-Fi and CONSYS modules unloaded first. It should pass.
+3. Each period's line logged and synced right after it.
+
+[`tools/d5m.sh`](tools/d5m.sh) now does 3 in every run, takes
+`D5M_NO_EVENT=1` for 1, and logs which Wi-Fi modules are loaded, so 2
+needs only the modules removed before the run. Both 1 and D5n need the
+0825 module from a Buildbox build of a521f913d or later.
 
 ### Request D5n (proposed): two states with no resource events
 

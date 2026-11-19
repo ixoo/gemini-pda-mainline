@@ -17,7 +17,12 @@
 # so the hardware watchdog resets the chip about 31 s later, with no period
 # in flight. The owner catches the bootloader and selects boot2 without
 # powering off; the latches are then read before any module loads. The log
-# is /var/tmp/d5m.log.
+# is /var/tmp/d5m.log. Each period's return line is logged and synced right
+# after the period, so a hang can be placed in period 1, 2 or 3.
+#
+# D5M_NO_EVENT=1 loads the module with sodi_no_event=1 (0825): periods arm no
+# resource event. The script logs whether the Wi-Fi driver is loaded; to run
+# with the radios unloaded, remove the Wi-Fi and CONSYS modules first.
 set -u
 
 KO=${1:-}
@@ -61,7 +66,14 @@ log "watchdog0 $(cat /sys/class/watchdog/watchdog0/state 2>/dev/null), timeout $
 log "waiting 30 s for the SSH session to end"
 sleep 30
 
-insmod "$KO" sodi_idle=0 sodi_wake_src=0 || stop "insmod failed"
+ARGS="sodi_idle=0 sodi_wake_src=0"
+if [ "${D5M_NO_EVENT:-0}" = 1 ]; then
+	grep -q 'sodi_no_event' "$KO" || stop "the module has no sodi_no_event parameter (0825)"
+	ARGS="$ARGS sodi_no_event=1"
+fi
+log "wlan modules: $(lsmod | awk '/wlan|wmt|consys|gen4m/ {printf "%s ", $1}')"
+# shellcheck disable=SC2086
+insmod "$KO" $ARGS || stop "insmod failed"
 [ -e "$SODI" ] || stop "no $SODI: the SODI program was not loaded"
 [ "$(cat "$CPUS/cpuidle/current_driver" 2>/dev/null)" = mt6797_sodi ] &&
 	stop "the cpuidle driver registered despite sodi_idle=0"
@@ -85,13 +97,18 @@ log "online: $(cat "$CPUS/online")"
 n=0
 tries=0
 while [ "$n" -lt 3 ]; do
-	sleep 1
 	tries=$((tries + 1))
 	[ "$tries" -gt 20 ] && stop "fewer than three periods in 20 tries"
+	# The synced line comes a second before the period, so its write-back
+	# does not refuse the period on MSDC (as in D5h).
+	log "    period $((n + 1)), try $tries"
+	sleep 1
 	echo 200 >"$SODI" 2>/dev/null || continue
 	n=$((n + 1))
+	dmesg | grep 'sodi cg: returned' | tail -n 1 |
+		sed 's/.*\(returned=[0-9]*\).*\(fsm=[0-9a-f]*\).* \(r13=[0-9a-f]*\).*/    \1 \2 \3/'
+	sync
 done
-dmesg | grep 'sodi cg: returned' | sed 's/.*\(returned=[0-9]*\).*\(fsm=[0-9a-f]*\).* \(r13=[0-9a-f]*\).*/    \1 \2 \3/'
 [ "$(dmesg | grep -c 'sodi cg: returned=1')" -ge 3 ] || stop "a period did not return"
 log "three periods returned; opening the watchdog, reset expected in about 31 s"
 
