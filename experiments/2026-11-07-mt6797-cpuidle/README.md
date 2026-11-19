@@ -4537,6 +4537,24 @@ cable out.
 - Arming the PCM watchdog may itself have changed the reset path. That
   cannot be told from one run.
 
+**The SPM program session's reading of D5p.**
+- The PCM watchdog is off at power-on, so the earlier resets with latches
+  were TOPRGU resets. The PCM-watchdog explanation is withdrawn.
+- Every wait in the SODI entry and main path accepts wakes, and the
+  program's masks include bit 13. A watchdog wake that did not end the
+  period means **the PCM had stopped advancing**: a bus transaction that
+  never completed, or a stopped clock or counter.
+- Two-state hangs (`r6` 0): a stall before `0x402`, which fits the IM
+  fetch; 0827's poll tests it.
+- Timer-only hangs: a stall after `0x411`, at a register access or a
+  clock. Part 1's late reset with no TOPRGU latches fits a bus-level
+  freeze.
+- The session proposes an observer: keep CPU8 online (MP2 is outside
+  `WFI_EN` and keeps its PLL) and poll the PCM's state registers from a
+  register-only loop during a period. *Not prepared:* it changes the SODI
+  conditions, and its samples would need a store that survives the reset.
+  It is held until D5q says whether the two-state stall is the IM fetch.
+
 **D5q is changed:** it runs without `D4_PCM_WDT`. The watchdog gave no
 wake, and it may have changed the reset path and cost the latches.
 
