@@ -4396,7 +4396,23 @@ to skip the deliberate reset. It now logs each period's full return line.
 | --- | --- |
 | A period returns with `r12` bit 13 | The PCM was stuck in a wait that a wake ends. Next: place the wait from `debug`, `event` and `r13` with the SPM program session |
 | Three periods return without bit 13 | No hang this time. Rerun once; if it passes again, compare with D5o |
-| Reset, latches as before | The PCM ignores even its watchdog wake: it is stuck in a loop or the SPM's clock is off. Next: the SPM's own clock and the 26 MHz path |
+| Reset, latches as before | The PCM ignores even its watchdog wake: it is stuck in a loop that ignores wakes, or its counter (and the SPM's 32 kHz clock) has stalled. Next: the SPM's own clock and the 26 MHz path |
+
+**0826 checked against the program (SPM program session).**
+- The vendor's register map gives `PCM_WDT_VAL` at `0x034` and
+  `PCM_CON1` bits 5, 8 and 9 as timer enable, watchdog enable and
+  watchdog wake mode. The program's own watchdog store goes to
+  `0x10006034`.
+- The program never writes `PCM_CON1`. Its only `PCM_WDT_VAL` store is in
+  the exit sequence, after the wake is taken, so 0826's value holds for
+  the whole period.
+- The program's own wake masks include bit 13. After the main wait, any
+  wake with `r12` bit 10 clear goes straight to the exit, which restores
+  the ARM PLLs and raises the return interrupt. So a watchdog wake should
+  give an ordinary returned period with `r12` bit 13 set.
+- The watchdog is assumed to count on the PCM timer's base, as the
+  vendor's driver assumes. If the hang is that counter stopping, the
+  watchdog cannot fire either, hence the two causes in the last row.
 
 D5o and D5p are independent: D5o needs no build, so it can run while D5p
 is built.
