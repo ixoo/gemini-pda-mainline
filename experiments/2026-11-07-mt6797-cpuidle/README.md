@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 is next |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; reading the RAM console in Gemian is next (run 4) |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5431,7 +5431,7 @@ cable out, battery 88 %.
 - Reset delays have ranged from about 50 s (D5o) to 2 min 20 s (D5p
   part 1) after the hung period.
 
-### Request D5t run 3 (proposed): the same run, with the bootloader caught
+### Request D5t run 3 (run 2026-11-20): the same run, with the bootloader caught
 
 Run 2's measurement was lost to the missed catch, not to the setup. Run 3
 repeats it with the same module and `d4.sh` blob, from a fresh boot with
@@ -5439,6 +5439,69 @@ repeats it with the same module and `d4.sh` blob, from a fresh boot with
 to watch for the bootloader from about 30 s to 3 min after the pings stop.
 After the reset, D5t's request and table apply. If it passes, D5t's plan
 (three passes in a row, then D5n's setup) applies.
+
+### D5t run 3: period 29 hung; the reset went to Gemian again (custodian, 2026-11-20)
+
+**Approved** by the owner ("Approve run 3").
+
+**Setup.** Power-on boot fc07b91b, as runs 1 and 2: image 137,
+`a72=loaded cpus=0-9`, module d452e299, `d4.sh` 29ec1867. Battery 60 %,
+cable out.
+
+**Observed.**
+- Module loaded 09:00:06 (`sampling on CPU8`), blank 09:01:06, CPU8
+  pinned and `watchdogd` on CPU0 at 09:01:08 (12 tasks left on CPU8),
+  window C from 09:01:15.
+- 28 periods returned (`returned=1 backstop=0`, CONN2AP through SYS_CIRQ,
+  slept 0-354 ms, no early abort).
+- Period 29 started at 09:02:03 and never returned. The journal ends at
+  09:02:02.913 with period 28's `sodi cirq` line; no observer line after
+  `sampling on CPU8`. 112 of 240 pings were answered.
+- The device stopped answering by 09:07. No reset was seen in the 50 s to
+  2 min 20 s range of earlier hangs. By about 09:18 it was in Gemian; the
+  owner saw no bootloader. The next boot2 (da54a9db, 09:32) read all
+  latches zero and an empty pstore, as after any Gemian boot.
+
+**Result.**
+- Four observer runs: one pass, hangs in periods 2, 2 and 29. The hang
+  points stay within the spread without CPU8.
+- Two of the three hangs reset into Gemian with no bootloader catch, which
+  loses the RAM console on the next boot2. The catch cannot be relied on.
+- When the reset came, and of which kind, is unknown.
+
+### Request D5t run 4 (proposed): read the RAM console in Gemian
+
+Gemian uses the same ramoops layout as the station
+([baseline](../../docs/hardware/gemini-gemian-baseline.md#exact-active-ramoops-layout)),
+and has shown a station's console record in its own pstore after a station
+`reboot` (station boot eda50de3). Booting Gemian again, or booting boot2,
+overwrites that zone. So when a hang lands in Gemian, the custodian reads
+the record there first, read-only, before any restart:
+
+- copy `/sys/fs/pstore/*` (mounting pstore if needed) and anything
+  Gemian's `systemd-pstore` moved to `/var/lib/systemd/pstore/`, from the
+  first Gemian boot after the hang;
+- if Gemian is not reachable over the LAN, the owner leaves it running
+  rather than restarting it.
+
+The run is otherwise run 3 again: same module and `d4.sh` blob, fresh
+boot with `a72-at-boot` set. No code change. If the bootloader is caught
+instead, D5t's request applies.
+
+*Unique observation:* whether the RAM console survives a hang's reset into
+Gemian, and if so, the observer's lines.
+
+| Gemian's first boot after the hang shows | Decision |
+| --- | --- |
+| The station's console with `sodi obs` lines from the stuck period | Decode them with D5s's table |
+| The station's console, ending at the period start with no stuck lines | CPU8 stopped too (or could not print): D5s's system-level freeze row |
+| No station console record | The reset lost DRAM. Next: evidence from a path that does not depend on DRAM |
+| All windows pass | Run again; D5t's plan applies |
+
+**A check needing no device:** the laptop's ping log. If its replies carry
+times, the last answered reply shows whether CPU0 answered after the
+journal ended, that is, whether the system lived on after the last
+logged period start.
 
 ### Request D5n (proposed): two states with no resource events
 
