@@ -5557,24 +5557,38 @@ lid open. Pings timestamped.
 - Compile-checked with `W=1`, with and without `CONFIG_CPU_IDLE`; no new
   checkpatch item. No register writes.
 
-`d4.sh` (blob 7927ad18) adds `D4_OBS_NOREAD=1`, which sets
-`sodi_obs_noread`.
+**0836** (`optionally mark each kick in the SPM software registers`),
+from the SPM program session's reading:
+- On this path (CG, `flag0`) the program writes `SW_DEBUG` and
+  `SW_RSV_0` to 0 at `0x413`/`0x419`, and `SW_RSV_0` to the wake status
+  only at its exit (`0x4f4`) or in the early abort (`0x433`). `SW_DEBUG`
+  then stays 0, which fits every `debug=00000000` line.
+- With `sodi_mark`, the module writes both to `0x5a5a0000` plus the kick
+  count before each kick, instead of `SW_RSV_0` = 0. **This is a changed
+  register write and needs the owner's approval with the run:**
+  `SW_DEBUG` (`0x10006604`) is new, and `SW_RSV_0` (`0x10006608`) gets
+  the marker instead of 0. The program overwrites both itself.
+- Compile-checked with `W=1` in both configurations; no new checkpatch
+  item.
+
+`d4.sh` (blob b03337d0) adds `D4_OBS_NOREAD=1` (`sodi_obs_noread`) and
+`D4_MARK=1` (`sodi_mark`).
 
 - **Candidate:** image 137, booted fresh with `a72-at-boot` set, init
   status `a72=loaded cpus=0-9`, lid open, with `mt6797-spm-sleep.ko`
-  from a Buildbox build of the commit recording this stage (0826-0828,
-  0830-0835). No boot2 write.
+  from a Buildbox build of the commit recording 0836 (0826-0828,
+  0830-0836). No boot2 write.
 - **Run:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_OBS=1
-  D4_OBS_NOREAD=1`, otherwise as D5t, with timestamped pings.
+  D4_OBS_NOREAD=1 D4_MARK=1`, otherwise as D5t, with timestamped pings.
 - **After a hang:** as run 4. If it lands in Gemian, copy
   `/sys/fs/pstore/*` there first, read-only, before any restart. If the
   bootloader is caught, read the latches and the RAM console as in D5t,
   and also `SPM_SW_DEBUG`-`SPM_SW_RSV_4` (`0x10006604`-`0x1000661c`),
   read-only. The SPM program session expects the program's software
   registers may survive a watchdog reset, since the power-on values seen
-  so far are what the bootloader writes. `SW_RSV_0` (`r12`) is written 0
-  before each kick and by the program at `0x413`, so a nonzero value after
-  a hang would show the hung period got that far.
+  so far are what the bootloader writes. The hung period is the one after
+  the last `returned` line, so its kick count is that line's count plus
+  one.
 - *Hypothesis:* CPU8 runs through passing periods, and in run 4 it
   stalled in an SPM read once the period hung.
 - *Unique observation:* CPU8's tick count in every period, and a hung
@@ -5587,6 +5601,15 @@ lid open. Pings timestamped.
 | Passing ticks as above; no stuck line | CPU8 stops by itself in the hung period: a system-level freeze, not the reads |
 | Passing periods: few or no ticks, or a longest gap near the period's length | CPU8 does not run during periods (its timer or clock stops). An observer on CPU8 cannot see inside a period; the SPM program session looks at what the program does to the A72 cluster and the system counter |
 | All windows pass | Rerun; the ticks still answer whether CPU8 runs through periods |
+
+After a caught reset, `SW_RSV_0` and `SW_DEBUG` also read:
+
+| Value | Decision |
+| --- | --- |
+| The hung period's marker | The PCM never reached `0x413`: the hang is before the program's first steps, on the kick or CPU side |
+| 0 | It passed `0x413`/`0x419` and froze before its exit; with `LATCH_1` (`r6`) this brackets the freeze |
+| A wake status in `SW_RSV_0` | It reached its exit or the early abort |
+| `ffffffff`, a bootloader value or an older marker | These registers do not survive the reset, or were rewritten; this channel is closed |
 
 **Prior view (SPM program session).** On the CG path, right before the main
 wait (`0x472`), `pcm_sodi` sets `R0_SC_ARM_CK_OFF` and the ARM PLL off bits

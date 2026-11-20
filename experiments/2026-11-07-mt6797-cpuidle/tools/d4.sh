@@ -36,6 +36,8 @@
 # D4_OBS_NOREAD=1 (with D4_OBS=1) sets sodi_obs_noread: the observer only
 # counts its ticks in a period and reads the SPM only once one is stuck
 # (0835, stage D5u).
+# D4_MARK=1 sets sodi_mark: SW_DEBUG and SW_RSV_0 start each kick at
+# 0x5a5a0000 plus the kick count, read after a reset (0836, stage D5u).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -327,6 +329,10 @@ if [ "${D4_OBS:-0}" = 1 ]; then
 		grep -q 'sodi_obs_noread' "$KO" || stop "the module has no sodi_obs_noread parameter (0835)"
 		level="$level sodi_obs_noread=1"
 	fi
+fi
+if [ "${D4_MARK:-0}" = 1 ]; then
+	grep -q 'sodi_mark' "$KO" || stop "the module has no sodi_mark parameter (0836)"
+	level="$level sodi_mark=1"
 fi
 case $level in
 *sodi_im_*) grep -q 'sodi_im_reuse' "$KO" || stop "the module has no sodi_im_* parameters (0827)" ;;
