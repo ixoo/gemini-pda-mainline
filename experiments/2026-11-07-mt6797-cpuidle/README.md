@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; reading the RAM console in Gemian is next (run 4) |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; counting CPU8's ticks with reads off is next (D5u) |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5469,7 +5469,7 @@ cable out.
   loses the RAM console on the next boot2. The catch cannot be relied on.
 - When the reset came, and of which kind, is unknown.
 
-### Request D5t run 4 (proposed): read the RAM console in Gemian
+### Request D5t run 4 (run 2026-11-20): read the RAM console in Gemian
 
 Gemian uses the same ramoops layout as the station
 ([baseline](../../docs/hardware/gemini-gemian-baseline.md#exact-active-ramoops-layout)),
@@ -5502,6 +5502,85 @@ Gemian, and if so, the observer's lines.
 times, the last answered reply shows whether CPU0 answered after the
 journal ended, that is, whether the system lived on after the last
 logged period start.
+
+### D5t run 4: the RAM console survived into Gemian, with no observer line (custodian, 2026-11-20)
+
+**Approved** by the owner ("Approve run 4"). A first attempt on boot
+18467448 never started: logind suspended the system 21 s after boot, most
+likely on the lid, before the run's header. The owner powered off and
+booted boot2 again.
+
+**Setup.** Power-on boot 8113cbb7, image 137, `a72=loaded cpus=0-9`.
+Module d452e299, `d4.sh` 29ec1867, as runs 1-3. Battery 73 %, cable out,
+lid open. Pings timestamped.
+
+**Observed.**
+- The run started at 10:34:42. Pings started at 10:35:30. Replies came for
+  `icmp_seq` 0-57; the last at 10:36:27, none after (58 of 240).
+- The reset landed in Gemian (boot 822f7b33, up from about 10:37), the
+  first Gemian boot after the hang. Read-only, its
+  `/sys/fs/pstore/console-ramoops` (37533 bytes, kept privately) is **the
+  station's console from boot 8113cbb7**, kernel time 12.98-650.22 s.
+  Gemian has no `/var/lib/systemd/pstore`.
+- In it: `sodi obs: sampling on CPU8` at 585.77 s, CPU9 and CPU7-1 taken
+  offline at 586.18-586.79 s, then 35 periods of window C, all
+  `returned=1 backstop=0`, no IM stuck, `val1` `00015830`, woken by CONN2AP
+  through SYS_CIRQ.
+- The record ends at 650.221934 s with period 35's `sodi cirq` line,
+  then null padding. That is about 10:36:3x, where the pings stop.
+- **No other `sodi obs` line:** no stuck report, no late sample, no
+  `stopped` line.
+
+**Result.**
+- **Reading the RAM console in Gemian works.** The record survived this
+  reset, and the boot2 catch is no longer needed for it.
+- Period 36 hung, and CPU0 stopped answering pings at the same time.
+- D5s's table row "no `sodi obs` lines from the hung period" applies: the
+  observer's stuck line was due 500 ms after the period's end and never
+  reached the console. Three causes fit:
+  - CPU8 stalled in one of its SPM reads once the period hung;
+  - CPU8 stopped by itself (a system-level freeze);
+  - CPU8 does not run during periods at all, in passing ones too. This has
+    never been shown either way, since its samples are printed only after a
+    stuck period.
+
+### Request D5u (proposed): count the observer's ticks, reads off
+
+**0835** (`count the observer's ticks in each period`):
+- After each period, CPU0 logs `sodi obs: period N, T ticks on CPU8,
+  longest gap G us`: how often CPU8's 10 ms timer ran during the period,
+  and the longest gap between two runs. The stuck line also gives the
+  count.
+- `sodi_obs_noread`: CPU8 only counts in a period and reads no SPM
+  register. Once a period is stuck it prints the stuck line, then
+  `first late read`, then reads the SPM as before.
+- Compile-checked with `W=1`, with and without `CONFIG_CPU_IDLE`; no new
+  checkpatch item. No register writes.
+
+`d4.sh` (blob 7927ad18) adds `D4_OBS_NOREAD=1`, which sets
+`sodi_obs_noread`.
+
+- **Candidate:** image 137, booted fresh with `a72-at-boot` set, init
+  status `a72=loaded cpus=0-9`, lid open, with `mt6797-spm-sleep.ko`
+  from a Buildbox build of the commit recording this stage (0826-0828,
+  0830-0835). No boot2 write.
+- **Run:** `d4.sh` with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_OBS=1
+  D4_OBS_NOREAD=1`, otherwise as D5t, with timestamped pings.
+- **After a hang:** as run 4. If it lands in Gemian, copy
+  `/sys/fs/pstore/*` there first, read-only, before any restart. If the
+  bootloader is caught, read the latches and the RAM console as in D5t.
+- *Hypothesis:* CPU8 runs through passing periods, and in run 4 it
+  stalled in an SPM read once the period hung.
+- *Unique observation:* CPU8's tick count in every period, and a hung
+  period's stuck line from a CPU8 that has not read the SPM.
+
+| Outcome | Decision |
+| --- | --- |
+| Passing periods: ticks about the sleep time / 10 ms, longest gap near 10 ms. Hung period: stuck line, then `first late read` and no sample | CPU8 runs through periods, and an SPM read stalls once a period hangs: the SPM's register path is blocked. The SPM program session looks for what in the program can block it |
+| As above, with the late samples printed | The reads do not stall after the hang. Run 4's silence is then unexplained: compare with a run with reads |
+| Passing ticks as above; no stuck line | CPU8 stops by itself in the hung period: a system-level freeze, not the reads |
+| Passing periods: few or no ticks, or a longest gap near the period's length | CPU8 does not run during periods (its timer or clock stops). An observer on CPU8 cannot see inside a period; the SPM program session looks at what the program does to the A72 cluster and the system counter |
+| All windows pass | Rerun; the ticks still answer whether CPU8 runs through periods |
 
 ### Request D5n (proposed): two states with no resource events
 

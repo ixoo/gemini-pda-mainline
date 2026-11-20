@@ -1,0 +1,132 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 20 Nov 2026 16:00:32 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: count the observer's ticks
+ in each period
+
+In stage D5t run 4 a period hung with the CPU8 observer running and the
+RAM console kept, yet the observer printed nothing. Whether CPU8 runs
+through a period at all has never been shown, since its samples are
+printed only after a stuck one.
+
+CPU0 now logs, after each period, how often the observer ticked in it and
+the longest gap between two ticks. The stuck line gives the count too.
+With sodi_obs_noread the observer only counts in a period and reads the
+SPM only once one is stuck, after a line marking that first read, so a
+read that stalls CPU8 can be told from a CPU8 that stops by itself.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 43 ++++++++++++++++++++++---
+ 1 file changed, 39 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index b06bf7a8d..ef4eb9cf8 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -273,6 +273,11 @@ MODULE_PARM_DESC(sodi_r7_vendor, "SODI: start r7 from the vendor's POWER_ON_VAL1
+  * the system: a software restart clears the SPM latches (and in D5s lost the
+  * RAM console too), while the TOPRGU watchdog reset that follows once CPU0
+  * stops pinging it keeps both.
++ *
++ * CPU0 logs, after each period, how often CPU8 ticked in it and the longest
++ * gap between two ticks, which shows whether CPU8 runs through a period at
++ * all. With sodi_obs_noread CPU8 only counts in a period and reads the SPM
++ * only once a period is stuck, after a line that marks the first read.
+  */
+ #define SODI_OBS_CPU		8
+ #define SODI_OBS_NS		(10 * NSEC_PER_MSEC)
+@@ -284,6 +289,10 @@ static bool sodi_obs;
+ module_param(sodi_obs, bool, 0444);
+ MODULE_PARM_DESC(sodi_obs, "SODI: CPU8 samples the PCM in periods, prints after a stuck one");
+ 
++static bool sodi_obs_noread;
++module_param(sodi_obs_noread, bool, 0444);
++MODULE_PARM_DESC(sodi_obs_noread, "SODI: the observer only counts its ticks in a period, reading the SPM only once one is stuck");
++
+ struct sodi_obs_sample {
+ 	u32 us, rd_ns, fsm, ev, r15, r6, r7, tout, con0;
+ 	u32 con1, io, clk, val1;	/* readbacks and a constant */
+@@ -299,6 +308,9 @@ static struct {
+ 	/* CPU8 only */
+ 	u32 cur_seq, ref_seq;
+ 	unsigned int n, ref_n, late;
++	/* Ticks in the current period and the longest gap between two; CPU0 reads them after it */
++	u32 ticks;
++	u64 last, gap;
+ 	struct sodi_obs_sample cur[SODI_OBS_SAMPLES], ref[SODI_OBS_SAMPLES];
+ } obs;
+ 
+@@ -391,6 +403,7 @@ struct spm_wake {
+ 	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
+ 	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
+ 	u32 wfi_loops;
++	u32 obs_seq, obs_ticks, obs_gap_us;	/* the observer's view of the period */
+ 	u32 fsm;		/* PCM_FSM_STA after the wait */
+ 	u32 im_fsm0, im_fsm1;	/* after the IM kick, before the PCM kick */
+ 	u32 im_us;		/* polls until IM_STATE settled */
+@@ -1122,6 +1135,16 @@ static int spm_run(const struct spm_scen *sc)
+ 	if (obs_cpu) {
+ 		/* Pairs with sodi_obs_tick: the period is over for the observer */
+ 		smp_store_release(&obs.live, 0);
++		s.wake.obs_seq = obs.seq;
++		/* The counts are for this period only if CPU8 ticked in it */
++		if (READ_ONCE(obs.cur_seq) == obs.seq) {
++			s.wake.obs_ticks = READ_ONCE(obs.ticks);
++			s.wake.obs_gap_us = mul_u64_u64_div_u64(READ_ONCE(obs.gap), USEC_PER_SEC,
++								arch_timer_get_cntfrq());
++		} else {
++			s.wake.obs_ticks = 0;
++			s.wake.obs_gap_us = 0;
++		}
+ 	}
+ 	s.wake.wfi_loops = i;
+ 	if (sc->cirq)
+@@ -1246,23 +1269,32 @@ static enum hrtimer_restart sodi_obs_tick(struct hrtimer *t)
+ 			obs.late = 0;
+ 		}
+ 		obs.n = 0;
+-		obs.cur_seq = seq;
++		WRITE_ONCE(obs.ticks, 0);
++		obs.last = 0;
++		WRITE_ONCE(obs.gap, 0);
++		WRITE_ONCE(obs.cur_seq, seq);
+ 		if (!live)
+ 			return HRTIMER_RESTART;
+ 	}
+ 	now = __arch_counter_get_cntvct();
+ 	if (!obs.late) {
+-		if (obs.n < SODI_OBS_SAMPLES)
++		if (obs.last && now - obs.last > obs.gap)
++			WRITE_ONCE(obs.gap, now - obs.last);
++		obs.last = now;
++		WRITE_ONCE(obs.ticks, obs.ticks + 1);
++		if (!sodi_obs_noread && obs.n < SODI_OBS_SAMPLES)
+ 			sodi_obs_read(&obs.cur[obs.n++], now);
+ 		if (now < obs.end + arch_timer_get_cntfrq() / 2)
+ 			return HRTIMER_RESTART;
+ 		dev_info(&s.pdev->dev,
+-			 "sodi obs: period %u in flight 500 ms after its end; CPU0 is stuck\n",
+-			 seq);
++			 "sodi obs: period %u in flight 500 ms after its end, %u ticks; CPU0 is stuck\n",
++			 seq, obs.ticks);
+ 		sodi_obs_print("ref", obs.ref_seq, obs.ref, obs.ref_n, 4);
+ 		sodi_obs_print("stuck", seq, obs.cur, obs.n, 1);
+ 	}
+ 	if (++obs.late % 20 == 0) {
++		if (obs.late == 20)
++			dev_info(&s.pdev->dev, "sodi obs: period %u, first late read\n", seq);
+ 		sodi_obs_read(&o, now);
+ 		sodi_obs_print("late", seq, &o, 1, 1);
+ 	}
+@@ -1528,6 +1560,9 @@ static int sodi_once(u64 ms)
+ 			 s.cirq_edge[3], s.cirq_edge[4], s.cirq_edge[5], s.cirq_edge[6],
+ 			 s.cirq_sta[0], s.cirq_sta[1], s.cirq_sta[2], s.cirq_sta[3],
+ 			 s.cirq_sta[4], s.cirq_sta[5], s.cirq_sta[6]);
++	if (s.entered && obs.on)
++		dev_info(&s.pdev->dev, "sodi obs: period %u, %u ticks on CPU%d, longest gap %u us\n",
++			 s.wake.obs_seq, s.wake.obs_ticks, SODI_OBS_CPU, s.wake.obs_gap_us);
+ out_pmic:
+ 	spm_pmic_finish();
+ 	put_device(&i2c6->dev);
+-- 
+2.43.0
+

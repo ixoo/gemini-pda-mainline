@@ -991,3 +991,4 @@ proposals/0831-soc-mediatek-mt6797-spm-sleep-log-PCM_EVENT_VECTOR_E.patch
 proposals/0832-soc-mediatek-mt6797-spm-sleep-acknowledge-SYS_CIRQ-w.patch
 proposals/0833-soc-mediatek-mt6797-spm-sleep-optionally-observe-the.patch
 proposals/0834-soc-mediatek-mt6797-spm-sleep-let-the-watchdog-reset.patch
+proposals/0835-soc-mediatek-mt6797-spm-sleep-count-the-observer-s-t.patch

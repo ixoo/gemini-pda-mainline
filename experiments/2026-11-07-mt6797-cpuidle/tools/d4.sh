@@ -33,6 +33,9 @@
 # stuck period the module prints its samples and stops (0834); the TOPRGU
 # watchdog then resets the system, since its pinging thread, watchdogd, must
 # be confined to CPU0 too (the script stops otherwise).
+# D4_OBS_NOREAD=1 (with D4_OBS=1) sets sodi_obs_noread: the observer only
+# counts its ticks in a period and reads the SPM only once one is stuck
+# (0835, stage D5u).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -320,6 +323,10 @@ if [ "${D4_OBS:-0}" = 1 ]; then
 	command -v taskset >/dev/null || stop "no taskset"
 	[ "$(cat "$CPUS/cpu8/online" 2>/dev/null)" = 1 ] || stop "CPU8 is offline"
 	level="$level sodi_obs=1"
+	if [ "${D4_OBS_NOREAD:-0}" = 1 ]; then
+		grep -q 'sodi_obs_noread' "$KO" || stop "the module has no sodi_obs_noread parameter (0835)"
+		level="$level sodi_obs_noread=1"
+	fi
 fi
 case $level in
 *sodi_im_*) grep -q 'sodi_im_reuse' "$KO" || stop "the module has no sodi_im_* parameters (0827)" ;;
