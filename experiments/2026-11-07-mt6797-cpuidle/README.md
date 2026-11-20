@@ -5609,7 +5609,7 @@ After a caught reset, `SW_RSV_0` and `SW_DEBUG` also read:
 | Value | Decision |
 | --- | --- |
 | The hung period's marker | The PCM never reached `0x413`: the hang is before the program's first steps, on the kick or CPU side |
-| 0 | Inconclusive alone: boots with no hang also read `0x604`-`0x614` as 0 (boot 6b669bb4, after Gemian), so the bootloader may clear them. Only with `LATCH_1` (`r6`) nonzero does it bracket a freeze between `0x413` and the exit |
+| 0 | Inconclusive alone: every power-on read so far has `0x604`-`0x614` at 0 (fresh boots 2d63e1b4, 16c56d74, 18467448 and fc07b91b, and 6b669bb4 after Gemian), so a 0 may be a reset value. A watchdog reset without a power cycle is untested. Only with `LATCH_1` (`r6`) nonzero does it bracket a freeze between `0x413` and the exit |
 | A wake status in `SW_RSV_0` | It reached its exit or the early abort |
 | `ffffffff`, a bootloader value or an older marker | These registers do not survive the reset, or were rewritten; this channel is closed |
 
