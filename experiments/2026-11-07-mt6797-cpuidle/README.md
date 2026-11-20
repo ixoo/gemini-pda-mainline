@@ -5586,9 +5586,9 @@ from the SPM program session's reading:
   and also `SPM_SW_DEBUG`-`SPM_SW_RSV_4` (`0x10006604`-`0x1000661c`),
   read-only. The SPM program session expects the program's software
   registers may survive a watchdog reset, since the power-on values seen
-  so far are what the bootloader writes. The hung period is the one after
-  the last `returned` line, so its kick count is that line's count plus
-  one.
+  so far are what the bootloader writes. The marker's count is the number
+  of periods set up since the load, refused ones included, so it matches
+  the count of periods logged since the load, with the hung one last.
 - *Hypothesis:* CPU8 runs through passing periods, and in run 4 it
   stalled in an SPM read once the period hung.
 - *Unique observation:* CPU8's tick count in every period, and a hung
