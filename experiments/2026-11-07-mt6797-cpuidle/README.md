@@ -5568,7 +5568,13 @@ lid open. Pings timestamped.
   D4_OBS_NOREAD=1`, otherwise as D5t, with timestamped pings.
 - **After a hang:** as run 4. If it lands in Gemian, copy
   `/sys/fs/pstore/*` there first, read-only, before any restart. If the
-  bootloader is caught, read the latches and the RAM console as in D5t.
+  bootloader is caught, read the latches and the RAM console as in D5t,
+  and also `SPM_SW_DEBUG`-`SPM_SW_RSV_4` (`0x10006604`-`0x1000661c`),
+  read-only. The SPM program session expects the program's software
+  registers may survive a watchdog reset, since the power-on values seen
+  so far are what the bootloader writes. `SW_RSV_0` (`r12`) is written 0
+  before each kick and by the program at `0x413`, so a nonzero value after
+  a hang would show the hung period got that far.
 - *Hypothesis:* CPU8 runs through passing periods, and in run 4 it
   stalled in an SPM read once the period hung.
 - *Unique observation:* CPU8's tick count in every period, and a hung
