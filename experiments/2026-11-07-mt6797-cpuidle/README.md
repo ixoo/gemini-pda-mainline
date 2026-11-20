@@ -5534,7 +5534,9 @@ lid open. Pings timestamped.
 **Result.**
 - **Reading the RAM console in Gemian works.** The record survived this
   reset, and the boot2 catch is no longer needed for it.
-- Period 36 hung, and CPU0 stopped answering pings at the same time.
+- Period 36 hung, and CPU0 stopped answering pings at the same time: the
+  station's journal ends at 10:36:26.865 with period 35's `sodi cirq`
+  line, and the last ping reply came at 10:36:27.
 - D5s's table row "no `sodi obs` lines from the hung period" applies: the
   observer's stuck line was due 500 ms after the period's end and never
   reached the console. Three causes fit:
@@ -5607,7 +5609,7 @@ After a caught reset, `SW_RSV_0` and `SW_DEBUG` also read:
 | Value | Decision |
 | --- | --- |
 | The hung period's marker | The PCM never reached `0x413`: the hang is before the program's first steps, on the kick or CPU side |
-| 0 | It passed `0x413`/`0x419` and froze before its exit; with `LATCH_1` (`r6`) this brackets the freeze |
+| 0 | Inconclusive alone: boots with no hang also read `0x604`-`0x614` as 0 (boot 6b669bb4, after Gemian), so the bootloader may clear them. Only with `LATCH_1` (`r6`) nonzero does it bracket a freeze between `0x413` and the exit |
 | A wake status in `SW_RSV_0` | It reached its exit or the early abort |
 | `ffffffff`, a bootloader value or an older marker | These registers do not survive the reset, or were rewritten; this channel is closed |
 
