@@ -5582,6 +5582,18 @@ lid open. Pings timestamped.
 | Passing periods: few or no ticks, or a longest gap near the period's length | CPU8 does not run during periods (its timer or clock stops). An observer on CPU8 cannot see inside a period; the SPM program session looks at what the program does to the A72 cluster and the system counter |
 | All windows pass | Rerun; the ticks still answer whether CPU8 runs through periods |
 
+**Prior view (SPM program session).** On the CG path, right before the main
+wait (`0x472`), `pcm_sodi` sets `R0_SC_ARM_CK_OFF` and the ARM PLL off bits
+for both PLLs (`ARMPLLOUT_OFF`, `ARMBPLLOUT_OFF` and their stages), with no
+check of which CPUs are in WFI, and gives them back only on exit (`0x4f5`).
+From `0x43e` to `0x511` it also holds the infra bus-master pause. The vendor's
+driver enters SODI only with one CPU online. *Inference:* CPU8 has no clock
+for the whole period, so the observer cannot tick in it, and its SPM reads
+may wait behind the pause. The predicted D5u outcome is the "few or no ticks"
+row. Every hang before D5s ran with CPU0 alone (CPU1-9 offline, which
+`spm_run` required), so the vendor's one-CPU precondition was met there and
+the hang does not need a second CPU online.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
