@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; counting CPU8's ticks with reads off is next (D5u) |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; CPU0 alone with the SPM marker is next (D5v) |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5546,7 +5546,7 @@ lid open. Pings timestamped.
     never been shown either way, since its samples are printed only after a
     stuck period.
 
-### Request D5u (proposed): count the observer's ticks, reads off
+### Request D5u (run 2026-11-20): count the observer's ticks, reads off
 
 **0835** (`count the observer's ticks in each period`):
 - After each period, CPU0 logs `sodi obs: period N, T ticks on CPU8,
@@ -5624,6 +5624,82 @@ may wait behind the pause. The predicted D5u outcome is the "few or no ticks"
 row. Every hang before D5s ran with CPU0 alone (CPU1-9 offline, which
 `spm_run` required), so the vendor's one-CPU precondition was met there and
 the hang does not need a second CPU online.
+
+### D5u: CPU8 does not tick in any period; window A hung (custodian, 2026-11-20)
+
+**Approved** by the owner, with the 0836 marker writes.
+
+**Setup.** Power-on boot 6b669bb4, image 137, `a72=loaded cpus=0-9`.
+Module c08b03df (Buildbox 845fdc1f6, 0826-0828 and 0830-0836), `d4.sh`
+679615a5 (blob b03337d0) with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_OBS=1
+D4_OBS_NOREAD=1 D4_MARK=1`. Pre-module read: latches at their defaults,
+`0x604`-`0x614` 0, `0x618`/`0x61c` `ffffffff`. Battery 47 %, lid open,
+cable out. Started at 16:14:22.
+
+**Observed.**
+- `sodi obs: sampling on CPU8` at 326.8 s.
+- **Window C:** 23 periods, then the owner touched the keyboard at about
+  16:15:47 and the window ended (period 23 woken by the key's line, CIRQ
+  word 5 `00002000`, `r12` `00400000`). 22 were ended by CONN2AP or the
+  WLAN line; 36 echo requests in the window; hash equal.
+- **Every period logged `0 ticks on CPU8, longest gap 0 us`**, including
+  periods that slept 205-323 ms, where a running 10 ms timer would have
+  ticked 20-32 times.
+- The pings (240 of 240 answered, 16:15:10-16:19:10) ran out, and window
+  A waited for them to stop.
+- The device reset into Gemian. Gemian (boot a653c275) was up at
+  16:20:25, so the hang and the reset fell between 16:19:10 and about
+  16:20.
+- **Gemian's pstore** held station boot 6b669bb4's console (28055 bytes,
+  kept privately): the 23 period lines, the last at 370.789 s, then four
+  `mediatek-disp-ovl 1400b000.ovl: swiotlb buffer is full` lines at
+  491.15-491.66 s, and nothing more. No line from window A: no `sodi cg`
+  line, no stuck line, no `first late read`.
+- The marker registers could not be read: Gemian reinitialises the SPM.
+
+**Result.**
+- **CPU8 does not run during a period.** Its pinned 10 ms timer never
+  fired while a period was live. That is the "few or no ticks" row, and
+  what the SPM program session predicted from the program: before the
+  main wait it cuts the ARM clock and both ARM PLLs for the whole period.
+  The tick logic counts any tick in a live period, so 0 means none. Not
+  checked: that the timer ran on CPU8 outside periods (its interrupt
+  count). The module went with the reset.
+- **An observer on another CPU cannot see inside a period,** and the stuck
+  lines of D5s and D5t runs 2-4 were never possible. The CPU8 observer
+  is retired.
+- The hang came in window A, at least about 70 s after the console's last
+  line, which fits its first period: a period's lines print only after it
+  returns. With CPU8 stopped in the hung period too, the hung period got
+  at least as far as whatever stops CPU8. *Inference:* if that is the
+  program's clock cut at `0x472`, this hang passed `0x402`, unlike the
+  `r6` = 0 hangs; the latches were lost, so this is not shown.
+- The display's `swiotlb buffer is full` lines are a separate fault and
+  not part of this stage.
+
+### Request D5v (proposed): CPU0 alone, with the marker
+
+The observer setup only adds risk now. D5v goes back to the setup of every
+hang before D5s, CPU0 alone with CPU1-9 offline, and keeps 0836's marker,
+the one channel that does not need a running CPU. It needs the bootloader
+caught after the reset; a reset into Gemian clears the SPM.
+
+- **Candidate:** image 137, booted fresh with `a72-at-boot` back to `.off`
+  (as before D5s), with module c08b03df (845fdc1f6). No new build, no
+  boot2 write.
+- **Run:** `d4.sh` blob b03337d0 with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1
+  D4_MARK=1`, two states, no cap, lid open, cable out, timestamped pings.
+- **The owner watches the screen for the whole run,** from window C to the
+  end of B, and catches the bootloader as soon as it shows.
+- **After a caught reset:** before any module, read the latches and
+  `0x10006604`-`0x1000661c`. If it lands in Gemian, read Gemian's pstore
+  first as in D5t run 4; the marker is then lost.
+- *Unique observation:* `SW_RSV_0` and `SW_DEBUG` after a watchdog reset
+  with no power cycle, read with the latches.
+
+The decision is D5u's marker table, with `LATCH_1` (`r6`) alongside. If
+the marker survives, the next runs can place each hang without the RAM
+console.
 
 ### Request D5n (proposed): two states with no resource events
 
