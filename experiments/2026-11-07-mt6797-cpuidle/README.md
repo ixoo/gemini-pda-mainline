@@ -5674,6 +5674,15 @@ cable out. Started at 16:14:22.
   at least as far as whatever stops CPU8. *Inference:* if that is the
   program's clock cut at `0x472`, this hang passed `0x402`, unlike the
   `r6` = 0 hangs; the latches were lost, so this is not shown.
+- **The SPM program session's bracket.** Before `0x472`, only the infra
+  bus-master pause at `0x43e` (`TOP_MAS_PAU_REQ`, masks `0x6ff00b01` and
+  `0xfe00ffff`) could plausibly stop the A72s; nothing earlier touches MP2,
+  MCUSYS, the system counter's clock, 26M or the GIC. So CPU8's zero ticks
+  come from the pause or the clock cut, and a hung period that leaves CPU8
+  stopped got at least to `0x43e`. Which mask bit is which master is not
+  known. The module's GIC mask is not the cause: it clears only SPI enables
+  in the distributor, and CPU8's timer is a PPI in its redistributor, which
+  the module only reads.
 - The display's `swiotlb buffer is full` lines are a separate fault and
   not part of this stage.
 
@@ -5699,7 +5708,9 @@ caught after the reset; a reset into Gemian clears the SPM.
 
 The decision is D5u's marker table, with `LATCH_1` (`r6`) alongside. If
 the marker survives, the next runs can place each hang without the RAM
-console.
+console. It cannot tell a freeze at the pause (`0x43e`) from one at the
+clock cut (`0x472`): both come after the program clears the marker at
+`0x413`-`0x419`.
 
 ### Request D5n (proposed): two states with no resource events
 
