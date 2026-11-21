@@ -5895,15 +5895,30 @@ before the run), module c08b03df (845fdc1f6, 0836), `d4.sh` 679615a5
 **Result.**
 - With the A72s never up and CPU0 alone, three runs hung in periods 1, 11
   and 1 (D5v, D5w, run 2).
-- The vendor's image, GPU and video power-off condition is met as far as
-  the mainline names go. The audio domain is on, and bit 4 is set in one
-  status word and clear in the other; both wait for the SPM program
-  session's decode.
+- **The vendor's power-domain condition for SODI is met.** The SPM program
+  session decoded the bits from the vendor's power-domain driver: on are
+  CONN (1), DRAM PHY channel 0 (2), display (3), DRAM PHY channel 1 (4),
+  infra (6) and audio (24); off are MD1, C2K, ISP, VDEC, the GPU, MJC
+  (20) and VENC. The vendor's check refuses SODI only for GPU, ISP, VDEC,
+  VENC or MJC power; audio and DRAM PHY channel 1 are not in it, and the
+  display blocks only in command mode.
+- **DRAM PHY channel 1 reads half switched:** set in the status word, clear
+  in the second one. The two are the domain's two power-switch acks, and
+  the vendor's driver waits for both to agree on every domain it controls.
+  It has no sequence for channel 1, which belongs to the SPM and DRAM side.
+  Whether 1/0 is its normal resting state is not known.
 - The marker is still lost.
 
 ### Request D5w run 3 (proposed): the same run, key ready at the call
 
-As D5w run 2, including the power-status read. The hangs now come within
+As D5w run 2, including the power-status read, with `0x100063b8` (DRAM
+PHY channel 1 power control) added to it. If it lands in Gemian, read
+`0x10006180`, `0x10006184` and `0x100063b8` there at idle, read only,
+before anything else: Gemian showing the same 1/0 drops the half-switched
+lead; 1/1 or 0/0 means the station leaves channel 1 half switched, which
+matters for a program that drives DRAM-side power. The display gate terms
+(MMSYS config) stay unread: reading them with the display clocks gated
+could stall the bus. The hangs now come within
 seconds of window C's start, so the owner has the clip or rubber band in
 hand from the blank, and puts it on the side key at the custodian's hang
 call, not before. It stays on until the boot2 kernel is up. The decision is
