@@ -5767,8 +5767,28 @@ custodian reports the pings stopped.
   `0x10006600`-`0x1000661c`, then the pstore. If it still lands in Gemian,
   read Gemian's pstore first, and record that the held key did not select
   boot2 after a watchdog reset.
+- **Clock gates, read only:** read the infra gate status words
+  `0x10001090`, `0x10001094` and `0x100010b0` before the module loads and
+  again just before window C. No write.
 - *Unique observation:* `SW_RSV_0` and `SW_DEBUG` after a watchdog reset
   with no power cycle, read with the latches.
+
+**Why the gate read.** The SPM program session finds no unbounded wait in
+the program on this path: every `r14` wait is timed, and the polling
+helpers are skipped by flags 0 and 9. A freeze after `0x402` would then be
+a PCM bus access that never completes, such as the stores after the pause:
+`CLK_CFG_0` (`0x10000048`), `CLK_CFG_UPDATE` (`0x10000004`) and APMIXED
+`0x1000cf38` at `0x57f`. The vendor's driver also refuses SODI while any
+clock in its idle mask is ungated: for infra, masks `0x00440802`,
+`0x03aff900` and `0x21fe36fd` over the inverted gate status words. With
+the mainline gate shifts (numbering assumed to match) those include UART0,
+AP_DMA, audio and the three SSUSB clocks; MSDC is not in them. The station
+does not check this. *Inference:* the infra pause landing on a USB or DMA
+transaction in flight, followed by a PCM store that never completes, would
+hang intermittently. This cannot explain the hangs that latched `r6` = 0,
+which stopped before the program ran. If D5w latches a nonzero `r6` and
+the read shows masked clocks ungated, the next run gates them or leaves
+USB unbound.
 
 The decision is D5u's marker table, with `LATCH_1` (`r6`) alongside:
 the marker intact means the program never reached `0x413`; 0 is
