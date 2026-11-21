@@ -5668,9 +5668,10 @@ cable out. Started at 16:14:22.
 - **An observer on another CPU cannot see inside a period,** and the stuck
   lines of D5s and D5t runs 2-4 were never possible. The CPU8 observer
   is retired.
-- The hang came in window A, at least about 70 s after the console's last
-  line, which fits its first period: a period's lines print only after it
-  returns. With CPU8 stopped in the hung period too, the hung period got
+- **The hang was window A's first period.** `d4.log` ends with `16:19:18
+  A: 20 periods`, and the station's journal ends at 16:17:47.911 with the
+  `swiotlb` line (the console's 491 s), so the period started about 91 s
+  after the last kernel line and never returned. With CPU8 stopped in the hung period too, the hung period got
   at least as far as whatever stops CPU8. *Inference:* if that is the
   program's clock cut at `0x472`, this hang passed `0x402`, unlike the
   `r6` = 0 hangs; the latches were lost, so this is not shown.
