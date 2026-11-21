@@ -5838,10 +5838,13 @@ out. Pre-module read: latches 0, `0x600`-`0x614` 0, `0x618`/`0x61c`
   the vendor's first two masks belong to the second and first status words:
   `~0x03eff900 & 0x03aff900`, `~0x00444816 & 0x00440802` and
   `~0x21fe36ff & 0x21fe36fd` are all 0. In the order first reported, the
-  second word would show 15 masked clocks running. The exact zeros make
-  the swapped order the likely one; it is not confirmed. If it holds, the
-  station meets the vendor's infra clock condition and the gate lead does
-  not explain this hang. Display and multimedia groups were not read.
+  second word would show 15 masked clocks running. *Confirmed* by the SPM
+  program session from the vendor's idle code, which reads its first group
+  from `0x94` and its second from `0x90`; the mainline gate table names
+  them the other way, which caused the first decode. So **the station meets
+  the vendor's infra clock condition**, and the gate lead is withdrawn for
+  infra. The bit names given for the first two words in D5w's request are
+  unreliable. Display and multimedia groups were not read.
 - A hang 11 periods in, with CPU0 alone, as in D5v.
 - The held-key catch is untested: the key was not held, so nothing is
   known about whether it selects boot2 after a watchdog reset.
@@ -5851,7 +5854,11 @@ out. Pre-module read: latches 0, `0x600`-`0x614` 0, `0x618`/`0x61c`
 No change from D5w, except that the owner holds the side key from the hang
 call until the boot2 kernel is up. A clip or rubber band can hold it for a
 reset that takes minutes. The gate reads can be skipped; they showed no
-change after the module loaded.
+change after the module loaded. Instead, before the module loads, read
+`SPM_PWR_STATUS` (`0x10006180`) and `PWR_STATUS_2ND` (`0x10006184`), read
+only, to check the vendor's remaining condition that the image, GPU and
+video power domains are off. With CPU0 alone and the infra condition met,
+no other unmet condition is known in the vendor's idle code.
 
 - **Candidate and run:** as D5w.
 - **After the reset:** before any module, read the latches and
