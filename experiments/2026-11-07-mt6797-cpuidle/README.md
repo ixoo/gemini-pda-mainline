@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w holds the side key through the reset |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met (mask order inferred); D5w run 2 holds the key |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5800,6 +5800,65 @@ The decision is D5u's marker table, with `LATCH_1` (`r6`) alongside:
 the marker intact means the program never reached `0x413`; 0 is
 inconclusive unless `LATCH_1` is nonzero; a wake status means it reached
 the exit at `0x4f4`; a bootloader value means the channel is closed.
+
+### D5w: period 11 of window C hung; the side key was not held (custodian, 2026-11-21)
+
+**Approved** by the owner in the custodian's session.
+
+**Setup.** Fresh boot2, boot 7e976a0d (CPU0-7 online, no A72s), module
+c08b03df (845fdc1f6, 0836), `d4.sh` 679615a5 (blob b03337d0) with
+`D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1`. Battery 61 %, lid open, cable
+out. Pre-module read: latches 0, `0x600`-`0x614` 0, `0x618`/`0x61c`
+`ffffffff`, TOPRGU `0x15`.
+
+**Observed.**
+- **Gate status words** `0x10001090`/`0x94`/`0xb0`: `03eff900`,
+  `00444816`, `21fe36ff` before the module loaded, and the same at
+  12:22:16 with the module loaded, before the blank. The script loads the
+  module after its SSH wait, so this read came in the idle-blank wait, not
+  the SSH wait.
+- 12:22:04 module loaded; 12:22:21 blanked; 12:22:22 `online: 0`;
+  12:22:28 window C, pings arriving.
+- 10 periods returned, all with `r12` `00400020`, mostly woken by CONN2AP
+  through SYS_CIRQ, slept 18-320 ms. In 5 of them the `im` FSM word went
+  `02c48910` > `02448910`. Period 10 returned at 12:22:44; its next local
+  event was 24 us after entry.
+- Each period's `sodi cg` line: `cg0` `03eff900`, `cg1` `00464816`,
+  `cg2` `21fe36ff`, `clk_cfg_0` `01010101`, unchanged through the period.
+  `cg1` has bit 17 set inside periods, clear outside.
+- Period 11 started at 12:22:44, with the last ping answered the same
+  second. The hang was called at 12:22:54.
+- The owner did not hold the side key. The device reset into Gemian, and
+  the next boot2 (209712fd) read everything at its defaults.
+- Gemian's copy of the RAM console held all 10 period lines (91 lines,
+  kept privately). The station journal agrees.
+
+**Result.**
+- **The masked infra clocks are all gated, in and out of a period**, if
+  the vendor's first two masks belong to the second and first status words:
+  `~0x03eff900 & 0x03aff900`, `~0x00444816 & 0x00440802` and
+  `~0x21fe36ff & 0x21fe36fd` are all 0. In the order first reported, the
+  second word would show 15 masked clocks running. The exact zeros make
+  the swapped order the likely one; it is not confirmed. If it holds, the
+  station meets the vendor's infra clock condition and the gate lead does
+  not explain this hang. Display and multimedia groups were not read.
+- A hang 11 periods in, with CPU0 alone, as in D5v.
+- The held-key catch is untested: the key was not held, so nothing is
+  known about whether it selects boot2 after a watchdog reset.
+
+### Request D5w run 2 (proposed): the same run, with the side key held
+
+No change from D5w, except that the owner holds the side key from the hang
+call until the boot2 kernel is up. A clip or rubber band can hold it for a
+reset that takes minutes. The gate reads can be skipped; they showed no
+change after the module loaded.
+
+- **Candidate and run:** as D5w.
+- **After the reset:** before any module, read the latches and
+  `0x10006600`-`0x1000661c`, then the pstore. If it lands in Gemian with the
+  key held, read Gemian's pstore and record that the held key did not
+  select boot2.
+- The decision is D5u's marker table with `LATCH_1` (`r6`).
 
 ### Request D5n (proposed): two states with no resource events
 
