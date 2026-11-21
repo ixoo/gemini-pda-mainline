@@ -5786,9 +5786,12 @@ AP_DMA, audio and the three SSUSB clocks; MSDC is not in them. The station
 does not check this. *Inference:* the infra pause landing on a USB or DMA
 transaction in flight, followed by a PCM store that never completes, would
 hang intermittently. This cannot explain the hangs that latched `r6` = 0,
-which stopped before the program ran. If D5w latches a nonzero `r6` and
-the read shows masked clocks ungated, the next run gates them or leaves
-USB unbound.
+which stopped before the program ran. With the cable out, an ungated but
+idle SSUSB has no transaction to catch, so the lead needs a master active
+at random moments: AP_DMA (infra word 1 bit 18, used by UART and I2C DMA),
+CLDMA and the CCIF gates, audio (word 1 bit 25) or GCPU. If D5w latches a
+nonzero `r6` and one of those is ungated, the next run gates it; SSUSB
+ungated with the rest gated points away from this lead.
 
 The decision is D5u's marker table, with `LATCH_1` (`r6`) alongside:
 the marker intact means the program never reached `0x413`; 0 is
