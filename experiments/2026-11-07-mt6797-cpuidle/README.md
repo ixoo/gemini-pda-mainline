@@ -5916,9 +5916,13 @@ PHY channel 1 power control) added to it. If it lands in Gemian, read
 `0x10006180`, `0x10006184` and `0x100063b8` there at idle, read only,
 before anything else: Gemian showing the same 1/0 drops the half-switched
 lead; 1/1 or 0/0 means the station leaves channel 1 half switched, which
-matters for a program that drives DRAM-side power. The display gate terms
-(MMSYS config) stay unread: reading them with the display clocks gated
-could stall the bus. The hangs now come within
+matters for a program that drives DRAM-side power. Also before the
+module, with the panel lit: re-read `0x10006180`/`0x10006184`, and only if
+bit 3 (display) is set in both, read the display gate terms `0x14000100`,
+`0x14000110`, `0x14000894` and `0x14000898`. The vendor's idle code reads
+exactly these under the same condition; the block's bus clock (`mm_sel`)
+has no gate in either kernel. Never during a period: the program changes
+`CLK_CFG_0`. The hangs now come within
 seconds of window C's start, so the owner has the clip or rubber band in
 hand from the blank, and puts it on the side key at the custodian's hang
 call, not before. It stays on until the boot2 kernel is up. The decision is
