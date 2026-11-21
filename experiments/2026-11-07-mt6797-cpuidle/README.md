@@ -5889,7 +5889,8 @@ before the run), module c08b03df (845fdc1f6, 0836), `d4.sh` 679615a5
 - The station journal and Gemian's copy of the RAM console (20 lines,
   kept privately) both end at `psci: CPU1 killed`, as in D5v.
 - The device reset into Gemian. The next boot2 (eb0d5403) read
-  everything at its defaults. Whether the side key was held is asked.
+  everything at its defaults. The owner confirms the side key was not
+  held, so the held-key catch is still untried.
 
 **Result.**
 - With the A72s never up and CPU0 alone, three runs hung in periods 1, 11
@@ -5899,6 +5900,15 @@ before the run), module c08b03df (845fdc1f6, 0836), `d4.sh` 679615a5
   status word and clear in the other; both wait for the SPM program
   session's decode.
 - The marker is still lost.
+
+### Request D5w run 3 (proposed): the same run, key ready at the call
+
+As D5w run 2, including the power-status read. The hangs now come within
+seconds of window C's start, so the owner has the clip or rubber band in
+hand from the blank, and puts it on the side key at the custodian's hang
+call, not before. It stays on until the boot2 kernel is up. The decision is
+D5u's marker table with `LATCH_1` (`r6`); a landing in Gemian with the key
+held means the held key does not select boot2 after a watchdog reset.
 
 ### Request D5n (proposed): two states with no resource events
 
