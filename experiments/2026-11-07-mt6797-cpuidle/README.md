@@ -5769,7 +5769,10 @@ custodian reports the pings stopped.
   boot2 after a watchdog reset.
 - **Clock gates, read only:** read the infra gate status words
   `0x10001090`, `0x10001094` and `0x100010b0` before the module loads and
-  again just before window C. No write.
+  again in the script's 30 s SSH wait, after the module loads and before
+  the blank. No write. A read after the blank would need a script step;
+  the masters this lead names (DMA, modem, audio) should not change with
+  the blank, though `DISP_PWM` may.
 - *Unique observation:* `SW_RSV_0` and `SW_DEBUG` after a watchdog reset
   with no power cycle, read with the latches.
 
