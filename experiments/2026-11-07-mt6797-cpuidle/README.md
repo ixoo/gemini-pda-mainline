@@ -6234,13 +6234,35 @@ count and, with `D4_SMI_ASYNC=1`, the saved SMI word. Without
 - **New writes:** none beyond D5z's.
 - **At the hang call** the owner puts the clip on the side key before the
   watchdog fires and says so; at the reset, what booted. After a boot2,
-  before any module: the latches, `0x10006600`-`0x1000661c`, then
-  `/var/lib/systemd/pstore/`.
+  before any module: the latches, `0x10006600`-`0x1000661c`, `0x10006630`,
+  `0x1000641c`-`0x10006424`, then `/var/lib/systemd/pstore/`.
+
+**Reading the latches (SPM program session).** They hold no PC: LATCH_0
+(`0x190`) is the one-hot FSM state, LATCH_1 (`0x194`) is `r6`, LATCH_2
+(`0x198`) is `RSV_5` and should stay `ffffffff`. On the CG path only `r6`
+moves with the program's position, which places it in one of four windows.
+The values assume D5m's `SW_FLAG` with no events, `000d3239`; substitute the
+run's flag if it differs.
+
+| LATCH_1 (`r6`) | Program window | Stores leaving the SPM |
+| --- | --- | --- |
+| `0` | Before `0x402`, or nothing latched | None |
+| `000d3239` | `0x402`-`0x407` | None |
+| `018d3239` | `0x409`-`0x410` | `0x40a` infra CG2 clear (`0x100010ac`), `0x40d` I2C6 soft reset (`0x1100e050`) |
+| `fd8d3239` | `0x411` to the return | Entry: TOPCKGEN `0x10000048`, the mux update `0x10000004`, APMIXED `0x1000cf38` bit 4 set. Exit: `0x1000cf38` bit 4 clear, `0x10000044`, `0x10000004`, infra `0x100010a8` |
+
+At a stalled store LATCH_0 should carry a PC state bit (`PC_STAL` bit 6 or
+`PC_INCR` bit 5) with `IM_REDY` (bit 9), unlike `04248000`. Within the last
+window the markers split it: `SW_DEBUG` (`0x604`) is cleared at `0x413`;
+`SW_RSV_0` (`0x608`) is 0 at `0x419` and `0x433` and the wake status at
+`0x4f4`; `PASR_DPD_0` (`0x630`) is 0 at `0x416` and `r8` at `0x4f0`; the
+three `BSI_D*_SR` words (`0x1000641c`-`0x10006424`) are written only at exit.
+Whether they survive a TOPRGU reset is untested.
 
 | Outcome | Reading |
 | --- | --- |
-| Boot2 with latches non-zero and unlike D5x's | The program's state at the hang; the PC places the stalled store |
-| Boot2 with D5x's no-program values | The hang is outside the PCM program; look at the CPU's entry and exit path, not the bus |
+| Boot2 with latches unlike D5x's | The program's position at the hang, by window (below) |
+| Boot2 with D5x's values (`04248000`, `0`, `ffffffff`) | Ambiguous: before word `0x402` of the hung period, or nothing latched (D5l read the same after returned periods) |
 | Smi saved `ffffffff` | The guard refused; the DCM is still untested |
 | Transmit or interrupt count rises during window C | The UART was active; item 2 comes back |
 | Every window passes | Repeat once before reading it |
