@@ -6686,12 +6686,36 @@ force-wake with CONN active about 30 %; the clock and PLL cut under a
 retained core 15-20 % (D5ad variant 1 now weighs against it); another pause
 or bus cause about 20 %.
 
+**The program session's answers (2026-11-22).**
+- `r7` bits 27 and 29 are the 26 MHz and infra force-wake requests (28 is
+  APSRC, 30 VRF18). No program word reads `r7` back; they act only in the
+  SPM's request arbitration. In our CG path only EV1 drops the clock and
+  voltage requests, and EV1 is not enabled, so the program itself never
+  drops 26 MHz or infra. Bit 15 can matter only if the hardware
+  arbitration drops them with the sources masked; that cannot be ruled
+  out from the program, so D5ae stays a fair test.
+- The CONN APSRC and DDR handlers (EV6, EV7, EV14, EV15) do not read
+  `r7`, and `SODI_NO_EVENT` disables all four.
+- After variants 1 and 2, the program's only stores outside the SPM are
+  three: `0x40a` ungates I2C_APPM (I2C6's clock) in infra CG2, `0x40d`
+  soft-resets I2C6, and `0x511` gates I2C_APPM again at every exit,
+  behind the clock framework. The last leaves Linux and the hardware
+  disagreeing after the first period; that would hang a later I2C6 access
+  outside a period, not inside one, so it does not explain these hangs.
+
 ### Request D5ae (proposed): the vendor's bit 15 on the fast reproducer
 
 0843 adds `sodi_keep_26m`, which sets `SW_FLAG` bit 15
 (`DIS_SRCCLKEN_LOW`) for test periods and the idle state; `d4.sh` adds
 `D4_KEEP_26M=1`. The flag only forces resources on; no new register is
 written.
+
+0844 adds variant 3 for the follow-up, in the same build: variants 1 and 2
+together plus no-op words over the three outside stores (`0x40a`-`0x40f`,
+`0x511`-`0x513`), so the program only sets its timer, waits and exits.
+`d4.sh` takes `D4_VARIANT=3`. The insmod log must show the originals
+`e8208000 100010ac 00000002`, `e8208000 1100e050 00000001` and
+`e8208000 100010a8 00000002` besides the three calls.
 
 - **Candidate:** a module from a Buildbox build with 0843; no boot2 write.
   Boot2 39dc8d55, CPU0 alone, Wi-Fi joined, `D4_WAKE=0 D4_IDLE=0` with
@@ -6709,7 +6733,7 @@ written.
 | Result | Reading | Next |
 | --- | --- | --- |
 | Passes 20 | The missing force-wake is the likely cause | The same env without `D4_KEEP_26M`, to confirm the reproducer still hangs with this module; then the two-state setup with it, to the 50-period rule |
-| Hangs | Not bit 15 alone | D5ad variant 2 on this reproducer; then the reviewer's CPU0 retention check (`MCUCFG` SPARK enable off around the period, a new register write needing its own admission) or the radios-unloaded control |
+| Hangs | Not bit 15 alone | D5ad variant 2 on this reproducer, then variant 3. If variant 3 hangs, the program's own actions are cleared and the SPM's WFI and idle handshakes, or the missing CPU power-down, remain: the reviewer's CPU0 retention check (`MCUCFG` SPARK enable off around the period, a new register write needing its own admission), the radios-unloaded control, or S2 |
 
 Clearing bit 0 with a PSCI entry (S2) remains the vendor's configuration
 and the likely end state; it needs a new image and comes after the cause

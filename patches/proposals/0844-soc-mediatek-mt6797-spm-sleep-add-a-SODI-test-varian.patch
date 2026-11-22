@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 22 Nov 2026 17:32:53 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: add a SODI test variant with
+ no outside stores
+
+Variant 3 drops the clock cut, its restore and the master pause, as
+variants 1 and 2 do, and also the program's three stores outside the
+SPM: the I2C_APPM clock ungate at 0x40a, the I2C6 soft reset at 0x40d
+and the gate at 0x511. The program then only sets its timer, waits and
+exits. Each three-word store becomes three no-op words; 0x511 stays a
+valid jump target.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 019e5d47c..6635cf85e 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -357,15 +357,20 @@ static u32 sodi_crumb_n;
+  * freezes a period (D5ad): each replaces single-word calls with the
+  * program's no-op word after the SHA-256 check. 1 drops the clock cut at
+  * 0x472 and its restore at 0x4f5; 2 drops the master pause at 0x43e.
++ * 3 drops both and the three-word stores outside the SPM: the I2C_APPM
++ * clock ungate at 0x40a, the I2C6 soft reset at 0x40d and the gate at
++ * 0x511, so the program only sets its timer, waits and exits (D5ae).
+  */
+ #define PCM_NOP			0x17c07c1f
+-static const u16 sodi_variant_words[][2] = {
++static const u16 sodi_variant_words[][12] = {
+ 	[1] = { 0x472, 0x4f5 },
+-	[2] = { 0x43e, 0 },
++	[2] = { 0x43e },
++	[3] = { 0x43e, 0x472, 0x4f5, 0x40a, 0x40b, 0x40c, 0x40d, 0x40e, 0x40f,
++		0x511, 0x512, 0x513 },
+ };
+ static uint sodi_variant;
+ module_param(sodi_variant, uint, 0444);
+-MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause)");
++MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause, 3: neither, nor stores outside the SPM)");
+ 
+ static bool sodi_obs_noread;
+ module_param(sodi_obs_noread, bool, 0444);
+@@ -2173,7 +2178,7 @@ static int spm_load_program(struct device *dev, const char *name, const u8 *sha,
+ 			ret = dev_err_probe(dev, -EINVAL, "no SODI variant %u\n", sodi_variant);
+ 			goto out;
+ 		}
+-		for (i = 0; i < 2; i++) {
++		for (i = 0; i < ARRAY_SIZE(sodi_variant_words[0]); i++) {
+ 			u16 w = sodi_variant_words[sodi_variant][i];
+ 
+ 			if (!w)
+-- 
+2.43.0
+

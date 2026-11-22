@@ -1412,3 +1412,4 @@ proposals/0840-soc-mediatek-mt6797-spm-sleep-optionally-set-ACINACT.patch
 proposals/0841-soc-mediatek-mt6797-spm-sleep-optionally-print-a-lin.patch
 proposals/0842-soc-mediatek-mt6797-spm-sleep-optionally-load-a-SODI.patch
 proposals/0843-soc-mediatek-mt6797-spm-sleep-optionally-keep-26-MHz.patch
+proposals/0844-soc-mediatek-mt6797-spm-sleep-add-a-SODI-test-varian.patch
