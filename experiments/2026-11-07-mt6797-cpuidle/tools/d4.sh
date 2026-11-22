@@ -99,8 +99,17 @@ log() {
 	sync
 }
 
+# The ttyS0 transmit count; without /proc/tty/driver/serial (D5z), the UART's
+# interrupt count from /proc/interrupts.
 uart_tx() {
-	grep '^0:' /proc/tty/driver/serial 2>/dev/null | grep -o 'tx:[0-9]*' || echo "tx:-"
+	t=$(grep '^0:' /proc/tty/driver/serial 2>/dev/null | grep -o 'tx:[0-9]*')
+	[ -n "$t" ] || t=$(grep -m1 -E '11002000|serial|uart' /proc/interrupts |
+		awk '{ n = 0; for (k = 2; k <= NF && $k ~ /^[0-9]+$/; k++) n += $k; print "irqs:" n }')
+	echo "${t:-tx:-}"
+}
+
+smi_val() {
+	printf '%08x' "$(cat /sys/module/mt6797_spm_sleep/parameters/sodi_smi_async_val)"
 }
 
 new_dmesg() {
@@ -452,9 +461,13 @@ for i in $(seq 1 60); do
 	period
 	early && early_c=$((early_c + 1))
 	[ $(( (0x$R12 >> 5) & 1 | (0x${STA6:-0} >> 19) & 1 )) -eq 1 ] && pkt_c=$((pkt_c + 1))
+	if [ "${D4_SMI_ASYNC:-0}" = 1 ]; then
+		log "C: after period $i: ttyS0 $(uart_tx), smi async saved $(smi_val)"
+	else
+		log "C: after period $i: ttyS0 $(uart_tx)"
+	fi
 done
 log "C: ttyS0 $(uart_tx)"
-[ "${D4_SMI_ASYNC:-0}" = 1 ] && log "C: smi async saved $(printf '%08x' "$(cat /sys/module/mt6797_spm_sleep/parameters/sodi_smi_async_val)")"
 log "C: $early_c of 60 ended early, $pkt_c by conn2ap or the WLAN line; echo requests in the window $(( $(in_echos) - e0 ))"
 check_hash "window C"
 check_dmesg

@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z adds the vendor's SMI async DCM and leaves MP2 alone |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; whether its SMI async DCM write happened is not shown, and it again landed in Gemian without latches |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -6165,7 +6165,7 @@ the `ttyS0` transmit counter around window C.
   D4_SMI_ASYNC=1`, two states, no cap, lid open, cable out, timestamped
   pings.
 - **New writes:** `0x10205b80`, the vendor's own value and restore, each
-  period. It need the owner's approval. MP2 loses a write.
+  period. It needs the owner's approval. MP2 loses a write.
 - **At a hang call** the owner puts the clip on the side key and says so;
   at the reset the owner says what booted. After a boot2, before any
   module: the latches, `0x10006600`-`0x1000661c`, then
@@ -6177,6 +6177,73 @@ the `ttyS0` transmit counter around window C.
 | A hang | Neither is the cause alone; the latches place it |
 | `sodi_smi_async_val` `ffffffff` | The guard refused; the DCM was not set, so the run did not test it |
 | `ttyS0` transmit count rises in window C | The UART was active; item 2 comes back |
+
+### D5z: period 7 hung with the SMI async DCM and MP2 left alone (custodian, 2026-11-22)
+
+**Approved** by the owner in the custodian's session, with the M4U write.
+
+**Setup.** Boot2 accc6c52, pre-module latches 0. Module 659c86b4
+(Buildbox 794f55e39, 0838), `d4.sh` blob 78ab4180 with `D4_CIRQ_LEVEL=1
+D4_NO_EVENT=1 D4_MARK=1 D4_MM=2 D4_NO_MP2=1 D4_SMI_ASYNC=1`. CPU0 alone,
+cable out.
+
+**Observed.**
+- `sodi mm: gated, cg0 00114000 cg1 ffffffd0, SODI terms 00000000
+  00000000`: the display terms were met again.
+- Pings from 10:18:16. Six periods returned normally: `r12` `00400020`,
+  CONN2AP wakes through SYS_CIRQ, sleeps of 88-246 ms, the `im` FSM word
+  alternating between `02c48910` and `02448910`. Period 7 started at
+  10:18:25, the second of the last ping reply, and never returned.
+- `ttyS0 tx:-`: `d4.sh` found no transmit counter at the start of window C.
+  The saved SMI word was to be logged at the end of window C, which the run
+  never reached, so the log does not show whether the guard let the write
+  through.
+- The station journal ends at 51680.26 s; Gemian's copy of the RAM console
+  (kept privately) runs to 51680.94 s, the end of period 6's dump, and holds
+  nothing later.
+- The device reset into Gemian; the clip state at the reset is unknown. The
+  next boot2 (e367f52b) read the latches at their defaults before any
+  module (`6190`-`61c8` 0, `6600`-`6614` 0, `6618`/`661c` `ffffffff`,
+  TOPRGU `0x15`). No latch evidence from this hang.
+
+**Result.**
+- **Leaving MP2 alone does not prevent the hang.** That holds whatever
+  the SMI guard did.
+- **The SMI async DCM is not cleared**: the run does not show that the
+  write happened. If it did, it does not prevent the hang either.
+- Six hangs with CPU0 alone: periods 1, 11, 1, 28, 14 and 7. None has
+  left latches from the hang itself. The clip has worked once, in D5x's
+  deliberate reset, and has not been confirmed on at any SODI hang.
+
+### Request D5z run 2 (proposed): the same run, logged per period, with the clip on
+
+Removing vendor differences one run at a time has not changed the outcome
+in four runs, and each hang has lost its latches to Gemian. The next
+decision-changing measurement is the SPM latches from a hang with this
+configuration: whether the program is running, and at which PC, when the
+watchdog fires. D5x gives the no-program reference to compare against.
+
+`d4.sh` now logs, after every period of window C, the `ttyS0` transmit
+count and, with `D4_SMI_ASYNC=1`, the saved SMI word. Without
+`/proc/tty/driver/serial`, it counts the UART's interrupts in
+`/proc/interrupts`.
+
+- **Candidate:** module 659c86b4 (0838) again, the new `d4.sh`; no boot2
+  write. The current boot2 e367f52b has latches 0. Same env as D5z, CPU0
+  alone, two states, no cap, lid open, cable out, timestamped pings.
+- **New writes:** none beyond D5z's.
+- **At the hang call** the owner puts the clip on the side key before the
+  watchdog fires and says so; at the reset, what booted. After a boot2,
+  before any module: the latches, `0x10006600`-`0x1000661c`, then
+  `/var/lib/systemd/pstore/`.
+
+| Outcome | Reading |
+| --- | --- |
+| Boot2 with latches non-zero and unlike D5x's | The program's state at the hang; the PC places the stalled store |
+| Boot2 with D5x's no-program values | The hang is outside the PCM program; look at the CPU's entry and exit path, not the bus |
+| Smi saved `ffffffff` | The guard refused; the DCM is still untested |
+| Transmit or interrupt count rises during window C | The UART was active; item 2 comes back |
+| Every window passes | Repeat once before reading it |
 
 ### Request D5n (proposed): two states with no resource events
 
