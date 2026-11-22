@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; run 2 hung in period 3 and showed the SMI async DCM already on, so the vendor's write is a no-op; both landed in Gemian without latches |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; run 2 hung in period 3 and showed the SMI async DCM already on, so the vendor's write is a no-op; both landed in Gemian without latches; D5aa masks CPU0's SGIs and PPIs for the period |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -6320,6 +6320,66 @@ hang's reset does not take the held-key path that D5x's watchdog reset took,
 and the latches cannot be caught this way. Gemian's log of its fa818c64 boot,
 if kept, may show the boot loader's reset reason; reading it is bounded
 read-only Gemian inspection.
+
+### The remaining vendor differences, and CPU0's interrupts (SPM program session, 2026-11-22)
+
+Inference from the program listing and the module's source.
+- **Item 4, the PMIC wrapper phase, cannot matter.** With flag bit 3 the
+  program never writes `SPM_DVFS_CON`; the wrapper's sleep commands follow
+  `SRCVOLTEN`, which only the 26 MHz handler drops, and the CG path does not
+  enable it.
+- **Item 5, the four `pwrctrl` registers, cannot stall a store.** They
+  route wakes and aborts; nothing in the hung window waits on them.
+- **Item 6.** The GPT wake is not a stall source. The VCORE DVFS re-kick
+  matters only with a VCORE DVFS program running; the station's
+  configuration has none, and this module loads the only SPM programs.
+- **The live lead: CPU0's own interrupts.** The module's GIC mask disables
+  SPIs only. CPU0's SGIs and PPIs live in the redistributor and stay
+  enabled. The vendor masks every interrupt but the SPM's, so CPU0 stays in
+  WFI until the program returns. The program never checks that CPU0 is in
+  WFI: it holds the master pause from `0x43e` and stops the ARM clock at
+  `0x590`. A PPI or SGI in that window, a millisecond or two, would bring
+  CPU0 out of WFI to read `SPM_IRQ_STA` under the pause and go back to WFI,
+  and stopping the clock with that read outstanding could wedge MCUSYS.
+  That would leave the backstop unable to fire, and it fits a hang at a
+  random period.
+- A lower-odds difference: the module sets `ACINACTM` on MP0 and MP1 before
+  the PCM reset; the vendor sets it just before WFI and clears it right
+  after the wake.
+
+**Checked against the kept logs (D5w, run 3, D5y, D5z, D5z run 2).** Every
+returned period has `loops=0` and `backstop=0`, so no returned period saw
+CPU0 leave WFI early. That does not clear the lead: if every early wake
+hangs, no returned period can show one. Every entry reads `rd en 408000ff
+pend 01000000`. The enabled set is SGIs 0-7, PPI 23 (the PMU) and PPI 30,
+the physical timer, which carries the kernel's tick and the module's
+backstop; PPI 27, the virtual timer, is off. The SODI state has no
+`CPUIDLE_FLAG_TIMER_STOP`; the module saves CNTP, re-arms it as the backstop
+100 ms past the PCM timer, and restores it after.
+
+### Request D5aa (proposed): CPU0's SGIs and PPIs masked for the period
+
+0839 adds `sodi_mask_ppi`. After the SPI mask, it disables CPU0's SGIs and
+PPIs in the redistributor's `GICR_ICENABLER0`, waits for `GICR_CTLR.RWP`,
+and enables the saved set again in `spm_gic_restore`. The SPM's return
+interrupt is then the only thing that can wake CPU0, as in the vendor's
+entry. The backstop can no longer end a period, which it never has in a
+returned period anyway. `d4.sh` adds `D4_MASK_PPI=1`.
+
+- **Candidate:** a new module from a Buildbox build with 0839; no boot2
+  write. Boot2 608ff693 (latches 0), CPU0 alone, `D4_CIRQ_LEVEL=1
+  D4_NO_EVENT=1 D4_MARK=1 D4_MM=2 D4_MASK_PPI=1`, two states, no cap, lid
+  open, cable out, timestamped pings. MP2 and the SMI word go back to the
+  D5y behaviour, since both are closed.
+- **New writes:** `GICR_ICENABLER0` and `GICR_ISENABLER0` for CPU0, each
+  period. They need the owner's approval.
+- **At a hang call** the clip goes on as before, with the same reads after a
+  boot2.
+
+| Outcome | Reading |
+| --- | --- |
+| All three windows pass (about 180 periods; seven hangs came within 1-28) | CPU0's interrupts are the lead; repeat, then the PPI or SGI that fires can be found |
+| A hang | CPU0 leaving WFI is not the cause; the `ACINACTM` timing is next |
 
 ### Request D5n (proposed): two states with no resource events
 

@@ -41,6 +41,8 @@
 # D4_MM=1 logs the MMSYS gates in the vendor's SODI check after the blank;
 # D4_MM=2 also closes those four gates (0837, stage D5y).
 # D4_NO_MP2=1 sets sodi_no_mp2: MP2_AXI_CONFIG is left alone (0838, D5z).
+# D4_MASK_PPI=1 sets sodi_mask_ppi: CPU0's SGIs and PPIs are disabled for each
+# period, the backstop timer's included (0839, D5aa).
 # D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
 # for each period and restored after it (0838, stage D5z).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
@@ -355,6 +357,10 @@ fi
 if [ "${D4_NO_MP2:-0}" = 1 ]; then
 	grep -q 'sodi_no_mp2' "$KO" || stop "the module has no sodi_no_mp2 parameter (0838)"
 	level="$level sodi_no_mp2=1"
+fi
+if [ "${D4_MASK_PPI:-0}" = 1 ]; then
+	grep -q 'sodi_mask_ppi' "$KO" || stop "the module has no sodi_mask_ppi parameter (0839)"
+	level="$level sodi_mask_ppi=1"
 fi
 if [ "${D4_SMI_ASYNC:-0}" = 1 ]; then
 	grep -q 'sodi_smi_async' "$KO" || stop "the module has no sodi_smi_async parameter (0838)"

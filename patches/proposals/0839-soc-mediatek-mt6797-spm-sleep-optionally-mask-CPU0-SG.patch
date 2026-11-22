@@ -1,0 +1,104 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 22 Nov 2026 12:48:01 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally mask CPU0 SGIs
+ and PPIs for SODI
+
+The GIC mask disables every SPI but the SPM's, but CPU0's SGIs and
+PPIs live in the redistributor and stay enabled, the physical timer
+backstop among them. The vendor's SODI entry masks every interrupt but
+the SPM's, so CPU0 cannot leave WFI while the program has the bus
+paused and is about to stop the ARM clock.
+
+Add sodi_mask_ppi: disable CPU0's SGIs and PPIs in GICR_ICENABLER0 for
+the period, after the SPI mask, and enable the saved set again in
+spm_gic_restore. With it the backstop cannot end a period.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 39 +++++++++++++++++++++++++
+ 1 file changed, 39 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 5154ea672..29649f6f3 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -77,6 +77,9 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define GICR_RD_TYPER		0x0008
+ #define GICR_SGI_FRAME		0x10000
+ #define GICR_SGI_ISENABLER0	0x0100
++#define GICR_SGI_ICENABLER0	0x0180
++#define GICR_CTLR		0x0000
++#define GICR_CTLR_RWP		BIT(3)
+ #define GICR_SGI_ISPENDR0	0x0200
+ 
+ #define GICD_CTLR		0x0000
+@@ -457,6 +460,8 @@ static struct {
+ 	unsigned int gic_regs;
+ 	u32 gic_saved[GIC_MAX_REGS];
+ 	bool gic_masked;
++	bool gicr_masked;
++	u32 gicr_saved;
+ 	void __iomem *infra;
+ 	void __iomem *topck;
+ 	void __iomem *cirq;
+@@ -607,6 +612,16 @@ MODULE_PARM_DESC(sodi_mm_cg, "SODI: 1 logs the MMSYS gates in the vendor's SODI
+ #define M4U_SMI_ASYNC_CFG	0xb80
+ #define SMI_COMMON_ASYNC_DCM	0x0000c000
+ #define MMSYS_CG_SMI_COMMON	BIT(0)
++/*
++ * The vendor masks every interrupt but the SPM's for SODI; the GIC mask here
++ * leaves CPU0's SGIs and PPIs enabled in the redistributor, so one could take
++ * CPU0 out of WFI while the program has the bus paused (D5aa). This disables
++ * them too for the period, the backstop timer's PPI included.
++ */
++static bool sodi_mask_ppi;
++module_param(sodi_mask_ppi, bool, 0644);
++MODULE_PARM_DESC(sodi_mask_ppi, "SODI: also disable CPU0's SGIs and PPIs for the period");
++
+ static bool sodi_smi_async;
+ module_param(sodi_smi_async, bool, 0644);
+ MODULE_PARM_DESC(sodi_smi_async, "SODI: set SMI_COMMON_ASYNC_DCM in the M4U for each period, as the vendor's driver does");
+@@ -871,10 +886,32 @@ static void spm_gic_mask(void)
+ 	s.gic_masked = true;
+ }
+ 
++static void spm_gicr_wait_rwp(void)
++{
++	int i;
++
++	for (i = 0; i < 10000 && (readl(s.gicr + GICR_CTLR) & GICR_CTLR_RWP); i++)
++		udelay(1);
++}
++
++/* CPU0's SGIs and PPIs off in the redistributor; spm_gic_restore puts them back */
++static void spm_gicr_mask(void)
++{
++	s.gicr_saved = readl(s.gicr + GICR_SGI_FRAME + GICR_SGI_ISENABLER0);
++	writel(s.gicr_saved, s.gicr + GICR_SGI_FRAME + GICR_SGI_ICENABLER0);
++	spm_gicr_wait_rwp();
++	s.gicr_masked = true;
++}
++
+ static void spm_gic_restore(void)
+ {
+ 	unsigned int i;
+ 
++	if (s.gicr_masked) {
++		writel(s.gicr_saved, s.gicr + GICR_SGI_FRAME + GICR_SGI_ISENABLER0);
++		spm_gicr_wait_rwp();
++		s.gicr_masked = false;
++	}
+ 	if (!s.gic_masked)
+ 		return;
+ 	for (i = 1; i < s.gic_regs; i++)
+@@ -1218,6 +1255,8 @@ static int spm_run(const struct spm_scen *sc)
+ 		spm_cirq_enable();
+ 	if (gic_mask)
+ 		spm_gic_mask();
++	if (gic_mask && sc->cirq && s.gicr && READ_ONCE(sodi_mask_ppi))
++		spm_gicr_mask();
+ 	/* From cpuidle the SPM's interrupt is not enabled in Linux: enable it here */
+ 	if (sc->idle)
+ 		writel(BIT(SPM_GIC_INTID % 32),
+-- 
+2.43.0
+
