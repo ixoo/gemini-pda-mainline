@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 22 Nov 2026 15:26:20 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally load a SODI test
+ variant
+
+A SODI period freezes inside the program. To find which of its actions
+does it, add sodi_variant: after the SHA-256 check, replace single-word
+calls in the RAM copy with the program's no-op word. Variant 1 drops the
+clock cut and its restore, variant 2 the infra master pause. Each patched
+word is logged with its original value. The firmware file is unchanged.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 30 +++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index a417ecfdf..26c290174 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -342,6 +342,21 @@ module_param(sodi_crumbs, bool, 0644);
+ MODULE_PARM_DESC(sodi_crumbs, "SODI: print a line at each stage of a period, for the RAM console");
+ static u32 sodi_crumb_n;
+ 
++/*
++ * Private test variants of pcm_sodi in RAM, to find which program action
++ * freezes a period (D5ad): each replaces single-word calls with the
++ * program's no-op word after the SHA-256 check. 1 drops the clock cut at
++ * 0x472 and its restore at 0x4f5; 2 drops the master pause at 0x43e.
++ */
++#define PCM_NOP			0x17c07c1f
++static const u16 sodi_variant_words[][2] = {
++	[1] = { 0x472, 0x4f5 },
++	[2] = { 0x43e, 0 },
++};
++static uint sodi_variant;
++module_param(sodi_variant, uint, 0444);
++MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause)");
++
+ static bool sodi_obs_noread;
+ module_param(sodi_obs_noread, bool, 0444);
+ MODULE_PARM_DESC(sodi_obs_noread, "SODI: the observer only counts its ticks in a period, reading the SPM only once one is stuck");
+@@ -2139,6 +2154,21 @@ static int spm_load_program(struct device *dev, const char *name, const u8 *sha,
+ 		goto out;
+ 	}
+ 	memcpy_toio(s.carve + offset, fw->data + 2, 4 * n);
++	if (sc == &s.sodi && sodi_variant) {
++		if (sodi_variant >= ARRAY_SIZE(sodi_variant_words)) {
++			ret = dev_err_probe(dev, -EINVAL, "no SODI variant %u\n", sodi_variant);
++			goto out;
++		}
++		for (i = 0; i < 2; i++) {
++			u16 w = sodi_variant_words[sodi_variant][i];
++
++			if (!w)
++				continue;
++			dev_info(dev, "SODI variant %u: word %#x %08x -> %08x\n", sodi_variant,
++				 w, readl(s.carve + offset + 4 * w), PCM_NOP);
++			writel(PCM_NOP, s.carve + offset + 4 * w);
++		}
++	}
+ 	/* The SPM fetches the program from DRAM: make the copy visible first */
+ 	wmb();
+ 
+-- 
+2.43.0
+

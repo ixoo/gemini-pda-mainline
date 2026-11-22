@@ -47,6 +47,8 @@
 # and cleared right after, as the vendor's driver does (0840, D5ab).
 # D4_CRUMBS=1 sets sodi_crumbs: a kernel line at each stage of a period, kept
 # by the RAM console through a reset (0841, D5ac). It needs D4_MASK_PPI=1.
+# D4_VARIANT=N sets sodi_variant: the program is loaded with test patches in
+# RAM (1: no clock cut, 2: no master pause; 0842, D5ad).
 # D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
 # for each period and restored after it (0838, stage D5z).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
@@ -376,6 +378,14 @@ if [ "${D4_CRUMBS:-0}" = 1 ]; then
 	[ "${D4_MASK_PPI:-0}" = 1 ] || stop "D4_CRUMBS needs D4_MASK_PPI=1"
 	level="$level sodi_crumbs=1"
 fi
+case ${D4_VARIANT:-0} in
+0) ;;
+1 | 2)
+	grep -q 'sodi_variant' "$KO" || stop "the module has no sodi_variant parameter (0842)"
+	level="$level sodi_variant=$D4_VARIANT"
+	;;
+*) stop "D4_VARIANT must be 1 or 2" ;;
+esac
 if [ "${D4_SMI_ASYNC:-0}" = 1 ]; then
 	grep -q 'sodi_smi_async' "$KO" || stop "the module has no sodi_smi_async parameter (0838)"
 	level="$level sodi_smi_async=1"
