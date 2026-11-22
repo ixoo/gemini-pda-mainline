@@ -6571,6 +6571,22 @@ SMI and PLL clock cut with the mux and APMIXED stores) and its restore at
 at `0x519` is harmless with the bit never set. The firmware file is not
 changed and no patched image is kept. `d4.sh` adds `D4_VARIANT=1|2`.
 
+The word indices count from IM word 0, the first word after the file's
+16-bit word count (1583 words; word `0x400`, the entry, is `1840001f`).
+The insmod log must show these originals (SPM program session):
+
+| Word | Original | Instruction |
+| --- | --- | --- |
+| `0x43e` | `c0c05600` | call `0x2b0`: master pause and a `0x20` wait |
+| `0x472` | `c0c0afe0` | call `0x57f`: the mux, APMIXED and ARM/SMI clock and PLL cut |
+| `0x4f5` | `c0c0b340` | call `0x59a`: its restore |
+
+Only the call word changes: the delay-slot words after `0x472` and `0x4f5`
+are already no-ops, and `0x43f` runs either way. Nothing else calls `0x57f`
+or `0x59a`. Variant 1 runs first: variant 2 keeps the clock cut and the
+mux switch with bus masters live, which the vendor never does, a mildly
+riskier state.
+
 - **Candidate:** a new module from a Buildbox build with 0842; no boot2
   write. Boot2 39dc8d55, CPU0 alone, D5ac's env plus `D4_VARIANT=1`, then a
   second run with `D4_VARIANT=2`, each to the 50-period rule.
