@@ -1,0 +1,92 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 22 Nov 2026 12:54:05 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally set ACINACTM only
+ around WFI
+
+The module sets ACINACTM on the CPU clusters before the PCM reset and
+keeps it through the whole SODI entry. The vendor's driver sets it as
+its last step before WFI, after the kick, and clears it first after the
+wake.
+
+Add sodi_acinactm_late: keep the early readback check, which refuses the
+period before any SPM change if MCUCFG ignores the write, but put the
+saved words straight back; set ACINACTM again just before CPU0's first
+WFI and clear it right after the wait loop.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 31 +++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 29649f6f3..f3a117f03 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -317,6 +317,17 @@ static bool sodi_no_mp2;
+ module_param(sodi_no_mp2, bool, 0644);
+ MODULE_PARM_DESC(sodi_no_mp2, "SODI: leave MP2_AXI_CONFIG alone, as the vendor's driver does");
+ 
++/*
++ * The vendor's driver sets ACINACTM as its last step before WFI and clears it
++ * first after the wake; the module sets it before the PCM reset and keeps it
++ * through the whole entry. sodi_acinactm_late keeps the early readback check,
++ * puts the saved words straight back, and sets ACINACTM again just before
++ * CPU0's first WFI and clears it right after the wait (D5ab).
++ */
++static bool sodi_acinactm_late;
++module_param(sodi_acinactm_late, bool, 0644);
++MODULE_PARM_DESC(sodi_acinactm_late, "SODI: set ACINACTM just before WFI and clear it right after, as the vendor's driver does");
++
+ static bool sodi_obs_noread;
+ module_param(sodi_obs_noread, bool, 0444);
+ MODULE_PARM_DESC(sodi_obs_noread, "SODI: the observer only counts its ticks in a period, reading the SPM only once one is stuck");
+@@ -1048,6 +1059,7 @@ static int spm_run(const struct spm_scen *sc)
+ 	bool obs_cpu = obs.on && cpu_online(SODI_OBS_CPU);
+ 	bool mp2 = !obs_cpu && !READ_ONCE(sodi_no_mp2);
+ 	bool smi = false;
++	bool late = sc->cirq && READ_ONCE(sodi_acinactm_late);
+ 	u32 smi_saved = 0;
+ 	int i;
+ 
+@@ -1085,6 +1097,12 @@ static int spm_run(const struct spm_scen *sc)
+ 			writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
+ 		return -EIO;
+ 	}
++	if (late) {
++		writel(axi[0], s.mcucfg + MP0_AXI_CONFIG);
++		writel(axi[1], s.mcucfg + MP1_AXI_CONFIG);
++		if (mp2)
++			writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
++	}
+ 	if (sc->cirq && READ_ONCE(sodi_smi_async))
+ 		smi = sodi_smi_async_set(&smi_saved);
+ 
+@@ -1282,6 +1300,13 @@ static int spm_run(const struct spm_scen *sc)
+ 	s.wake.cnt_kick = __arch_counter_get_cntvct();
+ 	if (sc->idle)
+ 		ct_cpuidle_enter();
++	/* The loop's dsb completes these before the first WFI */
++	if (late) {
++		writel(axi[0] | ACINACTM, s.mcucfg + MP0_AXI_CONFIG);
++		writel(axi[1] | ACINACTM, s.mcucfg + MP1_AXI_CONFIG);
++		if (mp2)
++			writel(axi[2] | ACINACTM | BIT(0), s.mcucfg + MP2_AXI_CONFIG);
++	}
+ 	for (i = 0; i < 1000000; i++) {
+ 		/* Complete every register write before the SPM sees CPU0 in WFI */
+ 		dsb(sy);
+@@ -1296,6 +1321,12 @@ static int spm_run(const struct spm_scen *sc)
+ 			break;
+ 		}
+ 	}
++	if (late) {
++		writel(axi[0], s.mcucfg + MP0_AXI_CONFIG);
++		writel(axi[1], s.mcucfg + MP1_AXI_CONFIG);
++		if (mp2)
++			writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
++	}
+ 	if (sc->idle)
+ 		ct_cpuidle_exit();
+ 	if (sc->cirq) {
+-- 
+2.43.0
+
