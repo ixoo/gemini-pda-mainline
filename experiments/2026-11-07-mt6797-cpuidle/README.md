@@ -6109,8 +6109,9 @@ latches read 0.
 - The device reset into Gemian. Its copy of the RAM console (102 lines,
   kept privately) and the station journal both hold the `sodi mm` lines
   and the 13 period lines. The next boot2 (accc6c52) read everything at
-  its defaults; `/var/lib/systemd/pstore/` had no new file. Whether the
-  clip went on at the call is asked.
+  its defaults; `/var/lib/systemd/pstore/` had no new file. The owner
+  confirms the clip was not on at the reset, so the landing in Gemian does
+  not contradict D5x.
 - Period 13, the last to return, left the `im` FSM word unchanged
   (`02c48910`); it changed only in periods 5 and 9.
 
