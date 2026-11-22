@@ -6639,8 +6639,16 @@ points below were checked against the listing and the vendor's driver here.
   `0x41f`-`0x420` set `r7` bits 27 and 29, the 26 MHz and infra force-wake
   requests, which the exit clears at `0x52a`-`0x52b`. The vendor's SODI
   keeps both forced awake for the whole period; ours never did. The D5y
-  comparison compared code paths and missed this flag. Bit 14 is tested
-  only at `0x12e`, in a handler; not followed here.
+  comparison compared code paths and missed this flag.
+- **Bit 14 is inert in CG mode** (reviewer, from the listing). It is tested
+  only at `0x12e`, in the EV9 handler, where it arms the SODI3 stage's
+  further vectors. EV9 is enabled only without CG mode, so the vendor's
+  bit 14 does nothing in its CG-mode SODI either.
+- **Bit 13 is already settled on the reproducer.** With it set (every
+  `d4.sh` run since D5n) the program enables no event vector and waits
+  with `r12` 0, a path the vendor's word never takes. But D5m hung with it
+  clear and D5m's no-event run hung with it set, both timer-only with
+  Wi-Fi joined, so it is not the cause on its own.
 - **Bit 0 (CPU stays powered) is not in any vendor entry on this chip.** It
   appears only in disabled legacy-sleep and FPGA paths. The vendor's CPU0
   goes down through PSCI first; ours sits in WFI with retention armed while
