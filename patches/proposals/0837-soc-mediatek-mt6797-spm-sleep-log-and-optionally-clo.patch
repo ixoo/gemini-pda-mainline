@@ -1,0 +1,121 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 21 Nov 2026 19:13:49 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: log and optionally close the
+ MMSYS gates in the SODI check
+
+The vendor driver refuses SODI while the display domain is on and four
+MMSYS gates are open: a dummy engine (CG_CON0 bit 14), DPI and the two
+LARB4 bridges (CG_CON1 bits 4, 6 and 7). A DSI panel uses none of them,
+and the station leaves them open.
+
+Add sodi_mm_cg: writing 1 logs both gate words and the vendor terms,
+writing 2 also closes those four gates through the set registers. Both
+need the display domain fully on, as the vendor check does.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 61 +++++++++++++++++++++++++
+ 1 file changed, 61 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 60075a90f..9ee7f0504 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -68,6 +68,7 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define MCUCFG_SIZE		0x3000
+ #define INFRA_AO_PHYS		0x10001000
+ #define TOPCKGEN_PHYS		0x10000000
++#define MMSYS_PHYS		0x14000000
+ #define CHIPID_PHYS		0x08000000
+ #define GICD_PHYS		0x19000000
+ /* CPU0's redistributor: the RD frame, then the SGI frame (SGIs and PPIs) */
+@@ -450,6 +451,7 @@ static struct {
+ 	void __iomem *topck;
+ 	void __iomem *cirq;
+ 	void __iomem *afe;
++	void __iomem *mmsys;
+ 	struct device *afe_dev;
+ 	u32 cirq_edge[CIRQ_WORDS];
+ 	u32 cirq_sta[CIRQ_WORDS];
+@@ -527,6 +529,62 @@ static inline void spm_wr(u32 off, u32 val)
+ 	writel(val, s.spm + off);
+ }
+ 
++/*
++ * The vendor's driver refuses SODI while the display domain is on and the
++ * MMSYS gates in DISP0 (CG_CON0 bit 14) or DISP1 (CG_CON1 bits 4, 6, 7) are
++ * open: a dummy engine, DPI and the two LARB4 bridges, none of which a DSI
++ * panel uses. Writing 1 to sodi_mm_cg logs both gate words, 2 also closes
++ * those four gates. Both need the display domain fully on (both power
++ * acks), as the vendor's check does.
++ */
++#define SPM_PWR_STATUS		0x180
++#define SPM_PWR_STATUS_2ND	0x184
++#define PWR_DIS			BIT(3)
++#define MMSYS_CG_CON0		0x100
++#define MMSYS_CG_SET0		0x104
++#define MMSYS_CG_CON1		0x110
++#define MMSYS_CG_SET1		0x114
++#define MMSYS_SODI_CG0		0x00004000
++#define MMSYS_SODI_CG1		0x000000d0
++
++static int sodi_mm_cg_set(const char *val, const struct kernel_param *kp)
++{
++	unsigned int mode;
++	u32 cg0, cg1;
++	int ret;
++
++	ret = kstrtouint(val, 0, &mode);
++	if (ret)
++		return ret;
++	if (mode < 1 || mode > 2)
++		return -EINVAL;
++	if (!s.spm || !s.mmsys)
++		return -ENODEV;
++	if (!(spm_rd(SPM_PWR_STATUS) & spm_rd(SPM_PWR_STATUS_2ND) & PWR_DIS)) {
++		dev_info(&s.pdev->dev, "sodi mm: display domain not fully on, not read\n");
++		return -EIO;
++	}
++	cg0 = readl(s.mmsys + MMSYS_CG_CON0);
++	cg1 = readl(s.mmsys + MMSYS_CG_CON1);
++	dev_info(&s.pdev->dev, "sodi mm: cg0 %08x cg1 %08x, SODI terms %08x %08x\n",
++		 cg0, cg1, ~cg0 & MMSYS_SODI_CG0, ~cg1 & MMSYS_SODI_CG1);
++	if (mode == 2) {
++		writel(MMSYS_SODI_CG0, s.mmsys + MMSYS_CG_SET0);
++		writel(MMSYS_SODI_CG1, s.mmsys + MMSYS_CG_SET1);
++		cg0 = readl(s.mmsys + MMSYS_CG_CON0);
++		cg1 = readl(s.mmsys + MMSYS_CG_CON1);
++		dev_info(&s.pdev->dev, "sodi mm: gated, cg0 %08x cg1 %08x, SODI terms %08x %08x\n",
++			 cg0, cg1, ~cg0 & MMSYS_SODI_CG0, ~cg1 & MMSYS_SODI_CG1);
++	}
++	return 0;
++}
++
++static const struct kernel_param_ops sodi_mm_cg_ops = {
++	.set = sodi_mm_cg_set,
++};
++module_param_cb(sodi_mm_cg, &sodi_mm_cg_ops, NULL, 0200);
++MODULE_PARM_DESC(sodi_mm_cg, "SODI: 1 logs the MMSYS gates in the vendor's SODI check, 2 also closes them");
++
+ static irqreturn_t spm_irq_handler(int irq, void *data)
+ {
+ 	u32 sta = spm_rd(SPM_IRQ_STA);
+@@ -1994,6 +2052,8 @@ static void spm_unmap(void)
+ 		iounmap(s.cirq);
+ 	if (s.afe)
+ 		iounmap(s.afe);
++	if (s.mmsys)
++		iounmap(s.mmsys);
+ 	if (s.afe_dev)
+ 		put_device(s.afe_dev);
+ 	if (s.topck)
+@@ -2091,6 +2151,7 @@ static int __init spm_sleep_init(void)
+ 	s.sodi.cirq = true;
+ 	s.cirq = ioremap(CIRQ_PHYS, 0x400);
+ 	s.afe = ioremap(AFE_PHYS, 0x1000);
++	s.mmsys = ioremap(MMSYS_PHYS, 0x1000);
+ 	np = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-audio");
+ 	afe_pdev = np ? of_find_device_by_node(np) : NULL;
+ 	of_node_put(np);
+-- 
+2.43.0
+

@@ -993,3 +993,4 @@ proposals/0833-soc-mediatek-mt6797-spm-sleep-optionally-observe-the.patch
 proposals/0834-soc-mediatek-mt6797-spm-sleep-let-the-watchdog-reset.patch
 proposals/0835-soc-mediatek-mt6797-spm-sleep-count-the-observer-s-t.patch
 proposals/0836-soc-mediatek-mt6797-spm-sleep-optionally-mark-each-ki.patch
+proposals/0837-soc-mediatek-mt6797-spm-sleep-log-and-optionally-clo.patch

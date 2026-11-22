@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met (mask order inferred); D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y is the hang run with the clip |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; the open display gates fail the vendor's SODI check, so D5y closes them, with the clip |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -6034,18 +6034,54 @@ battery 37 %, panel lit.
   first, so this read is not the run's state, and whether the terms apply
   in video mode is with the SPM program session.
 
-### Request D5y (proposed): a hang run with the clip on at the call
+**The display gates and the latches (SPM program session).**
+- The vendor's display terms depend only on the display domain being on,
+  so they apply in video mode too: with the panel lit, the station's values
+  would refuse SODI. With the mainline gate names, the open gates are
+  `mm_fake_eng` (CG0 bit 14, a dummy engine), DPI (CG1 bit 4, unused by a
+  DSI panel) and the two LARB4 AXI bridges to MM and MJC (CG1 bits 6 and
+  7). None is on the DSI path, and CG0 `00110000` / CG1 `ffffff00` show
+  nearly every MMSYS gate open: unused gates were never closed. Blanking
+  stops only the CRTC's own engines, so it should not change these.
+- *Lead (inference):* bit 7 clocks the bridge into MJC, whose power domain
+  is off. The program's master pause (`0x2b0`, called at `0x43e`) and the
+  stores after it cross the MM bus, and an open bridge into a powered-off
+  domain could leave a bus handshake that never completes: the stuck PCM
+  store.
+- `LATCH_3` matches the power-status layout, so it reads as a snapshot of
+  the domains at the reset, not a hang signature: D5x's `2b003f5e` adds
+  bits 8-13 (the GPU domains) to the live value, D5l's `2a00005c` lacks
+  CONN and audio. `LATCH_4` has no known layout; hang values are compared
+  with D5x's `003d8008`.
 
-As D5w (fresh boot2, module c08b03df, `d4.sh` blob b03337d0 with
-`D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1`), now that the clip is known to
-work.
+### Request D5y (proposed): close the four display gates, with the clip on at the call
 
-- **At the hang call** the owner puts the clip on the side key and says so;
-  at the reset the owner says what booted.
-- **After a boot2:** before any module, read the latches,
-  `0x10006600`-`0x1000661c`, then `/var/lib/systemd/pstore/`.
-- **Decision:** D5u's marker table, with D5x's no-SODI latches as the
-  reference: latches equal to D5x mean no program was running at the reset.
+0837 adds `sodi_mm_cg` to the module: 1 logs MMSYS CG0 and CG1 and the
+vendor's terms, 2 also closes the four gates through the set registers
+(`0x4000` to `0x14000104`, `0xd0` to `0x14000114`). Both refuse unless
+the display domain shows both power acks. `d4.sh` runs it after the blank
+with `D4_MM=1` or `2`.
+
+- **Candidate:** a new module from a Buildbox build with 0837; no boot2
+  write. `d4.sh` with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1 D4_MM=2`,
+  fresh boot2, CPU0 alone, two states, no cap, lid open, cable out,
+  timestamped pings.
+- **New writes:** the two set-register writes close four MMSYS gates with
+  no mainline consumer on this panel: DPI, a dummy engine, and the LARB4
+  bridges into a powered-off MJC. The other gate bits are untouched; the
+  gates stay closed until the next boot. They need the owner's approval.
+- **At a hang call** the owner puts the clip on the side key and says so;
+  at the reset the owner says what booted. After a boot2, before any
+  module: the latches, `0x10006600`-`0x1000661c`, then
+  `/var/lib/systemd/pstore/`.
+- *Unique observation:* the gate words after the blank, and whether
+  periods hang with the vendor's display condition met.
+
+| Outcome | Reading |
+| --- | --- |
+| Every window passes | Consistent with the open gates causing the hangs; one pass is not proof (D5t passed once), so repeat before concluding |
+| A hang | The gates are not the cause, or not the only one; the latches and marker place it |
+| The gates do not close, or the terms stay nonzero | The write path is wrong; stop and recheck |
 
 ### Request D5n (proposed): two states with no resource events
 

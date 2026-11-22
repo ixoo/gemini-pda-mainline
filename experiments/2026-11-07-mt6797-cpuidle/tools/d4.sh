@@ -38,6 +38,8 @@
 # (0835, stage D5u).
 # D4_MARK=1 sets sodi_mark: SW_DEBUG and SW_RSV_0 start each kick at
 # 0x5a5a0000 plus the kick count, read after a reset (0836, stage D5u).
+# D4_MM=1 logs the MMSYS gates in the vendor's SODI check after the blank;
+# D4_MM=2 also closes those four gates (0837, stage D5y).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -334,6 +336,11 @@ if [ "${D4_MARK:-0}" = 1 ]; then
 	grep -q 'sodi_mark' "$KO" || stop "the module has no sodi_mark parameter (0836)"
 	level="$level sodi_mark=1"
 fi
+case ${D4_MM:-0} in
+0) ;;
+1 | 2) grep -q 'sodi_mm_cg' "$KO" || stop "the module has no sodi_mm_cg parameter (0837)" ;;
+*) stop "D4_MM must be 1 or 2" ;;
+esac
 case $level in
 *sodi_im_*) grep -q 'sodi_im_reuse' "$KO" || stop "the module has no sodi_im_* parameters (0827)" ;;
 esac
@@ -355,6 +362,15 @@ until [ "$(cat /sys/class/backlight/*/bl_power 2>/dev/null | head -n 1)" = 4 ]; 
 	sleep 1
 done
 log "blanked"
+if [ "${D4_MM:-0}" != 0 ]; then
+	if echo "$D4_MM" >/sys/module/mt6797_spm_sleep/parameters/sodi_mm_cg; then
+		new_dmesg | grep -o 'sodi mm: .*' | sed 's/^/    /'
+	else
+		new_dmesg | grep -o 'sodi mm: .*' | sed 's/^/    /'
+		[ "$D4_MM" = 2 ] && stop "the MMSYS gates were not closed"
+		log "the MMSYS gates were not read"
+	fi
+fi
 
 for cpu in 9 8 7 6 5 4 3 2 1; do
 	[ "$cpu" = 8 ] && [ "${D4_OBS:-0}" = 1 ] && continue
