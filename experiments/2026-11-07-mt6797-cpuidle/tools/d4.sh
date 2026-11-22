@@ -40,6 +40,9 @@
 # 0x5a5a0000 plus the kick count, read after a reset (0836, stage D5u).
 # D4_MM=1 logs the MMSYS gates in the vendor's SODI check after the blank;
 # D4_MM=2 also closes those four gates (0837, stage D5y).
+# D4_NO_MP2=1 sets sodi_no_mp2: MP2_AXI_CONFIG is left alone (0838, D5z).
+# D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
+# for each period and restored after it (0838, stage D5z).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
@@ -94,6 +97,10 @@ exec >>"$LOG" 2>&1
 log() {
 	echo "$(date +%T) $*"
 	sync
+}
+
+uart_tx() {
+	grep '^0:' /proc/tty/driver/serial 2>/dev/null | grep -o 'tx:[0-9]*' || echo "tx:-"
 }
 
 new_dmesg() {
@@ -336,6 +343,14 @@ if [ "${D4_MARK:-0}" = 1 ]; then
 	grep -q 'sodi_mark' "$KO" || stop "the module has no sodi_mark parameter (0836)"
 	level="$level sodi_mark=1"
 fi
+if [ "${D4_NO_MP2:-0}" = 1 ]; then
+	grep -q 'sodi_no_mp2' "$KO" || stop "the module has no sodi_no_mp2 parameter (0838)"
+	level="$level sodi_no_mp2=1"
+fi
+if [ "${D4_SMI_ASYNC:-0}" = 1 ]; then
+	grep -q 'sodi_smi_async' "$KO" || stop "the module has no sodi_smi_async parameter (0838)"
+	level="$level sodi_smi_async=1"
+fi
 case ${D4_MM:-0} in
 0) ;;
 1 | 2) grep -q 'sodi_mm_cg' "$KO" || stop "the module has no sodi_mm_cg parameter (0837)" ;;
@@ -429,7 +444,7 @@ until [ "$(in_echos)" -gt "$e0" ]; do
 	sleep 1
 done
 e0=$(in_echos)
-log "C: pings arriving, 60 periods"
+log "C: pings arriving, 60 periods; ttyS0 $(uart_tx)"
 early_c=0
 pkt_c=0
 for i in $(seq 1 60); do
@@ -438,6 +453,8 @@ for i in $(seq 1 60); do
 	early && early_c=$((early_c + 1))
 	[ $(( (0x$R12 >> 5) & 1 | (0x${STA6:-0} >> 19) & 1 )) -eq 1 ] && pkt_c=$((pkt_c + 1))
 done
+log "C: ttyS0 $(uart_tx)"
+[ "${D4_SMI_ASYNC:-0}" = 1 ] && log "C: smi async saved $(printf '%08x' "$(cat /sys/module/mt6797_spm_sleep/parameters/sodi_smi_async_val)")"
 log "C: $early_c of 60 ended early, $pkt_c by conn2ap or the WLAN line; echo requests in the window $(( $(in_echos) - e0 ))"
 check_hash "window C"
 check_dmesg
