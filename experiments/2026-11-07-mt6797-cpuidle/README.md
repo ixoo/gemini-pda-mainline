@@ -6381,6 +6381,20 @@ returned period anyway. `d4.sh` adds `D4_MASK_PPI=1`.
 | All three windows pass (about 180 periods; seven hangs came within 1-28) | CPU0's interrupts are the lead; repeat, then the PPI or SGI that fires can be found |
 | A hang | CPU0 leaving WFI is not the cause; the `ACINACTM` timing is next |
 
+**Before D5aa: is anything counting on the PMU? (SPM program session.)** The
+lead needs a wake between the kick and `0x590`, at the very start of the
+period. No timer can fire there: the kernel's tick is on CNTP, which the
+module moves past the period. A self-IPI before the period would be pending
+at entry and refused. That leaves the PMU overflow, PPI 23. The PMU driver
+is bound on the station (0646; `armv8_pmuv3`, 7 counters), and the kernel
+has no hard-lockup detector (`CONFIG_HARDLOCKUP_DETECTOR` unset), so only
+a running perf user could make it fire. Two read-only reads on the station
+decide whether D5aa tests anything: CPU0's count on the PMU's line in
+`/proc/interrupts`, and any process holding a `perf_event` descriptor. With
+the count at 0 and no holder, D5aa is expected to hang and is skipped for
+the `ACINACTM` timing: set it just before the first `wfi` and clear it right
+after the loop, as the vendor does.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
