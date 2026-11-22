@@ -45,6 +45,8 @@
 # period, the backstop timer's included (0839, D5aa).
 # D4_ACINACTM_LATE=1 sets sodi_acinactm_late: ACINACTM is set just before WFI
 # and cleared right after, as the vendor's driver does (0840, D5ab).
+# D4_CRUMBS=1 sets sodi_crumbs: a kernel line at each stage of a period, kept
+# by the RAM console through a reset (0841, D5ac).
 # D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
 # for each period and restored after it (0838, stage D5z).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
@@ -368,6 +370,10 @@ if [ "${D4_ACINACTM_LATE:-0}" = 1 ]; then
 	grep -q 'sodi_acinactm_late' "$KO" || stop "the module has no sodi_acinactm_late parameter (0840)"
 	level="$level sodi_acinactm_late=1"
 fi
+if [ "${D4_CRUMBS:-0}" = 1 ]; then
+	grep -q 'sodi_crumbs' "$KO" || stop "the module has no sodi_crumbs parameter (0841)"
+	level="$level sodi_crumbs=1"
+fi
 if [ "${D4_SMI_ASYNC:-0}" = 1 ]; then
 	grep -q 'sodi_smi_async' "$KO" || stop "the module has no sodi_smi_async parameter (0838)"
 	level="$level sodi_smi_async=1"
@@ -382,7 +388,11 @@ case $level in
 esac
 # shellcheck disable=SC2086 # empty parameters must vanish
 insmod "$KO" ${D4_WAKE:+sodi_wake_src=$D4_WAKE} $level || stop "insmod failed"
-[ -n "$level" ] && log "sodi_cirq_level $(cat /sys/module/mt6797_spm_sleep/parameters/sodi_cirq_level)"
+# Each parameter set at insmod, as the module reads it back
+for p in $level; do
+	p=${p%%=*}
+	log "$p $(cat "/sys/module/mt6797_spm_sleep/parameters/$p" 2>/dev/null || echo unreadable)"
+done
 log "sodi_wake_src $(printf '%08x' "$(cat /sys/module/mt6797_spm_sleep/parameters/sodi_wake_src)")"
 new_dmesg | grep -E 'mt6797-spm-sleep|pcm_' | sed 's/^/    /'
 [ -e "$SODI" ] || stop "no $SODI: the SODI program was not loaded"

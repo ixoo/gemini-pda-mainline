@@ -1409,3 +1409,4 @@ proposals/0837-soc-mediatek-mt6797-spm-sleep-log-and-optionally-clo.patch
 proposals/0838-soc-mediatek-mt6797-spm-sleep-optionally-match-the-v.patch
 proposals/0839-soc-mediatek-mt6797-spm-sleep-optionally-mask-CPU0-SG.patch
 proposals/0840-soc-mediatek-mt6797-spm-sleep-optionally-set-ACINACT.patch
+proposals/0841-soc-mediatek-mt6797-spm-sleep-optionally-print-a-lin.patch

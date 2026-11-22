@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 22 Nov 2026 14:38:47 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally print a line at
+ each SODI stage
+
+A SODI period that hangs leaves no line of its own, and the watchdog
+reset lands where the SPM latches are cleared; only the RAM console
+survives. Add sodi_crumbs: one line at the period's start, before the
+PCM kick, after the wait, after the SPM restore and at the end, so the
+last line kept says where CPU0 stopped.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index f3a117f03..13851d823 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -328,6 +328,17 @@ static bool sodi_acinactm_late;
+ module_param(sodi_acinactm_late, bool, 0644);
+ MODULE_PARM_DESC(sodi_acinactm_late, "SODI: set ACINACTM just before WFI and clear it right after, as the vendor's driver does");
+ 
++/*
++ * A hung period leaves no line, and the reset lands where the SPM latches
++ * are cleared; the RAM console survives. sodi_crumbs prints one line at the
++ * period's start, before the PCM kick, after the wait and after the SPM
++ * restore, so the last line kept says which side of the period hung (D5ac).
++ */
++static bool sodi_crumbs;
++module_param(sodi_crumbs, bool, 0644);
++MODULE_PARM_DESC(sodi_crumbs, "SODI: print a line at each stage of a period, for the RAM console");
++static u32 sodi_crumb_n;
++
+ static bool sodi_obs_noread;
+ module_param(sodi_obs_noread, bool, 0444);
+ MODULE_PARM_DESC(sodi_obs_noread, "SODI: the observer only counts its ticks in a period, reading the SPM only once one is stuck");
+@@ -1060,9 +1071,13 @@ static int spm_run(const struct spm_scen *sc)
+ 	bool mp2 = !obs_cpu && !READ_ONCE(sodi_no_mp2);
+ 	bool smi = false;
+ 	bool late = sc->cirq && READ_ONCE(sodi_acinactm_late);
++	bool crumbs = sc->cirq && READ_ONCE(sodi_crumbs);
+ 	u32 smi_saved = 0;
+ 	int i;
+ 
++	if (crumbs)
++		dev_info(&s.pdev->dev, "sodi crumb %u: start\n", ++sodi_crumb_n);
++
+ 	s.entered = false;
+ 	memset(&s.wake, 0, sizeof(s.wake));
+ 
+@@ -1255,6 +1270,8 @@ static int spm_run(const struct spm_scen *sc)
+ 		smp_store_release(&obs.live, 1);
+ 	}
+ 	spm_wr(PCM_PWR_IO_EN, PCM_PWRIO_R0_R7);
++	if (crumbs)
++		dev_info(&s.pdev->dev, "sodi crumb %u: kick\n", sodi_crumb_n);
+ 	con0 = spm_rd(PCM_CON0) & ~(IM_KICK_L | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN);
+@@ -1329,6 +1346,9 @@ static int spm_run(const struct spm_scen *sc)
+ 	}
+ 	if (sc->idle)
+ 		ct_cpuidle_exit();
++	if (crumbs)
++		dev_info(&s.pdev->dev, "sodi crumb %u: back, returned=%d loops=%u\n",
++			 sodi_crumb_n, s.wake.returned, i);
+ 	if (sc->cirq) {
+ 		write_sysreg(cntp_ctl, cntp_ctl_el0);
+ 		write_sysreg(cntp_cval, cntp_cval_el0);
+@@ -1383,6 +1403,8 @@ static int spm_run(const struct spm_scen *sc)
+ 
+ 	/* X3, X4 (wrapper slots): back to the state before entry */
+ 	spm_restore();
++	if (crumbs)
++		dev_info(&s.pdev->dev, "sodi crumb %u: restored\n", sodi_crumb_n);
+ 	if (sc->pcm_wdt) {
+ 		spm_wr(PCM_CON1, SPM_KEY | (spm_rd(PCM_CON1) & ~PCM_WDT_BITS) | con1);
+ 		spm_wr(PCM_WDT_VAL, wdt_val);
+@@ -1396,6 +1418,8 @@ static int spm_run(const struct spm_scen *sc)
+ 		writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
+ 	if (smi)
+ 		writel(smi_saved, s.m4u + M4U_SMI_ASYNC_CFG);
++	if (crumbs)
++		dev_info(&s.pdev->dev, "sodi crumb %u: done\n", sodi_crumb_n);
+ 	return s.wake.returned ? 0 : -ETIMEDOUT;
+ }
+ 
+-- 
+2.43.0
+
