@@ -6614,8 +6614,15 @@ riskier state.
   `0x4f5` `c0c0b340`), each replaced by `17c07c1f`.
 - Period 1 returned (kick to `back` about 116 ms). The RAM console's last
   line is `crumb 2: kick` at 2470.792 s. One clean period.
+- The guard logged the originals matching at 16:04:56; window C started
+  at 16:05:55 and logged period 1 at 16:05:57. The station journal ends at
+  16:05:56 with period 1's lines.
 - The last ping reply was at 16:05:57; Gemian (057b8c02) was up at
-  16:06:58, clip unconfirmed. RAM console copy kept privately.
+  16:06:58. RAM console copy and journal kept privately.
+- **The clip was never on in any run** (owner, 2026-11-22). The latch
+  readings from hangs (D5l, D5o part 2, D5m's no-event run) came from
+  resets where the owner caught the bootloader; every hang since D5x went
+  to Gemian, which clears them.
 
 **Result.**
 - **The clock cut and its restore are not needed for the hang.** Ten hangs
@@ -6727,8 +6734,14 @@ together plus no-op words over the three outside stores (`0x40a`-`0x40f`,
 - **Admission:** a SODI flag value the program has not run with here, so the
   owner admits it first. D5ad variant 2 on the two-state setup is withdrawn
   in its favour.
-- After a hang: the RAM console copy first; latch reads if it lands in
-  boot2. Whether the clip was on decides whether latches can survive.
+- After a hang: the RAM console copy first. The clip has never been on,
+  so a hang lands in Gemian and the latches are lost unless the owner
+  holds the side key for the reset.
+- **Started** 2026-11-22 18:56 on boot 5ea39fb6: module d157e512
+  (Buildbox 1d7d434ea), `d4.sh` blob 0a0567a2, env `D4_WAKE=0 D4_IDLE=0
+  D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1 D4_MM=2 D4_NO_MP2=1
+  D4_ACINACTM_LATE=1 D4_MASK_PPI=1 D4_CRUMBS=1 D4_KEEP_26M=1`, cable out,
+  battery 78 %.
 
 | Result | Reading | Next |
 | --- | --- | --- |
