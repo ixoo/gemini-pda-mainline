@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met (mask order inferred); D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28 |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met (mask order inferred); D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y is the hang run with the clip |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5980,6 +5980,72 @@ known moment, with no cpuidle module.
   (for example, reading them in Gemian before its SPM driver starts),
   which is a separate proposal. A cold boot instead of a reset means the
   feeder test did not produce a watchdog reset.
+
+### D5x: the held side key selects boot2 after a watchdog reset (custodian, 2026-11-21)
+
+**Approved** by the owner in the custodian's session.
+
+**Setup.** Boot2 ae48468a (CPU0-7, up 6 min, no module ever loaded),
+battery 37 %, panel lit.
+
+**Observed.**
+- Read only, before the reset: `0x10006180` `2b00005e`, `0x10006184`
+  `2b00004e`, `0x100063b8` `0000000d`. Display bit 3 was set in both, so:
+  `0x14000100` `00110000`, `0x14000110` `ffffff00`, `0x14000894` 0,
+  `0x14000898` 0.
+- The watchdog (`mtk-wdt`, 31 s, systemd's runtime watchdog off) was
+  inactive. The owner put the clip on the side key; at 19:07:56 the
+  custodian synced and held `/dev/watchdog` open without feeding it. The
+  journal ends at 19:07:57; the next boot, 8a49c253, started at
+  19:08:57, and the owner reports boot2.
+- Before any module on 8a49c253:
+
+| Register | After D5x (no SODI) |
+| --- | --- |
+| `PCM_WDT_LATCH_0` `0x190` | `0x04248000` |
+| `PCM_WDT_LATCH_1` `0x194` | `0x00000000` |
+| `PCM_WDT_LATCH_2` `0x198` | `0xffffffff` |
+| `DRAMC_DBG_LATCH` `0x19c` | `0x00003d3d` |
+| `PCM_WDT_LATCH_3` `0x1c4` | `0x2b003f5e` |
+| `PCM_WDT_LATCH_4` `0x1c8` | `0x003d8008` |
+
+  `0x600`-`0x614` 0, `0x618`/`0x61c` `ffffffff`, TOPRGU `MODE` `0x15`,
+  status 0.
+- On boot2, systemd-pstore moves the RAM console at boot to
+  `/var/lib/systemd/pstore/`; that is why `/sys/fs/pstore` read empty on
+  boot2. Here it held only the last 286 bytes of ae48468a's console. Run
+  3's boot ae48468a found no new file there, which supports Gemian having
+  taken run 3's console (inference).
+
+**Result.**
+- **The clip works.** Held on the side key, it selects boot2 after a
+  TOPRGU watchdog reset, and the latches survive into that boot2.
+- **A no-SODI reference for the latches.** With no module ever loaded,
+  `LATCH_0` `04248000`, `LATCH_1` 0 and `LATCH_2` `ffffffff` are
+  exactly D5l's hang values. So those values do not show a program stopped
+  early; they are what a reset with no program running leaves. D5l's hang
+  left the PCM looking idle, while the later run with `LATCH_1`
+  `fd8d3239` did not. `LATCH_3` matches the power-status pattern
+  (`2b00005e`) with `0x3f00` added; its layout is with the SPM program
+  session.
+- **Display gate terms, with the panel lit:** by the vendor's formula,
+  `~0x100 & 0x4000` = `0x4000` and `~0x110 & 0xd0` = `0xd0`, so both
+  display terms would refuse SODI at that moment. The runs blank the panel
+  first, so this read is not the run's state, and whether the terms apply
+  in video mode is with the SPM program session.
+
+### Request D5y (proposed): a hang run with the clip on at the call
+
+As D5w (fresh boot2, module c08b03df, `d4.sh` blob b03337d0 with
+`D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1`), now that the clip is known to
+work.
+
+- **At the hang call** the owner puts the clip on the side key and says so;
+  at the reset the owner says what booted.
+- **After a boot2:** before any module, read the latches,
+  `0x10006600`-`0x1000661c`, then `/var/lib/systemd/pstore/`.
+- **Decision:** D5u's marker table, with D5x's no-SODI latches as the
+  reference: latches equal to D5x mean no program was running at the reset.
 
 ### Request D5n (proposed): two states with no resource events
 
