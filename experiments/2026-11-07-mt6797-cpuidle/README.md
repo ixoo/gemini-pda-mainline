@@ -6245,6 +6245,16 @@ count and, with `D4_SMI_ASYNC=1`, the saved SMI word. Without
 | Transmit or interrupt count rises during window C | The UART was active; item 2 comes back |
 | Every window passes | Repeat once before reading it |
 
+**UART check (custodian, e367f52b, read-only).** `ttyS0` is not an active
+console: `/proc/consoles` lists only `tty1` and `ramoops-1`, and the boot log
+disables the legacy `ttyS0` console at 13.96 s despite `console=ttyS0` on the
+command line. The 8250 driver's file is `/proc/tty/driver/serial_8250`
+(`0: uart:ST16650V2 mmio:0x11002000 irq:208 tx:0 rx:0`), and IRQ 208 has no
+line in `/proc/interrupts` because no process holds the port open. The kernel
+does not drive the UART during the windows, so **item 2, the UART sleep
+handshake, is closed**. Run 2's per-period `ttyS0 tx:-` fields carry no
+information; the SMI word on the same lines does.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
