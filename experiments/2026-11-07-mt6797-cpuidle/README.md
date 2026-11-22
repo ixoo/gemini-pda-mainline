@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; whether its SMI async DCM write happened is not shown, and it again landed in Gemian without latches |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; run 2 hung in period 3 and showed the SMI async DCM already on, so the vendor's write is a no-op; both landed in Gemian without latches |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -6277,6 +6277,49 @@ line in `/proc/interrupts` because no process holds the port open. The kernel
 does not drive the UART during the windows, so **item 2, the UART sleep
 handshake, is closed**. Run 2's per-period `ttyS0 tx:-` fields carry no
 information; the SMI word on the same lines does.
+
+### D5z run 2: period 3 hung; the SMI async DCM was already on (custodian, 2026-11-22)
+
+**Approved** by the owner in the custodian's session, with the four extra
+reads.
+
+**Setup.** Boot2 e367f52b, pre-module latches 0. Module 659c86b4 (0838),
+`d4.sh` blob 840458dd, D5z's env. Battery 90 %, cable out.
+
+**Observed.**
+- At the blank: `sodi mm: cg0 3f9f8000 cg1 ffffff03`, then `gated, cg0
+  3f9fc000 cg1 ffffffd3, SODI terms 00000000 00000000`. The values before
+  gating match D5y's, not D5z's (`00110000`, `ffffff00`). Either way the
+  terms were 0 once gated.
+- Pings from 12:13:05. Periods 1 and 2 returned (`r12` `00400020`, CONN2AP
+  through SYS_CIRQ, 293 and 184 ms, `im` FSM `02448910`). Period 3 started
+  at 12:13:08, the second of the last ping reply, and never returned.
+- `smi async saved 01c4c41f` after both periods. `sodi_smi_async_val` holds
+  the word read before the module's write, so `SMI_COMMON_ASYNC_DCM`
+  (`0xc000`) was already set and the write changed nothing.
+- `ttyS0 tx:-`, as expected.
+- Hang called at 12:13:22; the device came up in Gemian (fa818c64) at
+  12:14:08. The clip state is unconfirmed. On the next boot2 (608ff693),
+  before any module, every latch and marker read its default: `6190`-`61c8`
+  0, `6600`-`6614` 0, `6618`/`661c` `ffffffff`, `0x630` 0,
+  `0x1000641c`-`424` 0, TOPRGU `0x15`. `/var/lib/systemd/pstore/` held no new
+  file. Gemian's copy of the RAM console (kept privately) ends at 4872.21 s,
+  the station journal at 4872.27 s.
+
+**Result.**
+- **The SMI async DCM is closed**: mainline already runs with it on, so the
+  vendor's write is a no-op here. With MP2 also refuted (D5z) and the UART
+  idle, items 1-3 of the vendor-difference list are done.
+- Seven hangs with CPU0 alone: periods 1, 11, 1, 28, 14, 7 and 3. None has
+  reached boot2 after the hang.
+
+**What the next run waits on.** Whether the clip was on between 12:13:22 and
+12:14:08 decides the evidence path. If it was off, the procedure stands and
+the next run needs the clip confirmed on at the call. If it was on, a SODI
+hang's reset does not take the held-key path that D5x's watchdog reset took,
+and the latches cannot be caught this way. Gemian's log of its fa818c64 boot,
+if kept, may show the boot loader's reset reason; reading it is bounded
+read-only Gemian inspection.
 
 ### Request D5n (proposed): two states with no resource events
 
