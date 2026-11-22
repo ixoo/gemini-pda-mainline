@@ -5947,8 +5947,10 @@ run had started.
 - Period 28 started at 17:43:56; the last ping was answered at 17:43:57
   (47 answered); the hang was called at 17:44:07.
 - The next boot2 (ae48468a) came up at 19:01, 77 minutes later, with
-  everything at its defaults and an empty pstore. Whether the clip went
-  on at the call, and whether Gemian booted in between, is asked.
+  everything at its defaults and an empty pstore. The owner does not
+  recall whether the clip went on at the call or whether Gemian booted in
+  between; both are unknown. The empty pstore and the gap suggest Gemian
+  (inference). The held-key catch is still untested.
 
 **Result.**
 - A fourth hang with CPU0 alone and the A72s never up: periods 1, 11, 1
@@ -5957,6 +5959,27 @@ run had started.
   changed the `im` FSM word `02c48910` > `02448910` (D5w period 10, run 3
   period 27). The change is common (5 of 10 and 13 of 27 periods), so two
   of two is about a 1 in 4 chance; noted, not a lead.
+
+### Request D5x (proposed): test the held-key catch with a deliberate watchdog reset
+
+Three runs have left the held-key catch untested, each time because the
+key was not held at an unpredictable moment. D5x tests it alone, at a
+known moment, with no cpuidle module.
+
+- **Before:** on a fresh boot2, before any module, the reads the last
+  runs missed: `0x10006180`, `0x10006184`, `0x100063b8`, and, with the
+  panel lit and display bit 3 set in both status words, `0x14000100`,
+  `0x14000110`, `0x14000894` and `0x14000898`. Read only.
+- **Reset:** the owner puts the clip on the side key first; key events do
+  not matter with no run. Then the custodian opens `/dev/watchdog` and
+  holds it without feeding it, so TOPRGU resets after its 31 s timeout.
+- **Owner reports at the reset:** the key is on, and what booted.
+- **Decision:** boot2 means the clip works after a watchdog reset, and the
+  next hang run uses it, with the clip on from the hang call. Gemian with
+  the key held means it does not; the latches then need another route
+  (for example, reading them in Gemian before its SPM driver starts),
+  which is a separate proposal. A cold boot instead of a reset means the
+  feeder test did not produce a watchdog reset.
 
 ### Request D5n (proposed): two states with no resource events
 
