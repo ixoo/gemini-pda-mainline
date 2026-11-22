@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met (mask order inferred); D5w run 2 hung in period 1 and also landed in Gemian |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met (mask order inferred); D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28 |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -5928,6 +5928,35 @@ hand from the blank, and puts it on the side key at the custodian's hang
 call, not before. It stays on until the boot2 kernel is up. The decision is
 D5u's marker table with `LATCH_1` (`r6`); a landing in Gemian with the key
 held means the held key does not select boot2 after a watchdog reset.
+
+### D5w run 3: period 28 of window C hung (custodian, 2026-11-21)
+
+**Approved** by the owner in the custodian's session.
+
+**Setup.** Fresh boot2 eb0d5403 (CPU0-7), module c08b03df, `d4.sh`
+679615a5 (blob b03337d0) with `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1`.
+Battery 41 %, lid open, cable out. Pre-module SPM read at its defaults;
+`0x10006180` `2b00005e`, `0x10006184` `2b00004e`, as in run 2.
+`0x100063b8` was not read: the request reached the custodian after the
+run had started.
+
+**Observed.**
+- 27 periods returned, all with `r12` `00400020`, mostly woken by CONN2AP
+  through SYS_CIRQ. The journal has all 27 period lines and ends with
+  period 27's lines (next local event 1092 us after entry).
+- Period 28 started at 17:43:56; the last ping was answered at 17:43:57
+  (47 answered); the hang was called at 17:44:07.
+- The next boot2 (ae48468a) came up at 19:01, 77 minutes later, with
+  everything at its defaults and an empty pstore. Whether the clip went
+  on at the call, and whether Gemian booted in between, is asked.
+
+**Result.**
+- A fourth hang with CPU0 alone and the A72s never up: periods 1, 11, 1
+  and 28.
+- In both hangs that followed returned periods, the last returned period
+  changed the `im` FSM word `02c48910` > `02448910` (D5w period 10, run 3
+  period 27). The change is common (5 of 10 and 13 of 27 periods), so two
+  of two is about a 1 in 4 chance; noted, not a lead.
 
 ### Request D5n (proposed): two states with no resource events
 
