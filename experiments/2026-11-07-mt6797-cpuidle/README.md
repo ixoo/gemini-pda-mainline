@@ -6481,27 +6481,50 @@ D4_MARK=1 D4_MM=2 D4_NO_MP2=1 D4_ACINACTM_LATE=1`. Battery 70 %, cable out.
 
 The RAM console is the one record that has survived every reset into
 Gemian: its last line is always the previous period's dump. 0841 adds
-`sodi_crumbs`, one kernel line at each stage of a period: at its start,
-before the PCM kick, after the wait (`back`, with `returned` and the WFI
-loop count), after the SPM restore and at the end. The last line kept after
+`sodi_crumbs`, one kernel line at each stage of a period: before the PCM
+kick, after the wait (`back`, with `returned` and the WFI loop count),
+after the SPM restore and at the end. The last line kept after
 a hang says where CPU0 stopped, with no clip and no latch. `d4.sh` adds
 `D4_CRUMBS=1`, and now logs every parameter it passes as the module reads
 it back.
 
-- **Candidate:** a new module from a Buildbox build with 0841; no boot2
-  write. Boot2 ad22b7b1, CPU0 alone, D5ab's env plus `D4_CRUMBS=1`, cable
-  out, timestamped pings. After the reset, wherever it lands, the RAM
+**A print can wake CPU0 (SPM program session).** With interrupts off,
+printk still queues irq_work for the log readers, which raises a self-SGI.
+A print before the pending check would make it refuse every period, so
+there is no line at the period's start. The `kick` line leaves an SGI
+pending into the period, where it would take CPU0 out of WFI, the case
+D5aa was to exclude. So D5ac also sets 0839's `sodi_mask_ppi`: the SGI stays
+pending until `spm_gic_restore`. Returned periods should still show
+`loops=0`; more means a wake got through. `d4.sh` refuses `D4_CRUMBS=1`
+without `D4_MASK_PPI=1`.
+
+- **Candidate:** a new module from a Buildbox build with 0839 and 0841; no
+  boot2 write. Boot2 ad22b7b1, CPU0 alone, D5ab's env plus `D4_MASK_PPI=1
+  D4_CRUMBS=1`, cable out, timestamped pings. After the reset, wherever it lands, the RAM
   console copy (Gemian's or `/var/lib/systemd/pstore/`) before anything
   else; the latch reads too if it is boot2.
-- **New writes:** none.
+- **New writes:** 0839's `GICR_ICENABLER0` and `GICR_ISENABLER0` for CPU0,
+  each period, which need the owner's approval.
 
 | Last line kept for the hung period | Reading |
 | --- | --- |
-| None after the previous period's dump, or `start` | CPU0 stopped before the kick, in the module's entry checks or saves |
+| None after the previous period's dump | CPU0 stopped before the kick, in the module's entry checks or saves |
 | `kick` | CPU0 stopped during the period: in the program's window or in WFI |
 | `back` | The program returned, or CPU0 left WFI; CPU0 stopped in the SPM restore |
 | `restored` | CPU0 stopped in the gate, AXI or SMI restores |
 | `done` | The period finished; the hang came after `spm_run` |
+
+**If `kick` is the last line.** D5p's PCM watchdog never woke anything, so
+the program is frozen, not waiting. The sharpest next test patches the copy
+of `pcm_sodi` the module loads, replacing one call with the program's no-op
+word: without the clock cut and its restore (`0x472`, `0x4f5`), or without
+the master pause (`0x43e`), each to the 50-period rule. It changes the
+vendor's firmware image in RAM, so the owner admits it first, and the
+patched image stays private. A cheaper side check is one deliberate TOPRGU
+reset with the clip on after writing known values to `SW_RSV_2` and
+`BSI_D0`, as D5x did for the latches: if they survive, the program's own
+writes to `SW_RSV_0` and the `BSI` registers become a record of where it
+stopped.
 
 The lines add time on CPU0 at each stage, outside the program's window, and
 could shift the hang; a pass would itself be informative.
