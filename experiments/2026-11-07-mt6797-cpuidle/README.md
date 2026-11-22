@@ -6426,8 +6426,27 @@ disabled: the vendor's order. `d4.sh` adds `D4_ACINACTM_LATE=1`.
 
 | Outcome | Reading |
 | --- | --- |
-| All three windows pass | The entry-long `ACINACTM` is the lead; repeat |
+| At least 50 periods with no hang, summed over windows | The entry-long `ACINACTM` is the lead; repeat |
+| Fewer clean periods, then a stop with no hang | Not decided: seven hangs came at a mean of about 9 periods, so 45 clean ones happen by chance about 1 % of the time |
 | A hang | The module's entry now matches the vendor's on every listed difference; the latches, if caught, are the next evidence |
+
+**Already settled for this run (SPM program session's questions).**
+- The program assumes the DRAM PHY configuration mux (`CLK_CFG_0` bits
+  17:16) at index 1: it clears both bits on entry and sets bit 16 on exit.
+  Every logged period reads `clk_cfg_0=01010101` before and after, so it
+  is at index 1 and the program leaves it as found.
+- No CPU DVFS engine runs outside the kernel: the station uses
+  `cpufreq-dt`, and no FHCTL node is bound, so nothing else drives the ARM
+  PLLs the program cuts.
+- The self-IPI case is closed: `spm_gic_pending` runs after the SPI mask and
+  nothing prints between it and the WFI.
+
+**If D5ab hangs**, the next module change is a breadcrumb in `SW_RSV_2`
+(`0x10006610`), which `pcm_sodi` touches only with flag 9 clear: one stage
+value before the kick, after the wait loop, after the SPM restore and after
+the last restore. With the program's state it separates a freeze in the
+program from a CPU0 hang after the return, which nothing has ruled out. A
+`pcm_deepidle` control on the same entry is the other option, if admitted.
 
 ### Request D5n (proposed): two states with no resource events
 
