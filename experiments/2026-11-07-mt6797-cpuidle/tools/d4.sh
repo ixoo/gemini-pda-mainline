@@ -49,6 +49,8 @@
 # by the RAM console through a reset (0841, D5ac). It needs D4_MASK_PPI=1.
 # D4_VARIANT=N sets sodi_variant: the program is loaded with test patches in
 # RAM (1: no clock cut, 2: no master pause; 0842, D5ad).
+# D4_KEEP_26M=1 sets sodi_keep_26m: SW_FLAG bit 15 as in the vendor's SODI
+# flags, so 26 MHz and infra stay forced awake in the period (0843, D5ae).
 # D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
 # for each period and restored after it (0838, stage D5z).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
@@ -377,6 +379,10 @@ if [ "${D4_CRUMBS:-0}" = 1 ]; then
 	# A print can leave a self-IPI pending; masked, it cannot end WFI (0839)
 	[ "${D4_MASK_PPI:-0}" = 1 ] || stop "D4_CRUMBS needs D4_MASK_PPI=1"
 	level="$level sodi_crumbs=1"
+fi
+if [ "${D4_KEEP_26M:-0}" = 1 ]; then
+	grep -q 'sodi_keep_26m' "$KO" || stop "the module has no sodi_keep_26m parameter (0843)"
+	level="$level sodi_keep_26m=1"
 fi
 case ${D4_VARIANT:-0} in
 0) ;;

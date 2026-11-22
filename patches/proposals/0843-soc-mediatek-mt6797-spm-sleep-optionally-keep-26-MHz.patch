@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 22 Nov 2026 17:26:49 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally keep 26 MHz and
+ infra awake in SODI
+
+The vendor's MT6797 SODI flags set SPM_FLAG_DIS_SRCCLKEN_LOW (bit 15);
+the module's do not. Its only use in pcm_sodi is at entry, where it sets
+r7 bits 27 and 29, keeping 26 MHz and infra forced awake until the exit
+clears them. Add sodi_keep_26m to set it, for test periods and, at
+registration, for the idle state.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 26c290174..019e5d47c 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -248,6 +248,16 @@ static bool sodi_no_event;
+ module_param(sodi_no_event, bool, 0644);
+ MODULE_PARM_DESC(sodi_no_event, "SODI: set SODI_NO_EVENT, so no resource handler runs");
+ 
++/*
++ * SPM_FLAG_DIS_SRCCLKEN_LOW, set in the vendor's SODI flags: the program then
++ * holds r7 bits 27 and 29 (26 MHz and infra forced awake) for the period.
++ */
++#define SODI_FLAG_KEEP_26M	BIT(15)
++
++static bool sodi_keep_26m;
++module_param(sodi_keep_26m, bool, 0644);
++MODULE_PARM_DESC(sodi_keep_26m, "SODI: set DIS_SRCCLKEN_LOW, so 26 MHz and infra stay forced awake");
++
+ static bool sodi_pcm_wdt;
+ module_param(sodi_pcm_wdt, bool, 0644);
+ MODULE_PARM_DESC(sodi_pcm_wdt, "SODI: the PCM watchdog ends a stuck test period 2 s late");
+@@ -1745,6 +1755,8 @@ static int sodi_once(u64 ms)
+ 	s.sodi.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
+ 	if (READ_ONCE(sodi_no_event))
+ 		s.sodi.flags |= SODI_FLAG_NO_EVENT;
++	if (READ_ONCE(sodi_keep_26m))
++		s.sodi.flags |= SODI_FLAG_KEEP_26M;
+ 	s.sodi.pcm_wdt = READ_ONCE(sodi_pcm_wdt);
+ 	s.sodi.im_wait = READ_ONCE(sodi_im_wait);
+ 	s.sodi.im_reuse = READ_ONCE(sodi_im_reuse);
+@@ -2071,6 +2083,8 @@ static void sodi_idle_register(void)
+ 	s.idle = s.sodi;
+ 	s.idle.idle = true;
+ 	s.idle.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
++	if (sodi_keep_26m)
++		s.idle.flags |= SODI_FLAG_KEEP_26M;
+ 	sodi_idle_driver.cpumask = (struct cpumask *)cpumask_of(0);
+ 	sodi_idle_driver.state_count = clamp(sodi_idle_states, 1U, 2U);
+ 	ret = cpuidle_register(&sodi_idle_driver, NULL);
+-- 
+2.43.0
+
