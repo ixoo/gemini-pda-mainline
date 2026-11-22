@@ -6241,8 +6241,9 @@ count and, with `D4_SMI_ASYNC=1`, the saved SMI word. Without
 (`0x190`) is the one-hot FSM state, LATCH_1 (`0x194`) is `r6`, LATCH_2
 (`0x198`) is `RSV_5` and should stay `ffffffff`. On the CG path only `r6`
 moves with the program's position, which places it in one of four windows.
-The values assume D5m's `SW_FLAG` with no events, `000d3239`; substitute the
-run's flag if it differs.
+The run's `SW_FLAG` is `000d3239`, from 0838's source: the station's base
+flags `000d02b1` (logged at insmod) without bit 7, with bits 3 and 12 (CG
+mode) and with bit 13 for `sodi_no_event`. D5z logs no SODI flag line.
 
 | LATCH_1 (`r6`) | Program window | Stores leaving the SPM |
 | --- | --- | --- |
