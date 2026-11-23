@@ -7218,8 +7218,12 @@ beforehand. Started 22:50:32.
   - the PSCI lines for CPUs 7 to 1 killed, 3944.745-3945.296 s;
   - `sodi crumb 1: kick` at 3946.533 s, the last line.
 - So period 1 hung after the kick, about 1.2 s after CPU1 went offline.
-- The parameter read-backs in `d5m.log` are to be checked on the next
-  station boot.
+- `d5m.log` (checked on boot 5fdb8672): all seven options read back `Y`,
+  `sodi_idle` N, `sodi_wake_src` 0, printk `8 4 1 7`. The `sodi mm:` lines
+  came after the blank, then `online: 0` and `period 1, try 1` at
+  22:52:20, and nothing more. The previous boot's journal ends with CPU1's
+  PSCI kill line at 22:52:20. The latches after Gemian were cleared as
+  before.
 
 **Result.**
 - **Hang: D5af's options do not prevent the no-driver hang.** `NO_EVENT`
