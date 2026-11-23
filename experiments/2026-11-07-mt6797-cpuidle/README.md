@@ -8754,6 +8754,40 @@ CPU0 free to run at any OPP.
 | Passes 50 | One paused master explains both reproducers | The fix decision, with the master unnamed: the hold (0846, and its idle-path half), SODI minus bit 25, or the PSCI power-down entry that removes the cause; the owner's call, with the reviewer's caution that minus bit 25 may be safe only by luck |
 | Hangs | The two-state setup has a second hazard besides bit 25 | Pin it at 1547 MHz with the variant to separate them |
 
+**The reviewer on what the fix decision needs (2026-11-23).**
+1. **The hold's floor:** with stock masks, D5ar hung at 1118 MHz and
+   every clean period started at 1274 MHz or more. Pinned `d5m.sh` runs
+   at the table entries between (1222, 1274, 1339 MHz) would state the
+   floor and so the hold's power cost.
+2. **Minus bit 25 where the pause matters:** the passes so far show that
+   periods return, not that cutting clocks with that master running is
+   safe. Two checks: the same masks under activity (pings, card I/O just
+   before a period, the GPU not yet suspended), and a long unpinned run of
+   several hundred periods watching for faults other than hangs (a
+   corrupted wake line, an odd `r13`, later MMC or Wi-Fi errors), since a
+   master cut mid-transfer more likely shows as a rare downstream fault.
+3. **The acknowledgement:** `R13` bit 22 seen from a second CPU during a
+   stock-mask period at 1547 MHz and a minus-bit-25 period at 221 MHz.
+   Set at 1547 MHz with bit 25 paused would say the master quiesces there
+   and fails to at low rates. It needs the retired CPU8 observer, a new
+   kind of test.
+- *The reviewer's recommendation:* the hold now (tested on both
+  reproducers, cause-agnostic, its floor from measurement 1), the PSCI
+  power-down entry as the fix (the vendor's configuration, which removes
+  the clocked, coherent cluster under the pause; it needs an image and
+  its own bring-up), and minus bit 25 kept as the explanation unless 2
+  and 3 make it trustworthy, and even then provisional.
+
+### Request D5ay (proposed): the floor with stock masks
+
+- **Candidate:** module 17a226f4 (variants off), `d5m.sh` blob 218631f5
+  with D5ao step 3's command and `D5M_PIN_KHZ` at 1274000, then 1222000
+  if 1274000 passes, or 1339000 if it hangs. Five runs per point, first
+  hang ends the boot.
+- **Admission:** cpufreq limits, as D5ap and D5ar; the owner approves.
+- Its result sets the hold's floor (`sodi_min_khz` for test periods, and
+  the threshold of a future idle-path refusal).
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
