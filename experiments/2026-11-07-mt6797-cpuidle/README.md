@@ -7579,6 +7579,26 @@ without crumbs, so it is not needed for the hang. The MMSYS term of the
 vendor's condition is read by `sodi_mm_cg`: after gating it was 0 in D5ak
 and D5al, as in D5af.
 
+**The serial console (reviewer's question, 2026-11-23).** The reviewer
+asked whether the UART still transmitting a line printed just before the
+kick could be the variable. The records answer it without a run:
+- The station's command line sets `console=ttyS0,921600n8` and
+  `loglevel=4`, so `dev_info` lines reach neither the UART nor the RAM
+  console unless a run raises the level.
+- **D5m redo run 2 hung in period 1 at level 4**, with no crumbs: its RAM
+  console holds nothing from the run, so nothing was printed to the
+  console before that kick.
+- The custodian raises the level to 8 for `d4.sh` runs from D5r on, and
+  D5ac's and D5ah's crumbs were read from the RAM console, so `d4.sh`'s
+  crumb runs printed to `ttyS0` right before each kick. D5af ran with
+  crumbs and passed; its level is to be confirmed.
+- `d4.sh`'s `uart_tx` only reads the transmit count after each period; it
+  does not wait for the transmitter to drain.
+- So the no-driver hang needs no console output, and console output
+  before the kick has not caused hangs in `d4.sh`. The console is not
+  the variable. The vendor's UART sleep handshake (item 2 of the list
+  above) stays unneeded at level 4.
+
 ### Request D5ao (proposed): `d4.sh`, then `d5m.sh`, on one boot
 
 - **Candidate:** module d157e512, one fresh station boot, cable out.
