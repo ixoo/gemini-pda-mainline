@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; run 2 hung in period 3 and showed the SMI async DCM already on, so the vendor's write is a no-op; both landed in Gemian without latches; D5aa was skipped, since nothing can wake CPU0 in the window; D5ab hung in period 2 with ACINACTM set only around WFI, so the entry now matches the vendor's on every listed difference; D5ac's stage lines place the hang inside the period, after the kick; D5ad variant 1 hung in period 2 without the clock cut; an independent review found the vendor's SODI flags keep 26 MHz and infra forced awake (bit 15) and power CPU0 down; D5ae passed 60 of 60 periods with bit 15 on the timer-only setup, but D5af passed 60 of 60 without it, so today's module no longer hangs there; D5ah hung in period 13 with bit 15 on the two-state setup, stopping at the same `kick` crumb, so bit 15 is not the cause; `d5m.sh` unchanged on today's module passed run 1 and hung in run 2, so the no-driver, timer-only hang survives with the module's defaults; D5aj, `d5m.sh`'s timing with D5af's options, hung at the first kick, so the options and the self-refresh path are not needed; D5ak, with a 5 s settle after offlining, returned period 1 and hung in period 2, so the start is not the cause; D5al hung at period 1's kick with 2000 ms periods, so the length is not the cause either; D5am was withdrawn, since the logged infra gates of `d5m.sh` and D5af match and USB was already suspended; D5ao: on one boot `d4.sh` passed 80 periods and `d5m.sh` then hung at its first kick, so the script decides, not the boot; D5ap, `d5m.sh` with CPU0 pinned at its top OPP, passed 15 of 15 periods, so CPU0's operating point at the kick decides the no-driver hang; D5aq, `d4.sh` pinned at 221 MHz, hung at its first kick, so the operating point decides from both sides; D5as, `d5m.sh` at 221 MHz without the master pause (variant 2), passed 15 of 15, so the pause at a low OPP is the hazard; D5ar finds the OPP edge |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; run 2 hung in period 3 and showed the SMI async DCM already on, so the vendor's write is a no-op; both landed in Gemian without latches; D5aa was skipped, since nothing can wake CPU0 in the window; D5ab hung in period 2 with ACINACTM set only around WFI, so the entry now matches the vendor's on every listed difference; D5ac's stage lines place the hang inside the period, after the kick; D5ad variant 1 hung in period 2 without the clock cut; an independent review found the vendor's SODI flags keep 26 MHz and infra forced awake (bit 15) and power CPU0 down; D5ae passed 60 of 60 periods with bit 15 on the timer-only setup, but D5af passed 60 of 60 without it, so today's module no longer hangs there; D5ah hung in period 13 with bit 15 on the two-state setup, stopping at the same `kick` crumb, so bit 15 is not the cause; `d5m.sh` unchanged on today's module passed run 1 and hung in run 2, so the no-driver, timer-only hang survives with the module's defaults; D5aj, `d5m.sh`'s timing with D5af's options, hung at the first kick, so the options and the self-refresh path are not needed; D5ak, with a 5 s settle after offlining, returned period 1 and hung in period 2, so the start is not the cause; D5al hung at period 1's kick with 2000 ms periods, so the length is not the cause either; D5am was withdrawn, since the logged infra gates of `d5m.sh` and D5af match and USB was already suspended; D5ao: on one boot `d4.sh` passed 80 periods and `d5m.sh` then hung at its first kick, so the script decides, not the boot; D5ap, `d5m.sh` with CPU0 pinned at its top OPP, passed 15 of 15 periods, so CPU0's operating point at the kick decides the no-driver hang; D5aq, `d4.sh` pinned at 221 MHz, hung at its first kick, so the operating point decides from both sides; D5as, `d5m.sh` at 221 MHz without the master pause (variant 2), passed 15 of 15, so the pause at a low OPP is the hazard; D5ar hung at 1118 MHz in period 2, so the edge is above the divider boundary; 0847 adds variants 6 (longer pause wait) and 7 (cluster ports not paused) |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -7990,6 +7990,104 @@ was gone between runs.
   3. Only if 1 and 2 point there: at 221 MHz with the selects the
      vendor's formula gives (3 at 221 MHz), no variant; a register write
      with its own admission.
+
+### D5ar: 1118 MHz hangs in period 2 (custodian, 2026-11-23)
+
+**Approved** by the owner in the custodian's session, as part of the
+order D5aq, D5as, D5ar.
+
+**Setup.** Boot ccca15a4, after D5as's five runs. Cable out, module
+d157e512, `d5m.sh` blob 218631f5, D5ao step 3's command plus
+`D5M_PIN_KHZ=1118000`, no variant, printk 8. Started 10:28:30.
+
+**Observed** (RAM console read in Gemian, 36280 B, kept privately):
+- insmod at 698.830 s; MMSYS already gated; CPU7 to CPU1 killed at
+  699.521-700.021 s.
+- Period 1: kick at 702.244 s, back at 702.445 s with `returned=1`,
+  `fsm` `02048490`, the usual gate words, `im fsm` `02c48910>02c48910`;
+  the next local event was 601 µs after entry.
+- `sodi crumb 2: kick` at 703.733 s, 1.29 s after period 1 ended;
+  nothing after it. Gemian (boot b9a3b87d) was up at 10:30:19. The
+  1014000 and 481000 points did not run.
+- The pin line and the frequency before each write are in `d5m.log` on
+  the card, read on the next boot.
+
+**Result.**
+- **1118 MHz hangs**, with both cluster dividers at 1, while 1547 MHz
+  passed 15 of 15. The edge is not the post-divider boundary at 1050
+  MHz: it lies above 1118 MHz, or the rate falls gradually. Family A
+  (divider state) loses its prediction.
+- `d4.sh`'s clean periods at 1274-1391 MHz (20 of 323) say those points
+  are at least much safer; a hold would need 1274 MHz or more, at a power
+  cost on every period.
+
+**Sync DCM (custodian, from saved journals).** Every current boot's
+MCUSYS probe line reads `SYNC_DCM_CONFIG=0x00070707, floors 210000000
+and 210000000 Hz`: CCI, MP0 and MP1 each enabled with select 3. The
+vendor's formula gives select 3 at 221 MHz (221 / 70), so at 221 MHz the
+idle clocks match the vendor's; at higher OPPs mainline's idle clocks run
+faster than the vendor's (select 22 at 1547 MHz). **The idle-clock lead
+does not explain the hang:** the low OPP is where mainline agrees with
+the vendor. Test 3 is dropped.
+
+**The program session on the pause (2026-11-23).** Inferred from the
+programs, no vendor text.
+- Deep idle (`0x2c4`), suspend (`0x350`) and SODI (`0x2b0`) share the
+  pause routine: `r7` bit 2, a fixed wait, return. No program reads
+  `TOP_MAS_PAU_ACK`.
+- **The masks are master selects** (correcting the earlier softening):
+  SODI's APSRC handler widens `MAS_PAUSE_MASK_B` to `0x6ff10fbf` just
+  before the EMI clock-off request and narrows it after, which only
+  makes sense if a set bit pauses that master.
+- **The difference is `PAUSE2`:** deep idle and suspend write
+  `MAS_PAUSE2_MASK_B` `0xfe00f000` at entry, SODI `0xfe00ffff`, pausing
+  the low 12 bits too. The CPU power routines step exactly those bits
+  (`f00f` > `f0ff` > `f7ff` > `ffff`) just before MP0 powers off, and
+  back on power-up, so they look like the CPU cluster's bus ports. The
+  vendor's SODI powers CPU0 down right after the pause; with flag 0 set
+  ours keeps the cluster powered and clocked with its ports paused, a
+  state the vendor never runs.
+- *Inference:* at a low OPP the cluster drains slower; write-backs,
+  snoop responses or DVM traffic still in flight when its ports pause can
+  wedge a handshake, either within the unacknowledged wait or because the
+  pause holds for the whole period.
+- The wait is one immediate, `0x2b2` `20000020` (plain delay, about
+  1.2 µs if it counts 26 MHz PCM cycles); `0x20000200` is about 20 µs.
+
+**Variants 6 and 7 (0847).**
+[`0847`](../../patches/proposals/0847-soc-mediatek-mt6797-spm-sleep-add-SODI-variants-chan.patch)
+(module only) adds two variants that change one data word each, checked
+against its original before the write (the load fails otherwise):
+- **6:** `0x2b2` `20000020` > `20000200`, the pause wait ten times longer,
+  pause kept. A pass says the handshake completes late; a hang says the
+  pause held across the period is the problem.
+- **7:** `0x43d` `fe00ffff` > `fe00f000`, deep idle's `PAUSE2`, so the
+  cluster ports stay unpaused and the other masters still pause. A pass
+  pins the hazard to the cluster ports and is a candidate fix: the
+  vendor's own selection for idle modes that keep the cluster powered.
+  A hang points at the other masters (`PAUSE_MASK_B`).
+Compile-checked with `W=1`, with and without `CONFIG_CPU_FREQ` and
+`CONFIG_CPU_IDLE`; checkpatch `--strict` is quiet. One Buildbox build
+carries 0846 and 0847.
+
+### Request D5at (proposed): variant 7 at 221 MHz, then variant 6
+
+- **Candidate:** a module from a Buildbox build of the commit recording
+  this stage (0846 and 0847), fresh station boot, `d5m.sh` blob 218631f5
+  with D5ao step 3's command plus `D5M_PIN_KHZ=221000` and
+  `sodi_variant=7` in `D5M_ARGS`. The insmod log must show `SODI variant
+  7: word 0x43d fe00ffff -> fe00f000`. Five runs, with rmmod and 30 s
+  between them, stopping at the first hang.
+- **Then, on the same boot if 7 passes, or the next:** the same with
+  `sodi_variant=6`, five runs.
+- **Admission:** firmware data variants in RAM, a kind admitted with D5ad;
+  new words, so the owner approves them.
+
+| Variant 7 | Variant 6 | Reading |
+| --- | --- | --- |
+| Passes | either | The paused cluster ports are the hazard; variant 7's value is the fix candidate, then the two-state setup with it to the 50-period rule |
+| Hangs | Passes | The pause handshake needs more than the fixed wait at a low OPP |
+| Hangs | Hangs | The pause of the other masters, held across the period, at a low OPP; the hold (0846) at 1547 MHz is the fallback fix |
 
 **The hold, as a module option (0846).**
 [`0846`](../../patches/proposals/0846-soc-mediatek-mt6797-spm-sleep-optionally-hold-CPU0-a.patch)

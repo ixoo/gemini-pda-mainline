@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 23 Nov 2026 10:33:54 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: add SODI variants changing
+ the master pause
+
+Two test variants change one data word of pcm_sodi in RAM, each checked
+against its original value first. Variant 6 lengthens the fixed wait
+after the master pause request at 0x2b2 from 0x20 to 0x200 PCM cycles.
+Variant 7 writes the deep-idle value 0xfe00f000 for MAS_PAUSE2_MASK_B at
+entry (0x43d, originally 0xfe00ffff), leaving its low 12 bits, which the
+CPU power sequences treat as the cluster ports, unpaused.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 33 ++++++++++++++++++++++++-
+ 1 file changed, 32 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 12a77547f..4a93ce799 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -373,6 +373,10 @@ static u32 sodi_crumb_n;
+  * 0x511, so the program only sets its timer, waits and exits (D5ae).
+  * With sodi_keep_26m, 4 drops the 26 MHz force-wake at 0x41f, keeping only
+  * infra's, and 5 drops infra's at 0x420, keeping only 26 MHz's.
++ * 6 and 7 change one data word instead, checked against its original: 6
++ * lengthens the fixed wait after the master pause request (0x2b2, 0x20 to
++ * 0x200 PCM cycles); 7 gives MAS_PAUSE2_MASK_B the deep-idle value at
++ * entry (0x43d), leaving its low 12 bits, the CPU cluster ports, unpaused.
+  */
+ #define PCM_NOP			0x17c07c1f
+ static const u16 sodi_variant_words[][12] = {
+@@ -382,10 +386,21 @@ static const u16 sodi_variant_words[][12] = {
+ 		0x511, 0x512, 0x513 },
+ 	[4] = { 0x41f },
+ 	[5] = { 0x420 },
++	[6] = {},
++	[7] = {},
++};
++
++static const struct {
++	u16 word;
++	u32 orig;
++	u32 val;
++} sodi_variant_data[] = {
++	[6] = { 0x2b2, 0x20000020, 0x20000200 },
++	[7] = { 0x43d, 0xfe00ffff, 0xfe00f000 },
+ };
+ static uint sodi_variant;
+ module_param(sodi_variant, uint, 0444);
+-MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause, 3: neither, nor stores outside the SPM, 4: infra force-wake only, 5: 26 MHz force-wake only)");
++MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause, 3: neither, nor stores outside the SPM, 4: infra force-wake only, 5: 26 MHz force-wake only, 6: longer wait after the master pause, 7: CPU cluster ports not paused)");
+ 
+ static bool sodi_obs_noread;
+ module_param(sodi_obs_noread, bool, 0444);
+@@ -2259,6 +2274,22 @@ static int spm_load_program(struct device *dev, const char *name, const u8 *sha,
+ 				 w, readl(s.carve + offset + 4 * w), PCM_NOP);
+ 			writel(PCM_NOP, s.carve + offset + 4 * w);
+ 		}
++		if (sodi_variant < ARRAY_SIZE(sodi_variant_data) &&
++		    sodi_variant_data[sodi_variant].word) {
++			u16 w = sodi_variant_data[sodi_variant].word;
++			u32 old = readl(s.carve + offset + 4 * w);
++
++			if (old != sodi_variant_data[sodi_variant].orig) {
++				ret = dev_err_probe(dev, -EINVAL,
++						    "SODI variant %u: word %#x is %08x, not %08x\n",
++						    sodi_variant, w, old,
++						    sodi_variant_data[sodi_variant].orig);
++				goto out;
++			}
++			dev_info(dev, "SODI variant %u: word %#x %08x -> %08x\n", sodi_variant,
++				 w, old, sodi_variant_data[sodi_variant].val);
++			writel(sodi_variant_data[sodi_variant].val, s.carve + offset + 4 * w);
++		}
+ 	}
+ 	/* The SPM fetches the program from DRAM: make the copy visible first */
+ 	wmb();
+-- 
+2.43.0
+
