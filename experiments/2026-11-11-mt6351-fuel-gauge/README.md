@@ -1226,6 +1226,39 @@ paths, as the project's public text requires.
   since it does not.
 - Learning continues from 3.85 Ah. The previous file is backed up privately.
 
+## A false 1 % at boot (image 138, card-32, 2026-11-23)
+
+From the custodian and the all-cores session. Private journals under `artifacts/card-32/`.
+
+| Boot | Cable | Start-up OCV | Table | Battery | Displayed |
+|---|---|---|---|---|---|
+| `c9cc6a85…` 16:13 | out | 3.726 V | 16 % | 26.7 °C | 17 |
+| `8b296753…` 16:15 | out | 3.730 V | 17 % | 26.9 °C | 18 |
+| `5011ed85…` 16:16 | out | 3.727 V | 16 % | 27.3 °C | 17 |
+| `f1247537…` 16:17:42 | in | **3.566 V** | **1 %** | 29.1 °C | **1** |
+| `b5c7bea7…` 16:41 | in, after 23 min charging while off | n/a | n/a | n/a | **35** (4.010 V at +0.72 A) |
+
+- **The first three lost power within about a minute,** through an uncapped CPU gap at boot,
+  since fixed by the all-cores session.
+- **f1247537 powered on seconds after the third cut.** The cell had just been pulled down to
+  the cut-off and had not recovered, so the PMIC's sample was not a rested voltage. The gauge
+  reported what 0796 gave it, and UPower took the 1 % as critical and powered off cleanly at
+  16:18:14.
+- **b5c7bea7 powered on while charging.** The sample carried the charge current's I × R:
+  1 % plus about 300 mAh charged would be about 10 %, not 35.
+
+**Both bad samples came from cable-in power-ons.**
+[0853](../../patches/proposals/0853-power-supply-mt6351-fuel-gauge-skip-the-start-up-OCV.patch)
+uses the start-up sample only when the PMIC's charger detection (`CHR_CON0` `0x0F78` bit 5,
+`RGS_CHRDET`) reads no charger at probe. Otherwise the first reading comes from the counter
+window as before, which the bq's steady charge current keeps close, and the taper and
+finished-charge readings correct it. It logs `charger present: start-up OCV not used`.
+Compiled at W=1 and checkpatch clean; not on a device.
+
+**Not covered:** a cable-out power-on seconds after a cut would still sample low. It was not
+seen, and catching it would need the vendor's saved-SoC approach (a value kept in the RTC
+across power losses). That is a larger change, held until it is seen.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.

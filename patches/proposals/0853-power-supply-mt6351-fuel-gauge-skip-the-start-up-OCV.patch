@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 23 Nov 2026 16:45:25 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: skip the start-up OCV with
+ a charger attached
+
+The start-up OCV is the PMIC's battery sample at power-on, taken before
+the system loads the battery. With a charger attached it is not a rested
+voltage. A power-on while charging samples the charge current's rise and
+read 35 % for a cell at about 10 %. A power-on seconds after a cut under
+load, cable plugged in to recover, sampled a cell still pulled down and
+read 1 %, 15 points under the 16 % of the three boots before. UPower
+then took the 1 % for a critical level and powered the system off.
+
+Use the sample only when the PMIC's charger detection reads no charger
+at probe. Otherwise take the first OCV reading from the counter window,
+as before; on a charger the steady charge current keeps that close, and
+the taper and finished-charge readings correct it.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 3bfcb23..331d175 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -36,6 +36,9 @@
+ #define MT6351_AUXADC_ADC21		0x0e2a
+ #define MT6351_PWRON_RDY		BIT(15)
+ #define MT6351_PWRON_CODE		GENMASK(14, 0)
++/* The PMIC's charger detection, live. */
++#define MT6351_CHR_CON0			0x0f78
++#define MT6351_RGS_CHRDET		BIT(5)
+ #define MT6351_PWRON_MIN_UV		3000000
+ #define MT6351_PWRON_MAX_UV		4450000
+ /* The software read controls in CON0's upper byte; the lower byte is left. */
+@@ -995,13 +998,20 @@ static const enum power_supply_property mt6351_fg_props[] = {
+  * start-up, before the system loaded the battery: as the vendor stack does,
+  * rather than a voltage and a current taken under the boot's changing load.
+  * After a charge, surface charge raises it a few points, which the next rest
+- * or charge corrects. Called once at probe.
++ * or charge corrects. With a charger attached the sample carries the charge
++ * current, or follows a cut under load that the charger was plugged in to
++ * recover from, and reads too high or too low, so it is not used then. Called
++ * once at probe.
+  */
+ static void mt6351_fg_pwron_anchor(struct mt6351_fg *fg)
+ {
+ 	unsigned int val;
+ 	int uv, mc, pct;
+ 
++	if (regmap_read(fg->regmap, MT6351_CHR_CON0, &val) || (val & MT6351_RGS_CHRDET)) {
++		dev_info(fg->dev, "charger present: start-up OCV not used\n");
++		return;
++	}
+ 	if (regmap_read(fg->regmap, MT6351_AUXADC_ADC21, &val) ||
+ 	    !(val & MT6351_PWRON_RDY) || thermal_zone_get_temp(fg->tz, &mc))
+ 		return;
+-- 
+2.54.0 (Apple Git-157)
+
