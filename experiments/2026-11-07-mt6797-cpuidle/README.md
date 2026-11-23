@@ -8778,6 +8778,35 @@ CPU0 free to run at any OPP.
   its own bring-up), and minus bit 25 kept as the explanation unless 2
   and 3 make it trustworthy, and even then provisional.
 
+### The bus-protect reads at rest and at two rates (custodian, 2026-11-23)
+
+**Approved** by the owner in the custodian's session (read only).
+
+**Setup.** Fresh boot 3bc7b33e (14:32:50), cable out, no SPM module
+loaded, panfrost loaded; read at about 30 s of uptime. Policy0 was
+221000-1547000 (schedutil, `cur` 481000) and was restored after.
+
+| Register | At rest | Pinned 221000 kHz (3 reads) | Pinned 1547000 kHz (3 reads) |
+| --- | --- | --- | --- |
+| `PROTECTEN` `0x10001220` | `00a104b8` | — | — |
+| `PROTECTSTA0` `0x10001224` | `effffdff` | `effffdff`, `effffdfe`, `effffdff` | `effffdff` ×3 |
+| `PROTECTSTA1` `0x10001228` | `e0e15cb8` | `e0e15cb8` ×3 | `e0e15cb8` ×3 |
+| `PROTECTEN_1` `0x10001250` | `00000000` | — | — |
+| `PROTECTSTA1_1` `0x10001258` | `00000000` | `00000000` ×3 | `00000000` ×3 |
+
+**Reading.**
+- `PROTECTEN` now holds the modem's bits (`0x000104b8`) plus 21 and 23,
+  the GPU's, and `PROTECTSTA1` shows 21 and 23 as well, against the GPU
+  probe's `0x104b8`/`0xe0415cb8`: the idle GPU is runtime-suspended and
+  protected, as the panfrost glue does. `PROTECTSTA1` acknowledges each
+  requested bit.
+- **No bit differs with CPU0's rate at rest,** bit 25 included: it reads
+  0 in `PROTECTSTA1` at both rates, and 1 in `PROTECTSTA0`, whose only
+  change was bit 0, clear in one read at 221 MHz. So the rate link to
+  bit 25's master does not show while CPU0 is running; if it exists, it
+  shows only once the cluster is in WFI and the master is paused.
+- The second protect register is unused here (0 throughout).
+
 ### Request D5ay (proposed): the floor with stock masks
 
 - **Candidate:** module 17a226f4 (variants off), `d5m.sh` blob 218631f5
