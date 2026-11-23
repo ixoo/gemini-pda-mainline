@@ -9037,6 +9037,40 @@ finding.
   cycle). After a hang the crumbs cannot say whether CPU0 reached the
   firmware; the SPM status read from boot2 is the tool.
 
+### The CPU power-status read (custodian, 2026-11-23)
+
+**Approved** by the owner in the custodian's session (read only). Boot
+a3c38b62, no SPM module loaded; the A72s were not up on this boot
+(`a72-at-boot` off), so the widest set was CPUs 0-7. Three reads each:
+
+| CPUs online | `CPU_PWR_STATUS` (`0x188`) | `_2ND` (`0x18c`) | `CPU_EXT_BUCK_ISO` |
+| --- | --- | --- | --- |
+| 0-7 | `003d8108`, `003d8008`, `003dc008` | `003d81ff`, `003d80ff`, `003dc0ff` | `00000002` |
+| 0-3 | `0039a008`, `00398008`, `00399008` | `0039a0ff`, `003980ff`, `003990ff` | `00000002` |
+| 0 | `00398008` ×3 | `003980ff` ×3 | `00000002` |
+
+**Reading, recorded before the first run:**
+- With CPU0 alone, the first word has bits 3, 15, 16, 19, 20 and 21 set:
+  CPU0 (15), `MP0_CPUSYS` (19) and `MCUSYS` (21) as mapped, and bit 20
+  as inferred for `MP_TOP`. **Bit 18 follows CPUs 4-7** (set with them
+  online, clear with them off): `MP1_CPUSYS` confirmed.
+- **Bits 16 and 3 read set in every state**, CPU0 alone included. They
+  are taken to belong to CPU0's own hierarchy or to always-on logic, not
+  to another core or cluster, and stay outside the must-be-off mask.
+  *Inference.*
+- **The second word's low byte reads `0xff` in every state**, so it is
+  not per-CPU status there; above bit 7 it equals the first word. 0852's
+  check therefore tests bits 6-14, 17 and 18 in the first word and only
+  8-14, 17 and 18 in the second. Against these reads it passes with CPU0
+  alone and refuses both other sets.
+- **Per-CPU bits are not proof of offline:** with CPUs 1-3 online, one
+  read equalled CPU0-alone's, since idle cores read 0 there (presumably
+  powered down in idle retention). The `num_online_cpus()` check covers
+  that.
+- Bit 17 (`MP2_CPUSYS`) never read set, since the A72s were never up; it
+  is unconfirmed live, but `CPU_EXT_BUCK_ISO` bit 1 is set throughout, as
+  the firmware leaves it with MP2 off.
+
 ### Request D6a (proposed): SODI with CPU0 powered down, pinned at 221 MHz
 
 - **Hypothesis:** with CPU0 out of coherency in the firmware's WFI, the
