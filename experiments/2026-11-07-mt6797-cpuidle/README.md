@@ -7885,8 +7885,40 @@ WFI returns without the PCM interrupt.
 
 | Result | Reading | Next |
 | --- | --- | --- |
-| Passes 15 | At a low OPP, the master pause under a still-running CPU0 is the hazard (family B) | Decode the `0x42e` wait; the fix holds CPU0's OPP across a period or orders CPU0's last accesses before the kick |
+| Passes 15 | At a low OPP, the master pause is the hazard: not the entry running early (see the `0x42e` decode below), but the pause itself, catching a master a slow CPU0 still needs or a CPU0 that leaves WFI under it | The kick-to-WFI counter and `loops` at low OPPs; the fix holds CPU0's OPP across a period |
 | Hangs | Not the pause alone: the divider state (family A) or another CPU-side access | D5ar's edge |
+
+**The program session on the `0x42e` wait (2026-11-23).** *Inferred
+from the programs' structure, not observed.*
+- `r14`'s top nibble decomposes into bits: bit 29 alone is a plain delay;
+  bit 28 marks every conditional wait; bit 31 is an enabled wake event
+  (the main wait, `0x9`); bit 30 is AP standby. Bit 30's reading: with
+  flag 0 clear, the path waits with `0x5000aaaa` and goes straight on to
+  cut CPU0's power, whose routine checks nothing about WFI, so that wait
+  is the only guarantee CPU0 is in WFI.
+- `0xd00f0000` is then standby or a wake. The `r12 & 0x2fffe3ff` check
+  right after it (`0x434`) aborts on a wake, which only makes sense if the
+  wait can end on one. So **the entry passes `0x434` only once AP standby
+  holds**, or on a wake. The count (`0xf0000`) is about 38 ms at 26 MHz or
+  30 s at 32 kHz, either far longer than CPU0 needs to reach WFI at
+  221 MHz.
+- Standby here is the WFI AND of the 8 A53 cores enabled in `WFI_EN`,
+  with the cluster-idle and MCUSYS idle signals (`SPM_AP_STANDBY_CON`
+  `0x04080011` masks only MP3).
+- `r12`'s mask includes bit 29, the GIC CPU interface's nIRQOUT/nFIQOUT.
+  The pause at `0x2b0` never polls `R13_TOP_MAS_PAU_ACK` (bit 22); it waits
+  a fixed `0x20`.
+- So family B's "the entry runs while CPU0 is still working" is unlikely.
+  What stays open: CPU0 leaving WFI after the pause (the module's loop
+  reads `SPM_IRQ_STA` after every return), or the pause failing at a low
+  OPP for its own reasons (a master a slow CPU0 still needs, or the
+  unacknowledged delay). D5as reads accordingly.
+- **A read-only split for a hang**, if the SPM is read after the watchdog
+  reset and before Gemian's SPM init (the side key to boot2, as in D5x):
+  `PCM_EVENT_REG_STA` (`0x1000614c`) mirrors the last `r14`: `d00f0000`
+  stuck at the entry wait, `90100000` in the main wait, `2000xxxx` inside
+  a delay. `SW_RSV_0` keeps `sodi_mark`'s `5a5a00xx` only if the program
+  never reached `0x419`.
 
 ### Request D5n (proposed): two states with no resource events
 
