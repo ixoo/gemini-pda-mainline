@@ -8532,7 +8532,8 @@ and each group's masks; two runs per step.
 | Step | Group | `sodi_pause_mask` / `sodi_pause2_mask` | Result |
 | --- | --- | --- | --- |
 | 1 | H | `0` / `0x0000f000` | **Passed**, 6 of 6 periods at 221 MHz (13:20:57, 13:22:18); both words logged as set |
-| 2 | I | `0` / `0xfe000000` | running |
+| 2 | I | `0` / `0xfe000000` | **Passed**, 6 of 6 (13:24:29, 13:26:05) |
+| 3 | C | `0x0ff00000` / `0` | running |
 
 ### Request D5n (proposed): two states with no resource events
 
