@@ -6798,6 +6798,46 @@ alone, Wi-Fi joined, pings throughout window C.
 | Hangs | Bit 15 avoids the hang: the missing 26 MHz and infra force-wake is the cause, most likely an SPM request drop under CONN activity | The two-state setup (D5ac's env) with `D4_KEEP_26M=1`, to the 50-period rule; then bit 15 becomes the module's default and the record's S2 plan carries it |
 | Passes 60 | Today's module no longer hangs on this setup; D5ae says nothing about bit 15 | The two-state setup with and without bit 15, to the 50-period rule each |
 
+**The program session on the arbiter (2026-11-22).**
+- The vendor's SODI flags always include bit 15, so D5ae ran the vendor's
+  configuration; every earlier SODI period here ran a mode the vendor
+  never uses.
+- In CG mode no program handler serves the 26 MHz or infra arbiter events
+  (only APSRC's, EV14 and EV15), so without bit 15 both are left to the
+  SPM's hardware arbiter.
+- Our `SPM_SRC_MASK`, `SPM_SRC2_MASK` and `SPM_SRC_REQ` match the vendor's
+  SODI fields; `SPM_AP_STANDBY_CON` adds the MP3 idle mask.
+- **The likeliest drop is infra.** `SPM_SRC_MASK` lets only the CONN and
+  modem APSRC (DRAM) requests hold the infra channel, not CONN's
+  SRCCLKENA. With Wi-Fi joined but between DRAM accesses, CONN holds
+  26 MHz and drops APSRC, so infra can sleep while CPU0 is in WFI. The
+  26 MHz channel's holders are boot values in `SPM_CLK_CON` bits 16-29,
+  undecoded. *Inference.*
+- The two force-wakes are separate channels and split with one program
+  word each.
+
+0845 adds variants 4 and 5 for that split, with `sodi_keep_26m`: 4 drops
+`0x41f` (26 MHz force-wake; original `a1dd8407`), keeping only infra's;
+5 drops `0x420` (infra; original `a1de8407`), keeping only 26 MHz's.
+Neither word is a branch target or a delay slot. `d4.sh` takes
+`D4_VARIANT=4|5` only with `D4_KEEP_26M=1`.
+
+### Request D5ag (proposed, after D5af hangs): which force-wake avoids the hang
+
+- **Candidate:** a module from a Buildbox build with 0845; D5ae's env with
+  `D4_VARIANT=4` (infra only), then `D4_VARIANT=5` (26 MHz only), one
+  window C of 60 periods each, pings stopped after window C.
+- **Admission:** program variants in RAM, as D5ad; the owner admits them.
+- Runs only if D5af hangs; if D5af passes, D5ae's reading is void and the
+  two-state comparison comes first.
+
+| Variant 4 (infra only) | Variant 5 (26 MHz only) | Reading |
+| --- | --- | --- |
+| Passes | Hangs | The infra channel drops with CONN active: the inferred path |
+| Hangs | Passes | The 26 MHz channel drops; decode `SPM_CLK_CON`'s holders |
+| Passes | Passes | Either force is enough |
+| Hangs | Hangs | Both are needed |
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)

@@ -1001,3 +1001,4 @@ proposals/0841-soc-mediatek-mt6797-spm-sleep-optionally-print-a-lin.patch
 proposals/0842-soc-mediatek-mt6797-spm-sleep-optionally-load-a-SODI.patch
 proposals/0843-soc-mediatek-mt6797-spm-sleep-optionally-keep-26-MHz.patch
 proposals/0844-soc-mediatek-mt6797-spm-sleep-add-a-SODI-test-varian.patch
+proposals/0845-soc-mediatek-mt6797-spm-sleep-add-SODI-variants-spli.patch

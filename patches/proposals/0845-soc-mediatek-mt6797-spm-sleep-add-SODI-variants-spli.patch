@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 22 Nov 2026 19:21:44 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: add SODI variants splitting
+ the force-wakes
+
+With sodi_keep_26m set, pcm_sodi raises two force-wake requests at entry:
+26 MHz at 0x41f and infra at 0x420. Variant 4 drops the first, keeping
+only infra's; variant 5 drops the second, keeping only 26 MHz's.
+Neither word is a branch target or a delay slot.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 6635cf85e..616a83378 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -360,6 +360,8 @@ static u32 sodi_crumb_n;
+  * 3 drops both and the three-word stores outside the SPM: the I2C_APPM
+  * clock ungate at 0x40a, the I2C6 soft reset at 0x40d and the gate at
+  * 0x511, so the program only sets its timer, waits and exits (D5ae).
++ * With sodi_keep_26m, 4 drops the 26 MHz force-wake at 0x41f, keeping only
++ * infra's, and 5 drops infra's at 0x420, keeping only 26 MHz's.
+  */
+ #define PCM_NOP			0x17c07c1f
+ static const u16 sodi_variant_words[][12] = {
+@@ -367,10 +369,12 @@ static const u16 sodi_variant_words[][12] = {
+ 	[2] = { 0x43e },
+ 	[3] = { 0x43e, 0x472, 0x4f5, 0x40a, 0x40b, 0x40c, 0x40d, 0x40e, 0x40f,
+ 		0x511, 0x512, 0x513 },
++	[4] = { 0x41f },
++	[5] = { 0x420 },
+ };
+ static uint sodi_variant;
+ module_param(sodi_variant, uint, 0444);
+-MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause, 3: neither, nor stores outside the SPM)");
++MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause, 3: neither, nor stores outside the SPM, 4: infra force-wake only, 5: 26 MHz force-wake only)");
+ 
+ static bool sodi_obs_noread;
+ module_param(sodi_obs_noread, bool, 0444);
+-- 
+2.43.0
+

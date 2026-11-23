@@ -49,7 +49,8 @@
 # by the RAM console through a reset (0841, D5ac). It needs D4_MASK_PPI=1.
 # D4_VARIANT=N sets sodi_variant: the program is loaded with test patches in
 # RAM (1: no clock cut, 2: no master pause; 0842, D5ad; 3: neither, nor
-# the I2C6 clock and reset stores; 0844, D5ae).
+# the I2C6 clock and reset stores; 0844, D5ae; with D4_KEEP_26M=1, 4: infra
+# force-wake only, 5: 26 MHz force-wake only; 0845, D5ag).
 # D4_KEEP_26M=1 sets sodi_keep_26m: SW_FLAG bit 15 as in the vendor's SODI
 # flags, so 26 MHz and infra stay forced awake in the period (0843, D5ae).
 # D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
@@ -395,7 +396,12 @@ case ${D4_VARIANT:-0} in
 	grep -q 'nor stores outside the SPM' "$KO" || stop "the module has no SODI variant 3 (0844)"
 	level="$level sodi_variant=3"
 	;;
-*) stop "D4_VARIANT must be 1, 2 or 3" ;;
+4 | 5)
+	grep -q 'infra force-wake only' "$KO" || stop "the module has no SODI variants 4 and 5 (0845)"
+	[ "${D4_KEEP_26M:-0}" = 1 ] || stop "D4_VARIANT=$D4_VARIANT needs D4_KEEP_26M=1"
+	level="$level sodi_variant=$D4_VARIANT"
+	;;
+*) stop "D4_VARIANT must be 1 to 5" ;;
 esac
 if [ "${D4_SMI_ASYNC:-0}" = 1 ]; then
 	grep -q 'sodi_smi_async' "$KO" || stop "the module has no sodi_smi_async parameter (0838)"
