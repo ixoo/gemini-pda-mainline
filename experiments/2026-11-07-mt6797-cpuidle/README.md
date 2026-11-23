@@ -8298,6 +8298,29 @@ Started 11:26:57.
 | Passes | The pause completes late at a low OPP: the fixed wait is too short | Variant 6 on the two-state setup unpinned, to the 50-period rule, as the fix candidate |
 | Hangs | The pause held across the period breaks at a low OPP, whichever masters it selects | Split `MAS_PAUSE_MASK_B`, or fall back to the hold (0846) |
 
+**The reviewer on variant 2 and the next splits (2026-11-23).**
+- Variant 2 is "no pause request" plus one side effect: `r7` bit 2 is set
+  only at `0x2b0`, called only from `0x43e`, cleared only at `0x519`, and
+  its acknowledgement is never read. Removing the call also removes the
+  `0x20`-cycle wait inside `0x2b0`. Variants 2 and 6 bracket that wait. A
+  variant that no-ops only `0x2b0` would drop the request alone.
+- If variant 6 hangs, use the shipped programs' values before bisecting
+  unnamed bits. `MAS_PAUSE_MASK_B` at entry: SODI `0x6ff00b01`, deep idle
+  and suspend `0x6ff00b07` (SODI's own handlers write `0x6ff00b07` too);
+  `PAUSE2`: SODI `0xfe00ffff`, the others `0xfe00f000`. So:
+  1. **the deep-idle pair**, `0x43a` `0x6ff00b07` with `0x43d`
+     `0xfe00f000`, the combination two shipped programs use;
+  2. **the polarity pair**, request kept, both mask words `0xffffffff`,
+     then both `0x00000000`: with "a clear bit leaves the master out",
+     all-zero should pass like variant 2 and all-ones hang.
+  Each hang costs a boot; stop there if neither opens a path.
+- **Otherwise accept the hold.** It is tested on both reproducers (15 of
+  15 and 227 periods), its cost is known, and the PSCI power-down entry,
+  the end state anyway, takes CPU0 out of the paused cluster. It needs
+  the idle-path half (refuse SODI below the floor) and the owner's
+  decision between a standing floor and rare entry.
+- These variants are written only once variant 6 has hung.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
