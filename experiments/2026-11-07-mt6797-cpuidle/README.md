@@ -7009,6 +7009,41 @@ the holder after the run.
 | Passes 50 | Menu's tick handling between periods leads to the hang, not the registration as such. One state also retains the tick after Wi-Fi wakes, so the factor is narrower: menu's retained-tick choices, or its `tick_nohz_get_sleep_length()` calls | Look at what the entry inherits (the pending CNTP event, the time since the last wake); a two-state run with the tick forced on would separate the two |
 | Hangs | The governor's tick decision is not it | D5ad variants 2 and 3 on the two-state setup |
 
+**The program session on what follows the kick (2026-11-22).**
+- **No sticky CONN2AP.** With bit 0 set, the program checks for a pending
+  wake once, at `0x434`. After the wait (`0x49b`-`0x4aa`), `0x4ad` tests
+  `r12` bit 10, the SCP-to-SPM interrupt. Every other wake, CONN2AP
+  included, exits after one pass.
+- **An SCP wake loops the program.** Bit 10 is in the default wake set
+  (`0x0f57c5f5` includes `0x400`), which D5ac and D5ah used; `d5m.sh`'s
+  `sodi_wake_src=0` excludes it. When `SPM_SW_RSV_3` (`0x10006614`) has
+  a zero upper half, which is the mainline value unless something writes
+  it, the program runs the SCP DVFS handshake (`0x4c4`-`0x4e2`):
+  - it stores 0 to `0x100a0020`, in the SCP block (`0x4d9`; `0x4bc` on the
+    other branch);
+  - it sets bit 3 in `SW_RSV_3`;
+  - it re-arms and waits again, so the period does not end.
+
+  An unclocked SCP block could stall the bus on that store, and an SCP
+  line left asserted would loop the program without SW_INT. *Inference;*
+  D5c and D5d passed with the same wake set and no driver, so this fits
+  only if two states make SCP wakes likelier. Its signature can be
+  checked: `SW_RSV_3` bit 3 after clean periods shows the path has run,
+  and any returned period with `r12` bit 10 set would show an SCP wake.
+- **A wake pending at entry** takes the normal exit within microseconds of
+  the kick. Checked in the module: the period runs with IRQs masked at
+  the CPU (no pseudo-NMI in this build), `spm_gic_mask()` keeps the SPM's
+  SPI enabled, and the loop tests `SPM_IRQ_STA` after every `wfi`. So a
+  return that comes before the masking stays pending and ends the first
+  `wfi` at once. This is not a race in the module. With `D4_MASK_PPI=1`
+  the GICR mask also disables CNTP's PPI, so the backstop cannot wake
+  `wfi`; only the SPM's SPI can.
+- **Added to D5ai, read-only:** `SW_RSV_3` read before `d4.sh` and after
+  the run (if it survives), and the retained `d4` logs searched for any
+  returned period with `r12` bit 10. If bit 10 or bit 3 shows, the next
+  run is D5ah's setup with `D4_WAKE=0x0f57c1e5` (the default minus SCP),
+  ahead of variants 2 and 3.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
