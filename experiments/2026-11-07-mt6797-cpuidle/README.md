@@ -8070,10 +8070,47 @@ Compile-checked with `W=1`, with and without `CONFIG_CPU_FREQ` and
 `CONFIG_CPU_IDLE`; checkpatch `--strict` is quiet. One Buildbox build
 carries 0846 and 0847.
 
+**The reviewer on 0847 (2026-11-23).** Both words are right: `0x2b2` is
+the data word of the two-word `r14` load at `0x2b1`, and `0x43d` the data
+word of the three-word store to `MAS_PAUSE2_MASK_B` at `0x43b`. Two
+cautions:
+- *Polarity:* "a cleared bit leaves that master out" is the coherent
+  reading (the power-down routine clears the low bits as it takes cores
+  down, and a powered-off core cannot acknowledge), not a proven one. A
+  pass of 7 confirms it; a hang of 7 does not clear the cluster ports
+  before 6 has run.
+- *The vendor comparison:* the vendor's own SODI also pauses with
+  `0xfe00ffff` while the cluster is still powered; the stepping comes
+  later, in the power-down routine. What differs is how CPU0 got there
+  (the firmware's suspend path, against a retained core in WFI here).
+  The stronger precedent for 7 is deep idle and suspend, which never
+  pause those ports.
+- The program's first handler also stores `0xfe00ffff` (`0x015`,
+  `0x108`); with flag 13 those handlers do not run, so `0x43b` is the
+  only store before the pause. A run with the vectors enabled would need
+  those words too.
+- No mechanism gives a gradual dependence once `0x42e` is an exact
+  standby gate. There are about fifteen instructions from the kick to
+  that wait; if the gate were not exact, the race would be CPU0's work
+  after the kick against the program reaching `0x43e`, the one reading
+  that predicts this shape. A pass of 7 would still not explain why the
+  paused ports only matter at lower rates.
+
+**Kick to first WFI (0848).**
+[`0848`](../../patches/proposals/0848-soc-mediatek-mt6797-spm-sleep-log-the-time-from-the-.patch)
+(module only) reads the arch counter at the PCM kick write and just
+before CPU0's first WFI and logs `<what>: kick to first WFI N ns` after
+each returned period. In between CPU0 programs SYS_CIRQ, the GIC masks,
+the backstop timer and, with `sodi_acinactm_late`, the cluster ACINACTM
+writes. Compared at 1547 and 221 MHz against the program's few
+instructions to `0x42e`, it says whether the standby gate can be
+outrun. Compile-checked as 0846; checkpatch `--strict` is quiet. The
+build for D5at should be of the commit recording 0848, carrying 0846-0848.
+
 ### Request D5at (proposed): variant 7 at 221 MHz, then variant 6
 
-- **Candidate:** a module from a Buildbox build of the commit recording
-  this stage (0846 and 0847), fresh station boot, `d5m.sh` blob 218631f5
+- **Candidate:** a module from a Buildbox build carrying 0846-0848,
+  fresh station boot, `d5m.sh` blob 218631f5
   with D5ao step 3's command plus `D5M_PIN_KHZ=221000` and
   `sodi_variant=7` in `D5M_ARGS`. The insmod log must show `SODI variant
   7: word 0x43d fe00ffff -> fe00f000`. Five runs, with rmmod and 30 s

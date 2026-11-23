@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 23 Nov 2026 10:37:07 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: log the time from the PCM
+ kick to CPU0's first WFI
+
+The program waits at entry for AP standby, the WFI of every enabled A53
+core, before it pauses the bus masters. After the kick CPU0 still
+programs SYS_CIRQ, the GIC masks, the backstop timer and ACINACTM before
+its first WFI. Read the arch counter at the kick write and just before
+that WFI, and log the difference after each period, so the time CPU0
+takes to reach standby can be compared across operating points.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 4a93ce799..d91d43a34 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -528,6 +528,7 @@ struct spm_wake {
+ 	u32 rd_en, rd_pend;	/* CPU0's SGIs and PPIs at entry */
+ 	u64 isr_el1;		/* at entry */
+ 	u64 cnt_kick, cnt_return;	/* arch counter around the wait */
++	u64 cnt_pcm_kick, cnt_wfi;	/* at the PCM kick write, before the first WFI */
+ 	u32 cg_before[3], cg_after[3], clk_cfg0_before, clk_cfg0_after;
+ 	bool returned;
+ };
+@@ -1335,6 +1336,7 @@ static int spm_run(const struct spm_scen *sc)
+ 	con0 = spm_rd(PCM_CON0) & ~(IM_KICK_L | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN);
++	s.wake.cnt_pcm_kick = __arch_counter_get_cntvct();
+ 
+ 	/*
+ 	 * The vendor masks every GIC interrupt but the SPM's before its suspend
+@@ -1384,6 +1386,7 @@ static int spm_run(const struct spm_scen *sc)
+ 		if (mp2)
+ 			writel(axi[2] | ACINACTM | BIT(0), s.mcucfg + MP2_AXI_CONFIG);
+ 	}
++	s.wake.cnt_wfi = __arch_counter_get_cntvct();
+ 	for (i = 0; i < 1000000; i++) {
+ 		/* Complete every register write before the SPM sees CPU0 in WFI */
+ 		dsb(sy);
+@@ -1678,6 +1681,9 @@ static void spm_log_wake(const char *what)
+ 		 s.wake.assert_pc);
+ 	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x\n", what, s.dummy1,
+ 		 spm_rd(SPM_PASR_DPD_0));
++	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns\n", what,
++		 mul_u64_u64_div_u64(s.wake.cnt_wfi - s.wake.cnt_pcm_kick, NSEC_PER_SEC,
++				     arch_timer_get_cntfrq()));
+ 	dev_info(&s.pdev->dev, "%s: im fsm %08x>%08x after %u us, reused=%d stuck=%d\n",
+ 		 what, s.wake.im_fsm0, s.wake.im_fsm1, s.wake.im_us,
+ 		 s.wake.im_reused, s.wake.im_stuck);
+-- 
+2.43.0
+
