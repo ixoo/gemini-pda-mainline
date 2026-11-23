@@ -7442,6 +7442,17 @@ the defaults are recorded even without the options.
 | Passes | One of the two setup steps prevents the no-driver hang | Split: `D5M_USB_AUTO=1` alone, then the reviewer reads what a powered SSUSB holds in the period (its clocks and bus requests against `SPM_SRC_MASK`) |
 | Hangs | Not the setup | The pings: window C's inbound traffic before and during period 1 |
 
+**D5af's log on the USB step (custodian, 2026-11-23).** D5af's `d4.log`
+reads `gadget power/control auto (was auto), runtime suspended`, and D5ae
+and D5ah read the same: the boot already leaves `auto`, and the
+controller was suspended before insmod. `d5m.sh` waits for the blank, up
+to 300 s, after SSH ends, so its runs very likely had MTU3 suspended too.
+*Inference:* the USB step is probably not a difference. No saved `d4.log`
+records `mt6797-gate-unused`, since `d4.sh` loads it without a log line.
+The boot read decides: if the module is loaded at boot, D5am is moot and
+the pings remain; if it is absent, D5am runs with `D5M_GATE_UNUSED=1`
+(keeping `D5M_USB_AUTO=1` costs nothing).
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
