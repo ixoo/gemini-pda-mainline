@@ -8376,6 +8376,18 @@ Compile-checked with `W=1`, with and without `CONFIG_CPU_FREQ` and
 | Hangs | Hangs | — | The request itself breaks, whatever the masks; accept the hold (0846) |
 | Hangs | Passes | Passes | The polarity reading is wrong or the masks are not master selects; stop and reread |
 
+**The reviewer on 0849 (2026-11-23).** The words and values are right;
+variant 8's pair matches deep idle's and suspend's entry stores. The new
+loops sit inside the existing bound check on `sodi_variant` (an
+out-of-range value fails the load first), and the `BUILD_BUG_ON` ties the
+two tables' sizes. On reading 9 and 10: all ones is the registers'
+resting value (the module and the vendor's init write it before each
+kick), and SODI's entry narrows it, so whichever of the two means "every
+master" may pause something the shipped values leave out; a hang of one
+alone says little. Only the pair informs: exactly one passing gives the
+polarity and allows a bisection; both hanging means the masks do not gate
+what breaks, and the splitting stops at the hold.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
