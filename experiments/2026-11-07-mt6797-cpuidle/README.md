@@ -8534,7 +8534,8 @@ and each group's masks; two runs per step.
 | 1 | H | `0` / `0x0000f000` | **Passed**, 6 of 6 periods at 221 MHz (13:20:57, 13:22:18); both words logged as set |
 | 2 | I | `0` / `0xfe000000` | **Passed**, 6 of 6 (13:24:29, 13:26:05) |
 | 3 | C | `0x0ff00000` / `0` | **Hung**, run 1 period 1: words logged `0ff00000`/`00000000` at 1530.614 s, CPU7-1 killed by 1532.023 s, `kick` at 1534.505 s and nothing after; Gemian (boot 69575400) at 13:29:19. RAM console (29668 B) kept privately |
-| 4 | C, bits 20-23 | `0x00f00000` / `0` | next boot |
+| 4 | C, bits 20-23 | `0x00f00000` / `0` | **Passed**, 6 of 6 on fresh boot 8cac7635 (13:36:47, 13:38:06): the GPU pair (21, 23) and bits 20 and 22 alone do not hang |
+| 5 | C, bits 24-27 | `0x0f000000` / `0` | running; must hang to confirm |
 
 - **Group C holds the culprit:** with only its eight bits paused, the
   first period at 221 MHz hung, as SODI's full selection does. Groups H
