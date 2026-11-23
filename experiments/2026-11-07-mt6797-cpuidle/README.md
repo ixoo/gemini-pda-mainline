@@ -6826,6 +6826,11 @@ periods, against 58 in D5ae.
     (D5t), level-triggered SYS_CIRQ, 0839's PPI mask, ACINACTM only around
     WFI, MP2 left alone, the MMSYS gates closed and the stage lines.
     `SODI_NO_EVENT` is not among them: D5m's no-event run hung with it.
+- The reviewer sees no length-dependent path in the program: entry and
+  exit are the same for any timer value, and only the wait at `0x498`
+  lasts longer. The hang rates fit a hazard per entry or exit, or one tied
+  to what came just before the entry, more than one growing with time in
+  the wait.
 - The two-state setup still hangs with every one of those module changes
   (D5ab, D5ac, D5ad variant 1), so it is now the only live reproducer.
   Its control without bit 15 already exists: D5ac's env hung in period 9
@@ -6848,7 +6853,7 @@ periods, against 58 in D5ae.
 | Result | Reading | Next |
 | --- | --- | --- |
 | Passes 50 | Bit 15 avoids the hang in the two-state setup | Make bit 15 the module's default; then the split (variants 4 and 5) if worth knowing, and a longer idle soak |
-| Hangs | Not bit 15 | The 200 ms timer-only setup with today's module (a `d4.sh` period-length option), to see whether short periods revive the fast reproducer; D5ad variants 2 and 3 on whichever setup hangs |
+| Hangs | Not bit 15 | `d5m.sh` unchanged on today's module with `D5M_RESET=0` (no deliberate reset), up to three runs of its three 200 ms periods, no new code. If it hangs, the fast reproducer is back: split the short gap, the early start and the length, in that order. Then D5ad variants 2 and 3 on whichever setup hangs |
 
 **The program session on the arbiter (2026-11-22).**
 - The vendor's SODI flags always include bit 15, so D5ae ran the vendor's
