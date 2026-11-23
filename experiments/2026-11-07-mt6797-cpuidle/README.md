@@ -8535,7 +8535,16 @@ and each group's masks; two runs per step.
 | 2 | I | `0` / `0xfe000000` | **Passed**, 6 of 6 (13:24:29, 13:26:05) |
 | 3 | C | `0x0ff00000` / `0` | **Hung**, run 1 period 1: words logged `0ff00000`/`00000000` at 1530.614 s, CPU7-1 killed by 1532.023 s, `kick` at 1534.505 s and nothing after; Gemian (boot 69575400) at 13:29:19. RAM console (29668 B) kept privately |
 | 4 | C, bits 20-23 | `0x00f00000` / `0` | **Passed**, 6 of 6 on fresh boot 8cac7635 (13:36:47, 13:38:06): the GPU pair (21, 23) and bits 20 and 22 alone do not hang |
-| 5 | C, bits 24-27 | `0x0f000000` / `0` | running; must hang to confirm |
+| 5 | C, bits 24-27 | `0x0f000000` / `0` | **Hung**, run 1 period 1, same boot after step 4: words logged `0f000000`/`00000000` at 353.748 s, CPU7-1 killed by 354.965 s, `kick` at 357.354 s and nothing after; Gemian (boot 85c7fa18) at 13:41:11. RAM console (15854 B) kept privately |
+| 6 | bits 24-25 | `0x03000000` / `0` | next boot; if it hangs, 24 then 25 alone; if it passes, `0x0c000000` must hang, then 26 and 27 |
+
+- **The culprit is in bits 24-27** of `MAS_PAUSE_MASK_B`. No source names
+  them (program session: none of the vendor's CPU DVFS, hotplug or SPM
+  CPU code writes them). All four read active, not idle, in
+  `PROTECTSTA1` at the GPU probe. *Inference (program session):* with the
+  GPU, display and modem cleared and the hang tied to CPU0's clock, they
+  may be MCUSYS-side ports into infra (cluster or CCI paths) or
+  peripheral DMA paths.
 
 - **Group C holds the culprit:** with only its eight bits paused, the
   first period at 221 MHz hung, as SODI's full selection does. Groups H
