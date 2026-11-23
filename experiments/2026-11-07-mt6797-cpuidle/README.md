@@ -8616,6 +8616,29 @@ layout (2026-11-23).** *Inference from matching groups.*
   run with the GPU module loaded and idle, against not loaded, each with
   the bus-protect bits read first.
 
+**The GPU on every boot (custodian, from saved journals).** On all eight
+boots checked (1d3a0381, 58210a12, ccca15a4, fcebb465, 63da1a49,
+bf0be86d, 02e267c5, 6b302727), the panfrost module and the MFG clocks
+load at boot with identical lines, timestamps aside, passing and hanging
+boots alike. So the GPU module's presence does not separate them. The
+journal has no runtime-PM lines; whether MFG was suspended at a kick
+would need a sysfs read, not yet approved.
+
+The panfrost glue prints, at probe, `protect 0x104b8/0xe0415cb8`: the
+values of `INFRA_TOPAXI_PROTECTEN` and `PROTECTSTA1` before it asserts
+its own protection. Decoded:
+- `PROTECTEN` `0x000104b8` = bits 3, 4, 5, 7, 10 and 16, **exactly the
+  vendor's MD1 mask and group F**: the modem is off and protected. This
+  is direct support for the program session's reading that the pause mask
+  and the bus-protect register share one layout. No bit of group C is
+  enabled at that point.
+- `PROTECTSTA1` `0xe0415cb8` = bits 3, 4, 5, 7, 10, 11, 12, 14, 16, 22,
+  29, 30 and 31: of group C only bit 22 reads acknowledged, without its
+  enable; 21 and 23 (the GPU's) do not.
+- After probe panfrost protects 21 and 23 whenever the GPU
+  runtime-suspends (50 ms autosuspend), so at an idle period they are most
+  likely protected on every boot.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
