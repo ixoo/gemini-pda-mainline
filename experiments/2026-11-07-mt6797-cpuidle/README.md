@@ -7762,7 +7762,7 @@ runs. Runs at 09:45:46, 09:46:58, 09:48:34, 09:50:11 and 09:51:46.
 
 **Result.**
 - **Pass. CPU0's operating point at the kick decides the no-driver
-  hang.** The same command hung at its first or second kick in four runs
+  hang.** The same command hung at its first or second kick in five runs
   in a row (D5m redo run 2, D5aj, D5ak, D5al, and D5ao step 3) and ran
   clean when pinned at the top OPP.
 - That explains D5af and D5ao step 1: 303 of 323 clean `d4.sh` periods
