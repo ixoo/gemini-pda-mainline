@@ -34,6 +34,7 @@
 # sodi_mm_cg after the blank, as d4.sh's D4_MM.
 # D5M_SETTLE=N waits N seconds after the CPUs go offline before period 1
 # (stage D5ak); the default 0 keeps the start about 1 s after.
+# D5M_MS=N runs N ms periods instead of 200 (stage D5al).
 set -u
 
 KO=${1:-}
@@ -135,6 +136,10 @@ case ${D5M_SETTLE:-0} in
 	sleep "$D5M_SETTLE"
 	;;
 esac
+case ${D5M_MS:-200} in
+'' | 0 | *[!0-9]*) stop "D5M_MS must be a whole number of ms, at least 1" ;;
+esac
+log "periods of ${D5M_MS:-200} ms"
 
 # Three periods; each must return, or this is not the passing setup.
 n=0
@@ -146,7 +151,7 @@ while [ "$n" -lt 3 ]; do
 	# does not refuse the period on MSDC (as in D5h).
 	log "    period $((n + 1)), try $tries"
 	sleep 1
-	echo 200 >"$SODI" 2>/dev/null || continue
+	echo "${D5M_MS:-200}" >"$SODI" 2>/dev/null || continue
 	n=$((n + 1))
 	dmesg | grep 'sodi cg: returned' | tail -n 1 | sed 's/.*sodi cg: /    /'
 	sync
