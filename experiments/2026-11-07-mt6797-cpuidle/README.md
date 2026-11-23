@@ -8870,6 +8870,33 @@ confirms its pin at 1274000 kHz before period 1.
 - *For the decision:* a hold would sit at or near the top OPP for every
   period.
 
+**The reviewer's recommendation after D5ay (2026-11-23).**
+- **The hold is withdrawn as a fix.** A graded hazard has no safe floor,
+  only a rate: 0 hangs in about 545 periods at 1547 MHz bounds the rate
+  near 0.5 % per period (95 % confidence), and the trend says it falls
+  without reaching zero. An idle state entered thousands of times an hour
+  would still reboot within hours or days, and the hold would cost the
+  top OPP on every entry. It stays a test convenience; its idle-path half
+  is not drafted.
+- **No interim is needed:** the SODI idle state is off by default and no
+  user path enters it.
+- **Minus bit 25** becomes the better tool for experiments if D5ax
+  passes, since it does not depend on the rate; it is still not a fix,
+  and the graded result fits a master that is sometimes mid-activity at
+  the pause.
+- **Recommendation:** stop refining the legacy entry and build the PSCI
+  power-down entry: flag 0 clear, CPU0 through `CPU_SUSPEND`, flag 15
+  set as the vendor has it, bits 3, 4, 5 and 9 kept at first so no rail
+  moves; test it first pinned at 221 MHz, where the legacy entry fails at
+  the first kick. 1443 and 1495 MHz are then not worth their boots.
+- About 15 µs of the kick-to-WFI window does not scale with the CPU
+  clock (bus register access, most likely); it does not change the
+  conclusion.
+- *The one reading still worth a boot on the legacy path:* `R13` bit 22
+  from a second CPU on a returning and a hanging period at 1339 MHz,
+  which would say whether PSCI removes the cause or only the symptom.
+  That needs the retired observer.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
