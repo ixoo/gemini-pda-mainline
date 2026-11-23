@@ -8940,6 +8940,35 @@ coherency and in the firmware's WFI before the pause.
   `CONFIG_CPU_IDLE` (without `CONFIG_CPU_IDLE` the PSCI call compiles out
   and returns `-EOPNOTSUPP`); checkpatch `--strict` is quiet.
 
+**The program session on the flag-0-clear path (2026-11-23),** with
+D6a's `SPM_SW_FLAG` `0x0009b238`. It needs no flag we do not set.
+- **Entry:** `0x427` waits for AP standby alone (`0x5000aaaa`, no wake
+  escape), then the pause masks and the master pause (`0x438`-`0x43e`)
+  as before: **the pause still precedes the power-down.** `0x445`
+  clears `R7_CSYSPWRUPACK`. `0x5bb`-`0x610` power off `MP0_CPU0`,
+  `MP0_CPUSYS` (stepping `PAUSE2` `f00f` > `f0ff` > `f7ff` > `ffff`),
+  `MP_TOP` SRAM and `MCUSYS`, and set `CPU_EXT_BUCK_ISO` to 3; the polls
+  have no timeout and no step checks CPU state. `0x44a` is this path's
+  wake abort, which powers back up without a clock restore. Flag 9 skips
+  the I2C6 buck write; then the clock cut and the main wait.
+- **Exit:** the clock restore, then `0x318` powers `MCUSYS`, `MP_TOP`
+  SRAM, `MP0_CPUSYS` (stepping `PAUSE2` back to `fe00f000`) and
+  `MP0_CPU0` on, reset last, sets `CPU_EXT_BUCK_ISO` to 2, releases the
+  pause and raises `SW_INT`. CPU0 restarts into the firmware's warm boot.
+- **What must already hold:**
+  - CPU1-3, the whole MP1 cluster and MP2 fully powered off, cluster
+    `CPUSYS` included, since `MCUSYS` going off cuts everything below it.
+  - The standby AND over the eight `WFI_EN` cores; powered-off cores
+    satisfied it in every returned period so far. If it never holds, the
+    program waits at `0x5000aaaa` for ever.
+  - `CPU_EXT_BUCK_ISO` bit 1 stays set after each period; the A72
+    module's bring-up already clears bits 1:0 before CPU8 returns
+    ([cluster page](../../docs/hardware/mt6797-cpu-clusters.md#33-a72-external-preparation-and-mp2-control)).
+- **Bit 25:** the PSCI path protects only if that master's stuck traffic
+  originates in the cluster, which the firmware's flush and CCI exit
+  remove; unproven. Test with the stock masks first; SODI's masks minus
+  bit 25 stay as the fallback.
+
 ### Request D6a (proposed): SODI with CPU0 powered down, pinned at 221 MHz
 
 - **Hypothesis:** with CPU0 out of coherency in the firmware's WFI, the
