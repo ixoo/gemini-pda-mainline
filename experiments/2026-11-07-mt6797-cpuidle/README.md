@@ -8993,6 +8993,50 @@ D6a's `SPM_SW_FLAG` `0x0009b238`. It needs no flag we do not set.
   offline (read only). It confirms bits 18 and 20 and the CPU6/7 case,
   and `CPU_EXT_BUCK_ISO` bit 1 should read set once the A72s are off.
 
+**The reviewer on 0851 and 0852 (2026-11-23),** against the firmware
+disassembly, the vendor's entry and the saved boot logs. No blocking
+finding.
+- Every saved boot reports PSCI 0.2, so `0x01010000` takes the
+  `cpu_suspend()` branch with the context save; the vendor's DT and SODI
+  use the same value.
+- For this state the firmware clears CPU0's retention, sets the warm
+  entry, deactivates the GIC CPU interface, takes the cluster out of CCI,
+  **sets `ACINACTM` for MP0 itself**, lets the L2 reset, backs up the
+  timer and saves the GIC distributor and redistributor. So skipping the
+  module's `ACINACTM` writes and leaving GIC state to the firmware are
+  right; after resume the vendor re-initialises only the GIC CPU
+  interface, timer and debug registers, as mainline's `CPU_PM_EXIT`
+  notifiers do.
+- `cpu_pm_enter`/`exit` is enough (no cluster notifier is needed); the
+  GIC masks are harmless, since the program, not the GIC, powers CPU0
+  back on and the firmware restores the masked state, which
+  `spm_gic_restore()` then undoes; the debugfs task's context is
+  acceptable, as system suspend does the same (at most one cosmetic WARN
+  with `CONFIG_RCU_EQS_DEBUG`), provided `sc->idle` stays false here and no
+  RCU read lock is held.
+- **Two changes, made in 0852:** a powered-down period needs CPU0 to be
+  the only online CPU (the observer's CPU8 included; D6a runs without
+  `sodi_obs`); and the return flag is polled for up to 5 ms after the
+  warm boot, since the program raises its interrupt last.
+- **One invariant, now commented in 0852:** after a failed power-down the
+  kicked program still waits for CPU0's standby with flag 0 clear, so
+  CPU0 must take no WFI before `spm_restore()` stops the PCM, or the
+  program would power it off without the firmware.
+- This firmware's `psci_power_down_wfi` is `wfi; b .`: a WFI that falls
+  through leaves CPU0 spinning in EL3, so there is no abort return on this
+  chip, one candidate if D6a hangs after the `kick` crumb. The CNTP
+  backstop cannot fire with CPU0 off.
+- **What D6a runs for the first time:** the program's CPU power-down and
+  power-up routines under this module, and CPU0 through the firmware's
+  warm entry on mainline. The flag word still differs from the vendor's
+  in bits 3, 4, 5, 9, 13, 18 and 19; it stays as planned for the first
+  run.
+- **Reading a pass:** five clean runs at 221 MHz with `cpu pdn 1 ret 0`
+  and a sane wake line, then the tick running, interrupts counting and
+  CPU1 coming back online (MCUSYS and the CCI after a cluster power
+  cycle). After a hang the crumbs cannot say whether CPU0 reached the
+  firmware; the SPM status read from boot2 is the tool.
+
 ### Request D6a (proposed): SODI with CPU0 powered down, pinned at 221 MHz
 
 - **Hypothesis:** with CPU0 out of coherency in the firmware's WFI, the
