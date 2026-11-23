@@ -7084,8 +7084,14 @@ parameter at its default. Wi-Fi modules loaded, cable out.
 - **Run 2:** started 21:41:43. The station was silent from 21:43:41, and
   Gemian (boot 095ab31a) booted at about 21:43:39, with no clip.
 - The RAM console holds nothing from the run (286 B, boot lines only):
-  the console log level was not raised for `d5m.sh`. The hung period
-  comes from `d5m.log` on the next station boot.
+  the console log level was not raised for `d5m.sh`.
+- **`d5m.log` places the hang in period 1.** Insmod 21:42:13 (CONSYS and
+  WLAN core loaded), blank 21:42:38, `online: 0`, then `period 1, try 1`
+  at 21:42:38 and nothing more. The previous boot's journal ends in the
+  same second with the PSCI lines for CPUs 1-4 being killed. In both runs
+  period 1 started about 1 s after the CPUs went offline. The blank came
+  24 s after insmod in run 2, against 82 s in run 1.
+- New boot 02f760b3; the latches after Gemian were cleared as before.
 
 **Result.**
 - **The no-driver, timer-only hang still exists on today's module**, as in
@@ -7103,6 +7109,10 @@ parameter at its default. Wi-Fi modules loaded, cable out.
   question.
 - D5ai (the governor held at state 0) is deferred: its premise, that the
   hang needs the cpuidle driver, no longer holds on its own.
+- *Inference:* a period that starts while the PSCI CPU power-downs are
+  settling is a candidate. `d4.sh` waits 5 s after the CPUs go offline,
+  and D5af never hung. D5aj keeps `d5m.sh`'s early start, so if it hangs,
+  the start delay is split before the length.
 
 ### Request D5aj (proposed): `d5m.sh`'s timing with D5af's options
 
@@ -7127,7 +7137,7 @@ as `d4.sh`'s `D4_MM`. There is no module change.
 
 | Result | Reading | Next |
 | --- | --- | --- |
-| Hangs | The options do not prevent it: timing or length makes the no-driver hang, and the crumbs place it | Split the 200 ms length from the start: the same with `d5m.sh` at 2000 ms (a one-line option), or `d4.sh`'s start at 200 ms |
+| Hangs | The options do not prevent it: timing or length makes the no-driver hang, and the crumbs place it | Split the start first: the same with a 5 s wait after the CPUs go offline (a one-line `d5m.sh` option), then the 200 ms length |
 | Passes 15 | One of D5af's options prevents the no-driver hang, yet the two-state hang survives them all | Bisect the options on `d5m.sh`'s default configuration; then the two-state hang is a separate question (D5ai) |
 
 ### Request D5n (proposed): two states with no resource events
