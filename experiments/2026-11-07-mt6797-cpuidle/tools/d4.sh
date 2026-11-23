@@ -51,7 +51,9 @@
 # RAM (1: no clock cut, 2: no master pause; 0842, D5ad; 3: neither, nor
 # the I2C6 clock and reset stores; 0844, D5ae; with D4_KEEP_26M=1, 4: infra
 # force-wake only, 5: 26 MHz force-wake only; 0845, D5ag; 6: a longer wait
-# after the master pause, 7: the CPU cluster ports not paused; 0847, D5at).
+# after the master pause, 7: the CPU cluster ports not paused; 0847, D5at;
+# 8-10: both pause masks set to deep idle's pair, all ones or all zeros; 0849,
+# D5av; 11: the masks from D4_PAUSE_MASK and D4_PAUSE2_MASK; 0850, D5aw).
 # D4_KEEP_26M=1 sets sodi_keep_26m: SW_FLAG bit 15 as in the vendor's SODI
 # flags, so 26 MHz and infra stay forced awake in the period (0843, D5ae).
 # D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
@@ -406,7 +408,17 @@ case ${D4_VARIANT:-0} in
 	grep -q 'CPU cluster ports not paused' "$KO" || stop "the module has no SODI variants 6 and 7 (0847)"
 	level="$level sodi_variant=$D4_VARIANT"
 	;;
-*) stop "D4_VARIANT must be 1 to 7" ;;
+8 | 9 | 10)
+	grep -q 'pause masks all zeros' "$KO" || stop "the module has no SODI variants 8 to 10 (0849)"
+	level="$level sodi_variant=$D4_VARIANT"
+	;;
+11)
+	grep -q 'sodi_pause2_mask' "$KO" || stop "the module has no SODI variant 11 (0850)"
+	[ -n "${D4_PAUSE_MASK:-}" ] && [ -n "${D4_PAUSE2_MASK:-}" ] ||
+		stop "D4_VARIANT=11 needs D4_PAUSE_MASK and D4_PAUSE2_MASK"
+	level="$level sodi_variant=11 sodi_pause_mask=$D4_PAUSE_MASK sodi_pause2_mask=$D4_PAUSE2_MASK"
+	;;
+*) stop "D4_VARIANT must be 1 to 11" ;;
 esac
 if [ "${D4_SMI_ASYNC:-0}" = 1 ]; then
 	grep -q 'sodi_smi_async' "$KO" || stop "the module has no sodi_smi_async parameter (0838)"
