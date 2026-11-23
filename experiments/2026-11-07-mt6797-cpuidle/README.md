@@ -8639,6 +8639,18 @@ its own protection. Decoded:
   runtime-suspends (50 ms autosuspend), so at an idle period they are most
   likely protected on every boot.
 
+**The program session on the order (2026-11-23).** No source names bits
+20, 22 or 24-27. `PROTECTSTA1` also reports bits never requested in
+`PROTECTEN` (11, 12, 14, 22, 29-31), so it reads as per-master idle
+status, not only a protect acknowledgement (*inference*); bit 22 is then
+already idle, and 20, 21 and 23-27 are the active candidates. **Revised
+bisection of C:** if `0x00f00000` hangs, test the GPU pair `0x00a00000`
+(21 and 23) next, then 21 and 23 alone; if it passes, `0x00500000`. If
+`0x00f00000` passes, `0x0f000000` as before. If the GPU pair is the
+culprit, the GPU's runtime-PM state at the kick (powered with live ports,
+or off without its protection) is the next question, testable without a
+firmware patch by unbinding panfrost or holding the GPU powered.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
