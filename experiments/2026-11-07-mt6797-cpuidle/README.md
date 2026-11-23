@@ -7343,6 +7343,22 @@ The extra work in `d4.sh` all happens before its synced line and sleep,
 so the 1 s just before each kick looks the same in both. *Inference:*
 if D5al hangs, the hash check and the extra syncs are the candidates.
 
+**The program session on the period length (2026-11-22).** No program
+decision depends on the timer value:
+- `0x410` and `0x517` set and clear `R7_PCM_TIMER_SET`; the hardware
+  raises `r12` bit 0 at the match.
+- `PCM_TIMER_OUT` is only copied out at `0x522`.
+- The `r14` waits have constant counts.
+- The exit writes `PCM_WDT_VAL` = `0xf0000`, the same for any length.
+- Nothing wraps or saturates.
+
+So a 200 ms period takes the same program path as a 2000 ms one. D5al
+counts per kick: it runs the same three periods per run as D5ak, so 15
+clean kicks against hangs within three kicks is a fair comparison. What
+changes is the time from each kick to its exit, and therefore what
+Linux, the other blocks and the previous wake have done by the next
+kick. A pass would place the cause outside the program. *Inference.*
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
