@@ -1754,8 +1754,16 @@ Image 138 was built from a778e5a6, with `battery-headroom` at the 50 % margin
   level T11 started from.
 - **The cap:** each kernel journal shows `battery-headroom` loading with "no headroom
   reported, no cap". The journal ends 1-3 s later, during the root's start-up.
-- **Recovery:** a fourth boot on the cable came up with all ten CPUs. This session
-  asked for `a72-at-boot` to stay off for battery boots until a retest with the fix.
+- **Recovery:** a fourth boot, `f1247537`, came up on the cable with all ten CPUs.
+  - Its first caps came 11 s after "no headroom": headroom 1.24 A, caps
+    338/468/1547 MHz.
+  - About a minute later upower requested a clean power-off at the gauge's capacity
+    of 1 %. That was not a power loss.
+  - The gauge's capacity of 1 % disagrees with its start-up OCV reading of 16-17 % on
+    the three boots before. That is the fuel-gauge session's to explain.
+
+  This session asked for `a72-at-boot` to stay off for battery boots until a retest
+  with the fix.
 
 Cause, inferred from the order of events:
 - The init set schedutil, then loaded `battery-headroom`, which caps nothing until
