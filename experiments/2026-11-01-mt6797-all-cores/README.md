@@ -1754,8 +1754,8 @@ Image 138 was built from a778e5a6, with `battery-headroom` at the 50 % margin
   level T11 started from.
 - **The cap:** each kernel journal shows `battery-headroom` loading with "no headroom
   reported, no cap". The journal ends 1-3 s later, during the root's start-up.
-- **Recovery:** a fourth boot on the cable came up with all ten CPUs. The owner
-  turned `a72-at-boot` back off for battery boots.
+- **Recovery:** a fourth boot on the cable came up with all ten CPUs. This session
+  asked for `a72-at-boot` to stay off for battery boots until a retest with the fix.
 
 Cause, inferred from the order of events:
 - The init set schedutil, then loaded `battery-headroom`, which caps nothing until
