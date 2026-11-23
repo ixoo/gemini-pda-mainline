@@ -7721,6 +7721,20 @@ CPU0's frequency read just before the write (lost if that period hangs).
 | Passes | CPU0's operating point at the kick decides the no-driver hang | The converse: `d4.sh` as D5af with `D4_PIN_KHZ` at the lowest OPP; then the two-state setup pinned high to the 50-period rule; then read the cluster divider and PLL words at entry in the module |
 | Hangs | Not the operating point | D5an as written |
 
+**The read (custodian, 2026-11-23, from logs held).** CPU0's frequency in
+`d4.sh`'s `start` lines, read about 1 s before each kick:
+
+| Run | Periods | 1547000 | 1391000 | 1339000 | 1274000 |
+| --- | --- | --- | --- | --- | --- |
+| D5ao step 1 (C 60, A 20, B 82) | 162 | 157 | 2 | 3 | 0 |
+| D5af | 161 | 146 | 6 | 2 | 5 |
+
+Every clean `d4.sh` timer-only period started at 1274-1547 MHz, almost
+always at the top OPP, and none near the bottom of the table. This fits
+the lead without proving it: `d5m.sh`'s frequency at its kicks is not
+recorded. The current kernel's OPP table was not at hand; the script
+checks the pin value against it.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
