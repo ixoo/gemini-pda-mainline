@@ -7477,6 +7477,14 @@ the pings remain; if it is absent, D5am runs with `D5M_GATE_UNUSED=1`
   exit, and a reason the vendor refuses SODI with those clocks on.
   Removing the pause would be an IM patch at `0x2b0` (`a1d10407`), like
   variants 4 and 5; it needs the owner's admission and is not proposed.
+  *Correction (program session, same day):* no vendor header names any
+  bit of the two mask registers; a later header calls them
+  `RG_PCM_PAUSE_MASK_B` and `RG_PCM_PAUSE2_MASK_B`, which may mean they
+  select what pauses the PCM, not which masters `r7` bit 2 pauses. The
+  pause request itself stands; its link to these masks is unproven.
+  `PAUSE2`'s low half is stepped (`f00f` to `ffff` and back) around the
+  CPU and cluster power routine (`0x5e9`) here and in other programs, so it
+  looks tied to that sequence rather than to peripherals. *Inference.*
 - **No new read is needed for the gate words:** the module's return line
   carries `cg0`, `cg1` and `cg2` (`0x10001090`, `0x94`, `0xb0`) before
   and after each period. D5ak's period 1 and D5m redo run 1 have them for
