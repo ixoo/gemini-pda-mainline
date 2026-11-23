@@ -50,7 +50,8 @@
 # D4_VARIANT=N sets sodi_variant: the program is loaded with test patches in
 # RAM (1: no clock cut, 2: no master pause; 0842, D5ad; 3: neither, nor
 # the I2C6 clock and reset stores; 0844, D5ae; with D4_KEEP_26M=1, 4: infra
-# force-wake only, 5: 26 MHz force-wake only; 0845, D5ag).
+# force-wake only, 5: 26 MHz force-wake only; 0845, D5ag; 6: a longer wait
+# after the master pause, 7: the CPU cluster ports not paused; 0847, D5at).
 # D4_KEEP_26M=1 sets sodi_keep_26m: SW_FLAG bit 15 as in the vendor's SODI
 # flags, so 26 MHz and infra stay forced awake in the period (0843, D5ae).
 # D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
@@ -401,7 +402,11 @@ case ${D4_VARIANT:-0} in
 	[ "${D4_KEEP_26M:-0}" = 1 ] || stop "D4_VARIANT=$D4_VARIANT needs D4_KEEP_26M=1"
 	level="$level sodi_variant=$D4_VARIANT"
 	;;
-*) stop "D4_VARIANT must be 1 to 5" ;;
+6 | 7)
+	grep -q 'CPU cluster ports not paused' "$KO" || stop "the module has no SODI variants 6 and 7 (0847)"
+	level="$level sodi_variant=$D4_VARIANT"
+	;;
+*) stop "D4_VARIANT must be 1 to 7" ;;
 esac
 if [ "${D4_SMI_ASYNC:-0}" = 1 ]; then
 	grep -q 'sodi_smi_async' "$KO" || stop "the module has no sodi_smi_async parameter (0838)"

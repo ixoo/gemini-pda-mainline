@@ -8258,8 +8258,9 @@ module sha256 a6e92c44, vermagic `7.1.3-gemini-a53-station`, with
 line. D5at needs a fresh boot.
 
 **Next after D5at.** If variant 7 passes at 221 MHz: the two-state setup
-unpinned with `sodi_variant=7`, to the 50-period rule. `d4.sh` accepts
-`D4_VARIANT` 1-5 only, so it needs a one-line change first.
+unpinned with `D4_VARIANT=7`, to the 50-period rule. `d4.sh` (commit
+recording this) now takes `D4_VARIANT=6|7`, checking the module carries
+them (0847).
 
 ### Request D5n (proposed): two states with no resource events
 
