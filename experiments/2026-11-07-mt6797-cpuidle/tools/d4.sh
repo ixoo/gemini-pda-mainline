@@ -57,8 +57,8 @@
 # D4_KEEP_26M=1 sets sodi_keep_26m: SW_FLAG bit 15 as in the vendor's SODI
 # flags, so 26 MHz and infra stay forced awake in the period (0843, D5ae).
 # D4_CPU_PDN=1 sets sodi_cpu_pdn: test periods power CPU0 down through PSCI
-# CPU_SUSPEND, as the vendor does (0852, D6). It needs D4_IDLE=0, since the
-# cpuidle path keeps CPU0 powered, and refuses with the observer.
+# CPU_SUSPEND, as the vendor does (0852, D6); the cpuidle driver's own SODI
+# entries keep CPU0 powered. It refuses the observer.
 # D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
 # for each period and restored after it (0838, stage D5z).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
@@ -394,7 +394,6 @@ if [ "${D4_KEEP_26M:-0}" = 1 ]; then
 fi
 if [ "${D4_CPU_PDN:-0}" = 1 ]; then
 	grep -q 'sodi_cpu_pdn' "$KO" || stop "the module has no sodi_cpu_pdn parameter (0852)"
-	[ "${D4_IDLE:-1}" = 0 ] || stop "D4_CPU_PDN=1 needs D4_IDLE=0"
 	[ "${D4_OBS:-0}" = 0 ] || stop "D4_CPU_PDN=1 refuses the observer"
 	level="$level sodi_cpu_pdn=1"
 fi

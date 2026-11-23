@@ -9157,14 +9157,18 @@ boot2 write and the run, with `a72-at-boot` kept off for this run.
 ### Request D6b (proposed): the power-down entry with device wakes, unpinned
 
 `d4.sh` (commit recording this) takes `D4_CPU_PDN=1`, which sets
-`sodi_cpu_pdn` (needs `D4_IDLE=0`, refuses the observer).
+`sodi_cpu_pdn` and refuses the observer. Revised after the reviewer's
+note below: it runs in the two-state environment, the reproducer this
+stage started from.
 
-- **Candidate:** image 138, module 4aa576a0, `d4.sh` with `D4_IDLE=0
-  D4_CPU_PDN=1 D4_KEEP_26M=1 D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1
-  D4_MM=2 D4_MASK_PPI=1 D4_CRUMBS=1`, the vendor wake set (no
-  `D4_WAKE`), no pin, pings over window C, the owner's key in window B,
-  cable out. With `a72-at-boot` on, `d4.sh` takes CPU8 and 9 offline too,
-  and the guard confirms bit 17 live.
+- **Candidate:** image 138, module 4aa576a0, `d4.sh` with D5ac's
+  two-state env (`D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1 D4_MM=2
+  D4_NO_MP2=1 D4_ACINACTM_LATE=1 D4_MASK_PPI=1 D4_CRUMBS=1`, no `D4_IDLE`
+  or `D4_WAKE`, so the vendor wake set) plus `D4_CPU_PDN=1
+  D4_KEEP_26M=1`, no pin, pings over window C, the owner's key in window
+  B, cable out. With `a72-at-boot` on, `d4.sh` takes CPU8 and 9 offline
+  too, and the guard confirms bit 17 live. Pass rule: 50 periods, as for
+  the two-state setup.
 - **Hypothesis:** with CPU0 powered down, device wakes (CONN2AP through
   SYS_CIRQ, a key) end periods early and the system comes back intact,
   at whatever OPP schedutil leaves.
@@ -9177,6 +9181,49 @@ boot2 write and the run, with `a72-at-boot` kept off for this run.
 | --- | --- | --- |
 | Passes | The PSCI entry handles real wakes at any OPP | The cpuidle path with the same entry (a CPU0 idle state through PSCI), then the two-state setup to the 50-period rule |
 | Hangs on a device wake | The wake path through a powered-down CPU0 needs work | Read the crumbs and status; compare with the timer-only periods |
+
+**The reviewer on D6b and the idle path (2026-11-23).**
+- **D6b, what to check beyond "it woke":**
+  - The firmware saves and restores the GIC distributor's configuration,
+    not its pending state, so an edge that fires while CPU0 is down lives
+    only in SYS_CIRQ and the SPM's wake status. The vendor re-pends the
+    edge wake sources found in the wake status after a SODI power-down.
+    So the key must reach the keypad driver (its interrupt count or input
+    events across the period the key ended), and pings must not lose the
+    frame that woke a period. If a key wakes a period and no event
+    arrives, the fix is the vendor's: set that interrupt pending after
+    resume.
+  - With flag 0 clear a wake already pending at entry no longer aborts
+    early; the program powers CPU0 down and wakes at once. Record the
+    shortest period and its wake.
+  - Log the frequency at each kick; periods that start low are the
+    interesting ones.
+  - Measure what an idle state needs: write to kick, kick to the PSCI
+    call, and the program's wake to CPU0 back, at 221 and 1547 MHz. The
+    GIC save and restore on each side make entry and exit much slower than
+    the WFI path; those numbers set the state's exit latency and target
+    residency. The kick-to-WFI line gives the second; the others need a
+    log line in a later build.
+- **The idle path, when built:** let arm64 `cpu_suspend()` own
+  `ct_cpuidle_enter`/`exit` (keep `CPUIDLE_FLAG_RCU_IDLE`; no module
+  wrapping on this path), with `cpu_pm_enter`/`exit` outside it; keep the
+  PCM timer set from the next local event and save and restore the timer
+  registers around the call, with no `CPUIDLE_FLAG_TIMER_STOP` (there is
+  no other CPU to broadcast from); keep the failed-power-down invariant
+  in one function, since the idle loop takes a WFI right after the
+  callback returns; keep the refusals (other CPUs online, the power
+  status) falling back to WFI; state the measured latencies honestly; and
+  add no PSCI `idle-states` for CPU0 to the DT while the module calls the
+  helper.
+- **For the owner, before much is built on it:** the state can only be
+  entered with CPU0 the sole online CPU, as on the vendor's kernel, which
+  unplugs idle cores. On the station the other cores are normally online
+  and idle, so the idle state gives nothing until something takes them
+  offline (screen off, lid closed, a policy), a separate decision with its
+  own wake-latency cost.
+- *Later:* the upstream shape is probably a PSCI idle state in the DT
+  with the SPM driver arming the program from a CPU PM notifier or a
+  power-domain callback, not a module-owned cpuidle driver.
 
 ### Request D5n (proposed): two states with no resource events
 
