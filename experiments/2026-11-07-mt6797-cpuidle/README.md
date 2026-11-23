@@ -8549,6 +8549,29 @@ and each group's masks; two runs per step.
 - Bit 25 alone is not repeated: its hang came at the first kick, as every
   221 MHz hang has, and a repeat would end there too.
 
+**The program session on bit 25 (2026-11-23).** No source names it.
+- Nothing in the vendor's MT6797 tree writes or polls bit 25 of
+  `0x10001220` or `0x10001228`. The one table with a bit 25 (a legacy
+  power file with MD1 at 24-28) matches mainline's MT6735 definitions
+  exactly and contradicts this chip's measured MD1 bits, so it is carried
+  over and discounted.
+- MT8173's mainline bus-protect table parallels this chip's in places
+  (MM at 1 and 2, MFG at 21-23) but defines nothing above 23; other
+  mainline tables reuse bit 25 for unrelated masters, so it has no
+  cross-chip meaning.
+- *Decision input, inference:* bit 25 reads active in `PROTECTSTA1` in
+  normal running, sits in a group no power-down step touches, and is
+  paused by every program at entry, through the AXI clock-off. Leaving it
+  unpaused in SODI is plausibly safe only while nothing in the period
+  cuts the clock or power under that master; that would not hold for the
+  EMI clock-off or infra-down paths, which assume it is paused. Our
+  periods run with `SODI_NO_EVENT` (no self-refresh), but the program
+  still cuts the ARM clocks and switches the `ddrphycfg` mux. A safer fix
+  than unpausing would stop that master before the kick, which needs its
+  name; a read of the infra bus idle status (the vendor's power driver
+  defines `INFRA_BUS_IDLE_STA5` at infra `0x190`) around the kick might
+  identify it.
+
 - **The culprit is in bits 24-27** of `MAS_PAUSE_MASK_B`. No source names
   them (program session: none of the vendor's CPU DVFS, hotplug or SPM
   CPU code writes them). All four read active, not idle, in
