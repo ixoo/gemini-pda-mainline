@@ -7252,6 +7252,30 @@ keeps today's start.
 | Hangs in period 1 | Not the start delay | The length: `d5m.sh` with 2000 ms periods |
 | Hangs later | The settle helps period 1 only; the periods still run back to back, so the missing gap between periods is the lead, not offlining | Longer gaps between periods (1 s here, about 1.5 s in `d4.sh`), then the length |
 
+**The program session on what a recent power-down could reach
+(2026-11-22).**
+- On our path, the program reads no CPU, cluster or idle status:
+  - With `SW_FLAG` bit 0 set, `0x440` skips the CPU power routine
+    (`0x5bb`) and its unbounded status polls.
+  - With `NO_EVENT` set, `0x480` skips the `DUMMY1_PWR_CON` read, and the
+    EMI ack poll belongs to EV15, which is never armed.
+- A power-down still settling can only reach the program through the
+  hardware inputs to the wait at `0x498`: `SPM_AP_STANDBY_CON`'s WFI AND
+  and the wake sources. Our value `0x04080011` masks only MP3, so the
+  MP0-MP2 cluster idle, MP_TOP idle and MCUSYS idle signals all feed the
+  AND.
+- *Inference:* a just-killed cluster's idle signal still settling would
+  gate the AND, and the program never re-checks it. If D5ak passes, a
+  cheaper split is to mask the clusters that hold the offlined CPUs as
+  well (bits 2 and 3, MP1 and MP2): a new value for an approved write.
+- Caveats:
+  - A gated AND alone delays only the program. In D5m redo run 2,
+    CPU0's armed backstop did not bring it back either, so CPU0 itself
+    was stuck, or it stalled on an access.
+  - The one known `SPM_AP_STANDBY_CON` readback, `0x04f80000`, does not
+    match the value written. A read inside a period would show which
+    masks are live.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
