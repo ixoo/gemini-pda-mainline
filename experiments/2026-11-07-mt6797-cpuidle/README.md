@@ -8969,6 +8969,30 @@ D6a's `SPM_SW_FLAG` `0x0009b238`. It needs no flag we do not set.
   remove; unproven. Test with the stock masks first; SODI's masks minus
   bit 25 stay as the fallback.
 
+**Flags and the power check (program session, 2026-11-23).**
+- SODI tests only flags 0, 8, 9, 10, 12, 13 and 15 on this path. With
+  `0x0009b238`: 0 clear (power-down), 8 clear (`CSYSPWRUPACK` dropped and
+  restored), 9 set (I2C6 buck write skipped), 10 clear (SCP branch as
+  before), 12, 13 and 15 set. Bit 7 is tested only inside handlers that
+  never run here, and bits 16-19 nowhere. `SW_RSV_5` feeds `r6` bits 23
+  and 24 and stays as in the passing runs.
+- **`CPU_PWR_STATUS` (`0x10006188`) and `_2ND` (`0x1000618c`):** CPU n at
+  bit 15 - n (from the firmware's power waits; CPU0 = 15 also from the
+  program), `MP2_CPUSYS` 17 (the firmware's A72 power-off polls it, then
+  sets `CPU_EXT_BUCK_ISO` bit 1 itself), `MP0_CPUSYS` 19, `MCUSYS` 21;
+  `MP1_CPUSYS` 18 and `MP_TOP` 20 inferred from the ordering. The
+  firmware treats CPUs 6 and 7 specially in one path.
+- **0852 now refuses a powered-down period** unless both words read 0 in
+  bits 6-14, 17 and 18 (CPU1-9, MP2 and MP1), and logs the two words and
+  `CPU_EXT_BUCK_ISO` before and after with the kick-to-WFI line. A wrong
+  inferred bit refuses periods rather than letting one through, except
+  that an unpowered MP1 reported elsewhere would pass unseen; the first
+  read below settles it.
+- **A read first, before D6a:** both status words and `CPU_EXT_BUCK_ISO`
+  with all ten CPUs online, then with CPU4-7 offline, then with CPU1-9
+  offline (read only). It confirms bits 18 and 20 and the CPU6/7 case,
+  and `CPU_EXT_BUCK_ISO` bit 1 should read set once the A72s are off.
+
 ### Request D6a (proposed): SODI with CPU0 powered down, pinned at 221 MHz
 
 - **Hypothesis:** with CPU0 out of coherency in the firmware's WFI, the

@@ -17,14 +17,20 @@ vendor: flag bit 0 clear, no ACINACTM writes, cpu_pm_enter(), then
 psci_cpu_suspend_enter(0x01010000) and cpu_pm_exit(). The return is read
 from SPM_IRQ_STA as before. CPU0's timer compare values are saved and
 restored around the period, since a powered-down core comes back with its
-timer registers reset. The result of the PSCI path is logged with the
-kick-to-WFI line. The cpuidle path is unchanged.
+timer registers reset.
+
+With flag bit 0 clear the program powers off CPU0, MP0, MP_TOP and
+MCUSYS, so every other core and cluster under MCUSYS must already be off.
+The period is refused unless CPU_PWR_STATUS and CPU_PWR_STATUS_2ND show
+CPU1-9 and the MP1 and MP2 clusters off. The status words, the external
+buck isolation word before and after, and the PSCI path's result are
+logged with the kick-to-WFI line. The cpuidle path is unchanged.
 ---
- drivers/soc/mediatek/mt6797-spm-sleep.c | 59 ++++++++++++++++++++++---
- 1 file changed, 52 insertions(+), 7 deletions(-)
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 86 ++++++++++++++++++++++---
+ 1 file changed, 78 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
-index 8dde2dc8e..0658750c6 100644
+index 8dde2dc8e..a8c397cb0 100644
 --- a/drivers/soc/mediatek/mt6797-spm-sleep.c
 +++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
 @@ -6,7 +6,8 @@
@@ -81,15 +87,35 @@ index 8dde2dc8e..0658750c6 100644
  	bool ready;
  };
  
-@@ -545,6 +562,7 @@ struct spm_wake {
+@@ -543,8 +560,10 @@ struct spm_wake {
+ 	u32 on_val0, on_val1;	/* r0 and r7 start values, at entry */
+ 	u32 r0, r7;		/* after the return */
  	u32 vec_en_reset, vec_en_kick;	/* PCM_EVENT_VECTOR_EN */
++	u32 cpu_pwr, cpu_pwr2, buck_iso;	/* at entry, with CPU0 powered down (D6) */
  	bool im_reused, im_stuck;
  	bool backstop;		/* CPU0's timer ended the wait, not the PCM */
 +	int pdn_ret;		/* cpu_pm_enter or psci_cpu_suspend_enter result */
  	u32 rd_en, rd_pend;	/* CPU0's SGIs and PPIs at entry */
  	u64 isr_el1;		/* at entry */
  	u64 cnt_kick, cnt_return;	/* arch counter around the wait */
-@@ -1154,7 +1172,9 @@ static int spm_run(const struct spm_scen *sc)
+@@ -661,6 +680,16 @@ static inline void spm_wr(u32 off, u32 val)
+  */
+ #define SPM_PWR_STATUS		0x180
+ #define SPM_PWR_STATUS_2ND	0x184
++#define CPU_PWR_STATUS		0x188
++#define CPU_PWR_STATUS_2ND	0x18c
++/*
++ * CPU_PWR_STATUS bits (program session, from the program and the secure
++ * firmware): CPU n at bit 15 - n, MP2_CPUSYS 17, MP1_CPUSYS 18 (inferred),
++ * MP0_CPUSYS 19, MCUSYS 21. The program powers off only CPU0, MP0, MP_TOP
++ * and MCUSYS, so everything else under MCUSYS must be off already.
++ */
++#define CPU_PWR_OTHERS		(GENMASK(14, 6) | BIT(17) | BIT(18))
++#define CPU_EXT_BUCK_ISO	0x290
+ #define PWR_DIS			BIT(3)
+ #define MMSYS_CG_CON0		0x100
+ #define MMSYS_CG_SET0		0x104
+@@ -1154,7 +1183,9 @@ static int spm_run(const struct spm_scen *sc)
  	bool obs_cpu = obs.on && cpu_online(SODI_OBS_CPU);
  	bool mp2 = !obs_cpu && !READ_ONCE(sodi_no_mp2);
  	bool smi = false;
@@ -100,7 +126,27 @@ index 8dde2dc8e..0658750c6 100644
  	bool crumbs = sc->cirq && READ_ONCE(sodi_crumbs);
  	u32 smi_saved = 0;
  	int i;
-@@ -1400,14 +1420,30 @@ static int spm_run(const struct spm_scen *sc)
+@@ -1169,6 +1200,19 @@ static int spm_run(const struct spm_scen *sc)
+ 		return -EBUSY;
+ 	if (!spm_off(MD1_PWR_CON) || !spm_off(C2K_PWR_CON))
+ 		return -EBUSY;
++	/* MCUSYS goes off with CPU0: every other core and cluster must be off */
++	if (pdn) {
++		u32 st = spm_rd(CPU_PWR_STATUS), st2 = spm_rd(CPU_PWR_STATUS_2ND);
++
++		if ((st | st2) & CPU_PWR_OTHERS) {
++			dev_info(&s.pdev->dev, "sodi pdn: CPU power status %08x %08x, buck iso %08x: another core or cluster is on, refused\n",
++				 st, st2, spm_rd(CPU_EXT_BUCK_ISO));
++			return -EBUSY;
++		}
++		s.wake.cpu_pwr = st;
++		s.wake.cpu_pwr2 = st2;
++		s.wake.buck_iso = spm_rd(CPU_EXT_BUCK_ISO);
++	}
+ 
+ 	/*
+ 	 * SODI: refuse the period if an enabled interrupt is already pending,
+@@ -1400,14 +1444,30 @@ static int spm_run(const struct spm_scen *sc)
  	if (sc->idle)
  		ct_cpuidle_enter();
  	/* The loop's dsb completes these before the first WFI */
@@ -133,20 +179,22 @@ index 8dde2dc8e..0658750c6 100644
  		/* Complete every register write before the SPM sees CPU0 in WFI */
  		dsb(sy);
  		wfi();
-@@ -1701,9 +1737,10 @@ static void spm_log_wake(const char *what)
+@@ -1701,9 +1761,11 @@ static void spm_log_wake(const char *what)
  		 s.wake.assert_pc);
  	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x\n", what, s.dummy1,
  		 spm_rd(SPM_PASR_DPD_0));
 -	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns\n", what,
-+	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns, cpu pdn %d ret %d\n", what,
- 		 mul_u64_u64_div_u64(s.wake.cnt_wfi - s.wake.cnt_pcm_kick, NSEC_PER_SEC,
+-		 mul_u64_u64_div_u64(s.wake.cnt_wfi - s.wake.cnt_pcm_kick, NSEC_PER_SEC,
 -				     arch_timer_get_cntfrq()));
-+				     arch_timer_get_cntfrq()),
-+		 !(s.sodi.flags & BIT(0)), s.wake.pdn_ret);
++	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns, cpu pdn %d ret %d, cpu power %08x %08x, buck iso %08x>%08x\n",
++		 what, mul_u64_u64_div_u64(s.wake.cnt_wfi - s.wake.cnt_pcm_kick, NSEC_PER_SEC,
++					   arch_timer_get_cntfrq()),
++		 !(s.sodi.flags & BIT(0)), s.wake.pdn_ret, s.wake.cpu_pwr, s.wake.cpu_pwr2,
++		 s.wake.buck_iso, spm_rd(CPU_EXT_BUCK_ISO));
  	dev_info(&s.pdev->dev, "%s: im fsm %08x>%08x after %u us, reused=%d stuck=%d\n",
  		 what, s.wake.im_fsm0, s.wake.im_fsm1, s.wake.im_us,
  		 s.wake.im_reused, s.wake.im_stuck);
-@@ -1840,7 +1877,7 @@ static int sodi_once(u64 ms)
+@@ -1840,7 +1902,7 @@ static int sodi_once(u64 ms)
  	struct cpufreq_policy *hold;
  	struct i2c_adapter *i2c6;
  	enum sodi_no busy;
@@ -155,7 +203,7 @@ index 8dde2dc8e..0658750c6 100644
  	int ret;
  
  	if (!s.sodi.ready)
-@@ -1879,6 +1916,9 @@ static int sodi_once(u64 ms)
+@@ -1879,6 +1941,9 @@ static int sodi_once(u64 ms)
  	s.sodi.im_reuse = READ_ONCE(sodi_im_reuse);
  	s.sodi.r7_vendor = READ_ONCE(sodi_r7_vendor);
  	s.sodi.vec_clear = READ_ONCE(sodi_vec_clear);
@@ -165,7 +213,7 @@ index 8dde2dc8e..0658750c6 100644
  	if (s.sodi.pcm_wdt)
  		s.sodi.wake_src |= WAKE_PCM_WDT;
  	if (sodi_pdn)
-@@ -1894,6 +1934,9 @@ static int sodi_once(u64 ms)
+@@ -1894,6 +1959,9 @@ static int sodi_once(u64 ms)
  					      arch_timer_get_cntfrq());
  	cntv = read_sysreg(cntv_ctl_el0);
  	cntp = read_sysreg(cntp_ctl_el0);
@@ -175,7 +223,7 @@ index 8dde2dc8e..0658750c6 100644
  	write_sysreg(cntv | ARCH_TIMER_CTRL_IT_MASK, cntv_ctl_el0);
  	write_sysreg(cntp | ARCH_TIMER_CTRL_IT_MASK, cntp_ctl_el0);
  	isb();
-@@ -1914,6 +1957,8 @@ static int sodi_once(u64 ms)
+@@ -1914,6 +1982,8 @@ static int sodi_once(u64 ms)
  	else if (ret && !s.entered)
  		dev_info(&s.pdev->dev, "sodi: not entered (%d): CPU1-9 online, PCM busy, or modem or C2K on\n",
  			 ret);
