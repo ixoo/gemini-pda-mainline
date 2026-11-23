@@ -7189,11 +7189,17 @@ as `d4.sh`'s `D4_MM`. There is no module change.
   through the exit. If vectors are serviced during the exit's timed
   delays, EV15 could re-enter self-refresh after the chain, while CPU0 is
   still in WFI. The program does not show whether that happens.
-- **Variant held until D5aj passes:** no-op words at `0x209` (the
-  `0xcf4c` store) and `0x20d` and `0x212` (the two `r0` writes). EV15
-  then keeps its bookkeeping but never enters self-refresh, and EV14's
-  undo is harmless. None of the three is a branch target; the words are
-  to be checked against the listing before building.
+- **Variant held until D5aj passes (corrected by the program session):**
+  EV15 raises the EMI clock-off request (`0x2a5`, `r7 |= 1<<1`) and gets
+  its ack before the self-refresh steps. So a variant that keeps DRAM
+  available must no-op `0x2a5`, optionally with `0x209`, `0x20d` and
+  `0x212`, the self-refresh steps.
+  - EV15 then sees no ack, writes `SPM_CPU_WAKEUP_EVENT` = 1 and takes its
+    no-ack exit. That write may end periods early, with an `r12` other
+    than `00000001`.
+  - None of the four words is a branch target or a delay slot.
+  - It is needed only to split the EMI clock-off from the PHY steps.
+    D5aj, with `NO_EVENT` set, already removes the whole path.
 
 ### Request D5n (proposed): two states with no resource events
 
