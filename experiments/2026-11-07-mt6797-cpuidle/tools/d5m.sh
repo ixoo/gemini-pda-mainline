@@ -40,6 +40,8 @@
 # d4.sh does; the old value is put back at the end. D5M_GATE_UNUSED=1 loads
 # mt6797-gate-unused if it is not loaded, as d4.sh does (stage D5am). Either
 # way the script logs both states before insmod.
+# D5M_HASH=1 runs d4.sh's memory reference, a cpu-mhz hash on CPU0, after the
+# settle and before period 1, as d4.sh does before window C (stage D5an).
 set -u
 
 KO=${1:-}
@@ -169,6 +171,15 @@ case ${D5M_SETTLE:-0} in
 esac
 case ${D5M_MS:-200} in
 '' | 0 | *[!0-9]*) stop "D5M_MS must be a whole number of ms, at least 1" ;;
+esac
+case ${D5M_HASH:-0} in
+0) ;;
+1)
+	[ "$(sha256sum /tmp/cpu-mhz 2>/dev/null | cut -c1-8)" = 22a0acfc ] ||
+		stop "/tmp/cpu-mhz missing or not 22a0acfc"
+	log "hash $(/tmp/cpu-mhz 0 hash | awk '{print $2}')"
+	;;
+*) stop "D5M_HASH must be 0 or 1" ;;
 esac
 log "periods of ${D5M_MS:-200} ms"
 
