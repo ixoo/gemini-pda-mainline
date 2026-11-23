@@ -35,6 +35,11 @@
 # D5M_SETTLE=N waits N seconds after the CPUs go offline before period 1
 # (stage D5ak); the default 0 keeps the start about 1 s after.
 # D5M_MS=N runs N ms periods instead of 200 (stage D5al).
+# D5M_USB_AUTO=1 sets the USB gadget's power/control to auto and waits 10 s,
+# so with the cable out MTU3 runtime-suspends and the SSUSB clocks gate, as
+# d4.sh does; the old value is put back at the end. D5M_GATE_UNUSED=1 loads
+# mt6797-gate-unused if it is not loaded, as d4.sh does (stage D5am). Either
+# way the script logs both states before insmod.
 set -u
 
 KO=${1:-}
@@ -42,6 +47,8 @@ LOG=/var/tmp/d5m.log
 SODI=/sys/kernel/debug/sodi_once_ms
 CPUS=/sys/devices/system/cpu
 TAKEN=""
+USB=/sys/bus/platform/devices/11271000.usb/power
+USB_CONTROL=""
 
 exec >>"$LOG" 2>&1
 
@@ -55,8 +62,14 @@ stop() {
 	for cpu in $TAKEN; do
 		echo 1 >"$CPUS/cpu$cpu/online"
 	done
+	usb_back
 	log "done, stopped"
 	exit 1
+}
+
+usb_back() {
+	[ -n "$USB_CONTROL" ] && echo "$USB_CONTROL" >"$USB/control" &&
+		log "gadget power/control back to $USB_CONTROL"
 }
 
 blank() {
@@ -77,6 +90,24 @@ log "watchdog0 $(cat /sys/class/watchdog/watchdog0/state 2>/dev/null), timeout $
 
 log "waiting 30 s for the SSH session to end"
 sleep 30
+
+case ${D5M_GATE_UNUSED:-0} in
+0) ;;
+1) [ -d /sys/module/mt6797_gate_unused ] || modprobe mt6797-gate-unused ||
+	stop "mt6797-gate-unused did not load" ;;
+*) stop "D5M_GATE_UNUSED must be 0 or 1" ;;
+esac
+case ${D5M_USB_AUTO:-0} in
+0) ;;
+1)
+	USB_CONTROL=$(cat "$USB/control") || stop "no gadget power/control"
+	echo auto >"$USB/control" || stop "power/control not set"
+	sleep 10
+	;;
+*) stop "D5M_USB_AUTO must be 0 or 1" ;;
+esac
+log "gadget power/control $(cat "$USB/control" 2>/dev/null), runtime $(cat "$USB/runtime_status" 2>/dev/null)${USB_CONTROL:+ (was $USB_CONTROL)}"
+log "gate-unused $([ -d /sys/module/mt6797_gate_unused ] && echo loaded || echo absent)"
 
 ARGS="sodi_idle=0 sodi_wake_src=0"
 if [ "${D5M_NO_EVENT:-0}" = 1 ]; then
@@ -161,6 +192,7 @@ if [ "${D5M_RESET:-1}" = 0 ]; then
 	for cpu in $TAKEN; do
 		echo 1 >"$CPUS/cpu$cpu/online"
 	done
+	usb_back
 	log "three periods returned; no deliberate reset (D5M_RESET=0); done"
 	exit 0
 fi
