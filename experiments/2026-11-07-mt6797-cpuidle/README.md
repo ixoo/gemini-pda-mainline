@@ -7092,6 +7092,20 @@ parameter at its default. Wi-Fi modules loaded, cable out.
   period 1 started about 1 s after the CPUs went offline. The blank came
   24 s after insmod in run 2, against 82 s in run 1.
 - New boot 02f760b3; the latches after Gemian were cleared as before.
+- **The backstop did not bring CPU0 back (reviewer's point, checked in
+  the module).** Crumbs were off, and the console kept no line from the
+  run. But with the defaults the SODI scenario uses SYS_CIRQ, so the
+  CNTP backstop was armed 100 ms after the period's timer, and without
+  `sodi_mask_ppi` its PPI stayed enabled through the SPI mask. Had the
+  backstop or the PCM ended the wait, the period would have returned to
+  `d5m.sh`, which syncs a line after each return or retry; none came. So
+  CPU0 did not get back to the script with a wake source that needs
+  nothing from the SPM.
+  - What remains: CPU0 never left WFI (its clock or the GIC path lost),
+    or it woke and stalled on its next SPM or bus access, or it stalled
+    later in the restore.
+  - It weighs against "the program is still waiting while CPU0 is fine".
+  - *Inference;* without crumbs, the stage is unknown.
 
 **Result.**
 - **The no-driver, timer-only hang still exists on today's module**, as in
@@ -7129,16 +7143,19 @@ as `d4.sh`'s `D4_MM`. There is no module change.
   offline.
 - **Runs:** up to five, with rmmod and 30 s between runs, stopping at the
   first hang.
-- **Pass rule:** five runs, 15 clean periods. The `d5m.sh` default
+- **Pass rule:** all five runs clean, 15 periods. The `d5m.sh` default
   configuration hung in four of its five recorded runs (D5m, D5m
-  no-event, D5p part 1 and this run 2), each within three periods.
+  no-event, D5p part 1 and this run 2), each within three periods. A
+  per-period hazard of 1 in 4 would give 15 clean periods about 1 % of
+  the time, and 1 in 8 about 13 %, so a pass excludes only the higher
+  rate firmly.
 - **Admission:** parameter values the owner has approved before, in a
   script shape already run; the owner approves the run.
 
 | Result | Reading | Next |
 | --- | --- | --- |
 | Hangs | The options do not prevent it: timing or length makes the no-driver hang, and the crumbs place it | Split the start first: the same with a 5 s wait after the CPUs go offline (a one-line `d5m.sh` option), then the 200 ms length |
-| Passes 15 | One of D5af's options prevents the no-driver hang, yet the two-state hang survives them all | Bisect the options on `d5m.sh`'s default configuration; then the two-state hang is a separate question (D5ai) |
+| Passes 15 | One of D5af's options prevents the no-driver hang, yet the two-state hang survives them all, so it may be a separate hazard (kept open) | Split the options in two groups on `d5m.sh` timing: the interrupt side (`sodi_cirq_level`, `sodi_mask_ppi`, `sodi_no_event`) and the bus and cluster side (`sodi_acinactm_late`, `sodi_no_mp2`, `D5M_MM=2`), with `sodi_mark` and the crumbs in both; then one by one within the group that passes |
 
 ### Request D5n (proposed): two states with no resource events
 
