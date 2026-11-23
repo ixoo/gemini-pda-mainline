@@ -7055,10 +7055,15 @@ the holder after the run.
   occasional `00400000`. Only returned periods are logged, so the hung
   period's `r12` stays unseen. `SW_RSV_3` read 0 in every latch read so
   far, but those come before a module loads or after a Gemian landing,
-  not after two-state periods on the same boot. **Reading:** no SCP wake
-  is seen in thousands of returned periods, so the SCP branch is unlikely
-  and the wake-mask run is not triggered. D5ai's before-and-after reads
-  remain.
+  not after two-state periods on the same boot. **Reading (corrected by
+  the program session):** the logged `r12` is only the wake that ended
+  the period. After an SCP wake the program re-arms and waits again, so a
+  period that ran the branch and then ended on the timer or CONN2AP logs
+  no bit 10. The search shows only that bit 10 never ended a period, not
+  that the branch never ran. `SW_RSV_3` bit 3, which the program sets at
+  `0x4e2` and never clears, is the only check. It is read after D5ai's
+  periods on the same boot: if set, the wake-mask run comes next; if
+  clear, the lead is weak.
 
 ### Request D5n (proposed): two states with no resource events
 
