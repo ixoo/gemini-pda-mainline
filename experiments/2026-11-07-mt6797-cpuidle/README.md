@@ -7836,8 +7836,12 @@ at its first hang:
 - 221 MHz (clock divider 4): the expected hang, run last or skipped if
   D5aq already shows it.
 
-Entries come from policy0's `scaling_available_frequencies`, read first
-(read only). A step between the first two points to A and the
+Entries come from policy0's `scaling_available_frequencies`, read on
+boot 1d3a0381: 221000, 338000, 481000, 624000, 715000, 806000, 897000,
+1014000, 1118000, 1222000, 1274000, 1339000, 1391000, 1443000, 1495000
+and 1547000 kHz. **The points are 1118000, 1014000, 481000 and 221000
+kHz.** The owner approved the order D5aq, D5as, D5ar, each stopping at its
+first hang. A step between the first two points to A and the
 post-divider; a step at 525 MHz to the clock divider; a gradual change
 to B. Every hang costs a Gemian round trip, so the order runs from the
 top down. *A build, later:* the counter at the kick write and before the
