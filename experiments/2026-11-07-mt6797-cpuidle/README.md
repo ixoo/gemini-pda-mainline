@@ -7157,6 +7157,30 @@ as `d4.sh`'s `D4_MM`. There is no module change.
 | Hangs | The options do not prevent it: timing or length makes the no-driver hang, and the crumbs place it | Split the start first: the same with a 5 s wait after the CPUs go offline (a one-line `d5m.sh` option), then the 200 ms length |
 | Passes 15 | One of D5af's options prevents the no-driver hang, yet the two-state hang survives them all, so it may be a separate hazard (kept open) | Split the options in two groups on `d5m.sh` timing: the interrupt side (`sodi_cirq_level`, `sodi_mask_ppi`, `sodi_no_event`) and the bus and cluster side (`sodi_acinactm_late`, `sodi_no_mp2`, `D5M_MM=2`), with `sodi_mark` and the crumbs in both; then one by one within the group that passes |
 
+**The program session on `NO_EVENT` (2026-11-22).**
+- With `NO_EVENT` clear, as in the vendor's flags and `d5m.sh`'s
+  defaults, CG mode arms only EV15 (APSRC sleep) and EV14 (APSRC wake).
+- When no DRAM requester remains, EV15 requests the EMI clock off and
+  waits for its ack. It then sets `0x1000cf4c` bit 4 and drives DRAM
+  channel 0 into self-refresh through `r0`: the memory clock off, the PHY
+  DLLs and VREF off.
+- EV14 undoes it. On the way out, only a conditional call to EV14 after
+  the wait (`0x4a3`/`0x4a4`, on `r6` bit 31) undoes it; the `0x59a`
+  restore does not touch those bits. The decoder marks that call's
+  polarity as uncertain.
+- A skipped undo would return with DRAM still in self-refresh, and
+  CPU0's first fetch after WFI would stall. That fits both the `kick`
+  crumb and run 2's silent CPU0. *Inference.*
+- **The path ran in D5m redo run 1:** `debug` `00000300` has bits 8
+  (EV14) and 9 (EV15, self-refresh entered) set.
+- **Against it as the only cause:** D5m with `NO_EVENT` set (older module)
+  hung in period 1, and D5ah hung with it set. So at least one mechanism
+  needs no self-refresh.
+- Reading D5aj, which sets `NO_EVENT`:
+  - a pass at 200 ms implicates this path; a run with `NO_EVENT` clear
+    and the entry (`0x204`-`0x212`) skipped would then split it;
+  - a hang clears it for this setup.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
