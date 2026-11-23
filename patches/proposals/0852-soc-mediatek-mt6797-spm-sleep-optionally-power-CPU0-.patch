@@ -1,0 +1,189 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 23 Nov 2026 15:38:44 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally power CPU0 down
+ in SODI test periods
+
+The vendor enters SODI with CPU0 powered down: flag bit 0 clear, then
+PSCI CPU_SUSPEND for the cluster, so the firmware flushes CPU0, takes the
+cluster out of coherency and waits in WFI before the program pauses the
+bus masters; the program powers the core back on at the wake, and it
+resumes at cpu_resume. Test periods here have kept CPU0 powered and
+coherent in WFI, and the pause of one master then hangs at low operating
+points.
+
+sodi_cpu_pdn (default off) makes sodi_once_ms periods do the same as the
+vendor: flag bit 0 clear, no ACINACTM writes, cpu_pm_enter(), then
+psci_cpu_suspend_enter(0x01010000) and cpu_pm_exit(). The return is read
+from SPM_IRQ_STA as before. CPU0's timer compare values are saved and
+restored around the period, since a powered-down core comes back with its
+timer registers reset. The result of the PSCI path is logged with the
+kick-to-WFI line. The cpuidle path is unchanged.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 59 ++++++++++++++++++++++---
+ 1 file changed, 52 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 8dde2dc8e..0658750c6 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -6,7 +6,8 @@
+  * powered in WFI (SPM_FLAG_DIS_CPU_PDN) and a PCM-timer wake. The program
+  * is not part of this driver: it is read at load time from the owner's own
+  * copy of the vendor file and checked against its SHA-256. No PSCI or SiP
+- * call is made.
++ * call is made, except PSCI CPU_SUSPEND in SODI test periods with
++ * sodi_cpu_pdn set.
+  *
+  * The register sequence follows the project's analysis in
+  * docs/hardware/mt6797-spm-sleep.md and the S1 write list in
+@@ -20,6 +21,7 @@
+ #include <linux/bitops.h>
+ #include <linux/backlight.h>
+ #include <linux/bits.h>
++#include <linux/cpu_pm.h>
+ #include <linux/cpufreq.h>
+ #include <linux/cpuidle.h>
+ #include <linux/debugfs.h>
+@@ -39,6 +41,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/pm_qos.h>
+ #include <linux/pm_runtime.h>
++#include <linux/psci.h>
+ #include <linux/regmap.h>
+ #include <linux/seq_file.h>
+ #include <linux/smp.h>
+@@ -265,6 +268,19 @@ MODULE_PARM_DESC(sodi_keep_26m, "SODI: set DIS_SRCCLKEN_LOW, so 26 MHz and infra
+  * program's master pause (D5ap-D5as). This holds CPU0's policy at a floor
+  * across each test period and refuses the period if CPU0 is not there.
+  */
++/*
++ * The vendor's SODI powers CPU0 down instead of keeping it in WFI: flag bit
++ * 0 clear, then PSCI CPU_SUSPEND for the cluster, so CPU0 flushes, leaves
++ * coherency and waits in the secure firmware's WFI before the program pauses
++ * the bus masters; the program powers it back on at the wake and it resumes
++ * at cpu_resume. With a powered, coherent cluster, the pause hangs at low
++ * operating points (D5ap-D5ay). Test periods only (sodi_once_ms).
++ */
++static bool sodi_cpu_pdn;
++module_param(sodi_cpu_pdn, bool, 0644);
++MODULE_PARM_DESC(sodi_cpu_pdn, "SODI: power CPU0 down through PSCI CPU_SUSPEND in test periods, as the vendor does");
++#define SODI_PSCI_CLUSTER_PDN	0x01010000
++
+ static unsigned int sodi_min_khz;
+ module_param(sodi_min_khz, uint, 0644);
+ MODULE_PARM_DESC(sodi_min_khz, "SODI: hold CPU0 at this kHz or more across each test period, refusing it otherwise (0: off)");
+@@ -529,6 +545,7 @@ struct spm_scen {
+ 	bool im_reuse;		/* IM slave mode when the program is resident (D5q) */
+ 	bool r7_vendor;		/* r7 starts from SPM_R7_VENDOR (D5r) */
+ 	bool vec_clear;		/* PCM_EVENT_VECTOR_EN 0 before the kick (D5r) */
++	bool cpu_pdn;		/* CPU0 down through PSCI CPU_SUSPEND (D6) */
+ 	bool ready;
+ };
+ 
+@@ -545,6 +562,7 @@ struct spm_wake {
+ 	u32 vec_en_reset, vec_en_kick;	/* PCM_EVENT_VECTOR_EN */
+ 	bool im_reused, im_stuck;
+ 	bool backstop;		/* CPU0's timer ended the wait, not the PCM */
++	int pdn_ret;		/* cpu_pm_enter or psci_cpu_suspend_enter result */
+ 	u32 rd_en, rd_pend;	/* CPU0's SGIs and PPIs at entry */
+ 	u64 isr_el1;		/* at entry */
+ 	u64 cnt_kick, cnt_return;	/* arch counter around the wait */
+@@ -1154,7 +1172,9 @@ static int spm_run(const struct spm_scen *sc)
+ 	bool obs_cpu = obs.on && cpu_online(SODI_OBS_CPU);
+ 	bool mp2 = !obs_cpu && !READ_ONCE(sodi_no_mp2);
+ 	bool smi = false;
+-	bool late = sc->cirq && READ_ONCE(sodi_acinactm_late);
++	bool pdn = sc->cpu_pdn;
++	/* The vendor sets ACINACTM only when CPU0 stays powered */
++	bool late = (sc->cirq && READ_ONCE(sodi_acinactm_late)) || pdn;
+ 	bool crumbs = sc->cirq && READ_ONCE(sodi_crumbs);
+ 	u32 smi_saved = 0;
+ 	int i;
+@@ -1400,14 +1420,30 @@ static int spm_run(const struct spm_scen *sc)
+ 	if (sc->idle)
+ 		ct_cpuidle_enter();
+ 	/* The loop's dsb completes these before the first WFI */
+-	if (late) {
++	if (late && !pdn) {
+ 		writel(axi[0] | ACINACTM, s.mcucfg + MP0_AXI_CONFIG);
+ 		writel(axi[1] | ACINACTM, s.mcucfg + MP1_AXI_CONFIG);
+ 		if (mp2)
+ 			writel(axi[2] | ACINACTM | BIT(0), s.mcucfg + MP2_AXI_CONFIG);
+ 	}
+ 	s.wake.cnt_wfi = __arch_counter_get_cntvct();
+-	for (i = 0; i < 1000000; i++) {
++	if (pdn) {
++		/* The firmware flushes, leaves coherency and waits for the SPM */
++		dsb(sy);
++		s.wake.pdn_ret = cpu_pm_enter();
++		if (!s.wake.pdn_ret) {
++			/* psci_cpu_suspend_enter exists only with CONFIG_CPU_IDLE */
++			s.wake.pdn_ret = IS_ENABLED(CONFIG_CPU_IDLE) ?
++				psci_cpu_suspend_enter(SODI_PSCI_CLUSTER_PDN) : -EOPNOTSUPP;
++			cpu_pm_exit();
++		}
++		if (spm_rd(SPM_IRQ_STA) & ISRS_PCM_RETURN) {
++			s.wake.returned = true;
++			s.im_resident = sc->im_ptr;
++		}
++		i = 0;
++	}
++	for (i = 0; !pdn && i < 1000000; i++) {
+ 		/* Complete every register write before the SPM sees CPU0 in WFI */
+ 		dsb(sy);
+ 		wfi();
+@@ -1701,9 +1737,10 @@ static void spm_log_wake(const char *what)
+ 		 s.wake.assert_pc);
+ 	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x\n", what, s.dummy1,
+ 		 spm_rd(SPM_PASR_DPD_0));
+-	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns\n", what,
++	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns, cpu pdn %d ret %d\n", what,
+ 		 mul_u64_u64_div_u64(s.wake.cnt_wfi - s.wake.cnt_pcm_kick, NSEC_PER_SEC,
+-				     arch_timer_get_cntfrq()));
++				     arch_timer_get_cntfrq()),
++		 !(s.sodi.flags & BIT(0)), s.wake.pdn_ret);
+ 	dev_info(&s.pdev->dev, "%s: im fsm %08x>%08x after %u us, reused=%d stuck=%d\n",
+ 		 what, s.wake.im_fsm0, s.wake.im_fsm1, s.wake.im_us,
+ 		 s.wake.im_reused, s.wake.im_stuck);
+@@ -1840,7 +1877,7 @@ static int sodi_once(u64 ms)
+ 	struct cpufreq_policy *hold;
+ 	struct i2c_adapter *i2c6;
+ 	enum sodi_no busy;
+-	u64 cntv, cntp, left_us;
++	u64 cntv, cntp, cntv_cval, cntp_cval, left_us;
+ 	int ret;
+ 
+ 	if (!s.sodi.ready)
+@@ -1879,6 +1916,9 @@ static int sodi_once(u64 ms)
+ 	s.sodi.im_reuse = READ_ONCE(sodi_im_reuse);
+ 	s.sodi.r7_vendor = READ_ONCE(sodi_r7_vendor);
+ 	s.sodi.vec_clear = READ_ONCE(sodi_vec_clear);
++	s.sodi.cpu_pdn = READ_ONCE(sodi_cpu_pdn);
++	if (s.sodi.cpu_pdn)
++		s.sodi.flags &= ~BIT(0);
+ 	if (s.sodi.pcm_wdt)
+ 		s.sodi.wake_src |= WAKE_PCM_WDT;
+ 	if (sodi_pdn)
+@@ -1894,6 +1934,9 @@ static int sodi_once(u64 ms)
+ 					      arch_timer_get_cntfrq());
+ 	cntv = read_sysreg(cntv_ctl_el0);
+ 	cntp = read_sysreg(cntp_ctl_el0);
++	/* A powered-down CPU0 comes back with its timer registers reset */
++	cntv_cval = read_sysreg(cntv_cval_el0);
++	cntp_cval = read_sysreg(cntp_cval_el0);
+ 	write_sysreg(cntv | ARCH_TIMER_CTRL_IT_MASK, cntv_ctl_el0);
+ 	write_sysreg(cntp | ARCH_TIMER_CTRL_IT_MASK, cntp_ctl_el0);
+ 	isb();
+@@ -1914,6 +1957,8 @@ static int sodi_once(u64 ms)
+ 	else if (ret && !s.entered)
+ 		dev_info(&s.pdev->dev, "sodi: not entered (%d): CPU1-9 online, PCM busy, or modem or C2K on\n",
+ 			 ret);
++	write_sysreg(cntv_cval, cntv_cval_el0);
++	write_sysreg(cntp_cval, cntp_cval_el0);
+ 	write_sysreg(cntv, cntv_ctl_el0);
+ 	write_sysreg(cntp, cntp_ctl_el0);
+ 	isb();
+-- 
+2.43.0
+
