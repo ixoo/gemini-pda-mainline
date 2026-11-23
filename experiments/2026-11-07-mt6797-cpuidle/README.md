@@ -7582,7 +7582,8 @@ and D5al, as in D5af.
 ### Request D5ao (proposed): `d4.sh`, then `d5m.sh`, on one boot
 
 - **Candidate:** module d157e512, one fresh station boot, cable out.
-  1. `d4.sh` blob 0a0567a2 with D5af's env (`D4_WAKE=0 D4_IDLE=0
+  1. `d4.sh` blob fb0e30dd (D5af's 0a0567a2 plus variants 4 and 5,
+     inert here) with D5af's env (`D4_WAKE=0 D4_IDLE=0
      D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1 D4_MM=2 D4_NO_MP2=1
      D4_ACINACTM_LATE=1 D4_MASK_PPI=1 D4_CRUMBS=1`), pings over window C,
      windows A and B as in D5af.
