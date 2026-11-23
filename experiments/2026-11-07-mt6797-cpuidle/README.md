@@ -8089,6 +8089,47 @@ carries 0846 and 0847.
 | Hangs | Passes | The pause handshake needs more than the fixed wait at a low OPP |
 | Hangs | Hangs | The pause of the other masters, held across the period, at a low OPP; the hold (0846) at 1547 MHz is the fallback fix |
 
+**The reviewer on 0846 (2026-11-23).** No blocking finding.
+- `policy->cur` is enough: cpufreq-dt without fast switching writes it
+  after the clock driver's `set_rate` returns, and the clock driver
+  already checks its PLL and divider words on each change.
+- Every path drops the request and the policy reference; the early
+  refusals hold nothing.
+- A ceiling below the floor (`scaling_max_freq`, a thermal cooling
+  request) leaves `cur` short of the floor, and the period is refused
+  after about 100 ms. That is intended: the hold must not override a
+  ceiling.
+- Nits, left for a later revision so the pending build stays valid: `cur`
+  is not initialised before the loop (it always runs once; `W=1` gave no
+  warning), and the `sodi hold:` line prints on every period, fine for
+  tests but not for an idle path.
+- *Scope:* the idle state cannot sleep, so a two-state hold would refuse
+  SODI when `policy->cur` is below the floor and fall back to WFI, which
+  means SODI would rarely run when the system is idle and CPU0 low. A
+  standing floor costs power, the owner's call. That tension is the
+  argument for the mechanism (variants 6 and 7) over the hold.
+
+### Request D5au (proposed): the two-state setup pinned at 1547 MHz
+
+The reproducer the investigation started from, with no build: `d4.sh`
+pins CPU0 through cpufreq itself (`D4_PIN_KHZ`), which also covers the
+idle path that 0846 does not.
+
+- **Candidate:** module d157e512 (or the 0846/0847 build, variants off),
+  fresh station boot, `d4.sh` blob fb0e30dd with D5ah's env without
+  `D4_KEEP_26M` (D5ac's: `D4_CIRQ_LEVEL=1 D4_NO_EVENT=1 D4_MARK=1
+  D4_MM=2 D4_NO_MP2=1 D4_ACINACTM_LATE=1 D4_MASK_PPI=1 D4_CRUMBS=1`, two
+  states) plus `D4_PIN_KHZ=1547000`, pings over window C, cable out.
+- **Pass rule:** 50 clean periods, summed over windows, against eleven
+  hangs at periods 1-28 without the pin (about one in nine).
+- **Admission:** a cpufreq limit, as D5l and D5ap; the owner approves the
+  run.
+
+| Result | Reading | Next |
+| --- | --- | --- |
+| Passes 50 | The two-state hang is the same hazard: a low OPP at entry | Variant 7 on the two-state setup unpinned, the fix candidate |
+| Hangs | The two-state setup has a second hazard besides the OPP | Variant 7 there too, then its own split |
+
 **The hold, as a module option (0846).**
 [`0846`](../../patches/proposals/0846-soc-mediatek-mt6797-spm-sleep-optionally-hold-CPU0-a.patch)
 (module only) adds `sodi_min_khz` (default 0, off). With it set, each
