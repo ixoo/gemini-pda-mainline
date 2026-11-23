@@ -6810,6 +6810,10 @@ env without `D4_KEEP_26M`, pings over window C only.
 every one on the PCM timer (`r12` `00000001`, 2000 ms), program hash
 unchanged, 270 of 270 pings answered. The window's CONN count was 60
 periods, against 58 in D5ae.
+Window A, 19:27:28-19:28:42: 0 of 20 ended early. Window B,
+19:28:43-19:33:46, no key pressed: 79 periods, no key wake. No refusals,
+CPUs 0-7 back, taint 0: **159 clean periods** in all, every one a timer
+wake.
 
 **Result.**
 - **Pass.** Today's module and `d4.sh` no longer hang on the timer-only,
