@@ -42,6 +42,9 @@
 # way the script logs both states before insmod.
 # D5M_HASH=1 runs d4.sh's memory reference, a cpu-mhz hash on CPU0, after the
 # settle and before period 1, as d4.sh does before window C (stage D5an).
+# D5M_PIN_KHZ=N pins CPU0's policy at N kHz (min = max) before period 1 and
+# restores it at the end, as d4.sh's D4_PIN_KHZ (stage D5ap). Each period's
+# line now ends with CPU0's frequency read just before the write.
 set -u
 
 KO=${1:-}
@@ -51,6 +54,9 @@ CPUS=/sys/devices/system/cpu
 TAKEN=""
 USB=/sys/bus/platform/devices/11271000.usb/power
 USB_CONTROL=""
+POLICY=$CPUS/cpufreq/policy0
+PIN_MIN=""
+PIN_MAX=""
 
 exec >>"$LOG" 2>&1
 
@@ -65,8 +71,16 @@ stop() {
 		echo 1 >"$CPUS/cpu$cpu/online"
 	done
 	usb_back
+	pin_back
 	log "done, stopped"
 	exit 1
+}
+
+pin_back() {
+	[ -n "$PIN_MIN" ] || return 0
+	echo "$PIN_MIN" >"$POLICY/scaling_min_freq"
+	echo "$PIN_MAX" >"$POLICY/scaling_max_freq"
+	log "policy0 back to $(cat "$POLICY/scaling_min_freq")-$(cat "$POLICY/scaling_max_freq") kHz"
 }
 
 usb_back() {
@@ -181,6 +195,23 @@ case ${D5M_HASH:-0} in
 	;;
 *) stop "D5M_HASH must be 0 or 1" ;;
 esac
+if [ -n "${D5M_PIN_KHZ:-}" ]; then
+	grep -qw "$D5M_PIN_KHZ" "$POLICY/scaling_available_frequencies" ||
+		stop "$D5M_PIN_KHZ kHz is not an OPP of policy0"
+	PIN_MIN=$(cat "$POLICY/scaling_min_freq")
+	PIN_MAX=$(cat "$POLICY/scaling_max_freq")
+	if [ "$D5M_PIN_KHZ" -gt "$PIN_MAX" ]; then
+		echo "$D5M_PIN_KHZ" >"$POLICY/scaling_max_freq"
+		echo "$D5M_PIN_KHZ" >"$POLICY/scaling_min_freq"
+	else
+		echo "$D5M_PIN_KHZ" >"$POLICY/scaling_min_freq"
+		echo "$D5M_PIN_KHZ" >"$POLICY/scaling_max_freq"
+	fi
+	sleep 1
+	[ "$(cat "$POLICY/scaling_cur_freq")" = "$D5M_PIN_KHZ" ] ||
+		stop "policy0 did not pin at $D5M_PIN_KHZ kHz"
+	log "policy0 pinned at $D5M_PIN_KHZ kHz (was $PIN_MIN-$PIN_MAX)"
+fi
 log "periods of ${D5M_MS:-200} ms"
 
 # Three periods; each must return, or this is not the passing setup.
@@ -193,9 +224,11 @@ while [ "$n" -lt 3 ]; do
 	# does not refuse the period on MSDC (as in D5h).
 	log "    period $((n + 1)), try $tries"
 	sleep 1
+	khz=$(cat "$POLICY/scaling_cur_freq" 2>/dev/null)
 	echo "${D5M_MS:-200}" >"$SODI" 2>/dev/null || continue
 	n=$((n + 1))
 	dmesg | grep 'sodi cg: returned' | tail -n 1 | sed 's/.*sodi cg: /    /'
+	log "    cpu0 ${khz:--} kHz just before the write"
 	sync
 done
 [ "$(dmesg | grep -c 'sodi cg: returned=1')" -ge 3 ] || stop "a period did not return"
@@ -204,6 +237,7 @@ if [ "${D5M_RESET:-1}" = 0 ]; then
 		echo 1 >"$CPUS/cpu$cpu/online"
 	done
 	usb_back
+	pin_back
 	log "three periods returned; no deliberate reset (D5M_RESET=0); done"
 	exit 0
 fi
