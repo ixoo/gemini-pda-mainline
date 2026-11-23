@@ -8592,6 +8592,30 @@ layout (2026-11-23).** *Inference from matching groups.*
 - If the bisection lands on bit 21, the next question is whether mainline
   leaves the GPU's power domain on and unprotected while idle.
 
+**The reviewer on the GPU path (2026-11-23),** from the station's tree:
+- The GPU's bus protection is two bits, 21 and 23 of
+  `INFRA_TOPAXI_PROTECTEN` (polled on `PROTECTSTA1`), both in group C and
+  both in the first half being tested (`0x00f00000`).
+- The panfrost glue for this chip enables runtime PM with a 50 ms
+  autosuspend: on suspend it waits for the GPU to idle, sets protection on
+  bits 21 and 23, then powers the domains off; on resume it releases the
+  protection last; at probe it asserts it first. The power-domain table
+  gives the MFG domains no protection of their own and keeps them off by
+  default; the bootloader may leave `MFG_ASYNC` on.
+- So the GPU port's state at a period depends on whether the GPU module
+  is loaded: loaded and idle, it is off and protected, as the vendor's
+  idle is; not loaded, nothing has protected it, and its domain is as the
+  bootloader left it. The bus-protect read answers which.
+- *Caution:* a parked or unpowered master that never acknowledges would
+  fail at every rate, yet D5ap and D5au passed 242 periods at 1547 MHz
+  with the stock masks. If the bit is 21 or 23, either the GPU's state
+  differed between those boots and the hanging ones (whether the GPU
+  module was loaded on each is worth checking in the journals), or the
+  rate dependence comes through something shared with the cluster clock.
+- *Cheap discriminators if it lands there, no build:* the same pinned-low
+  run with the GPU module loaded and idle, against not loaded, each with
+  the bus-protect bits read first.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
