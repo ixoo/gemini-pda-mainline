@@ -7048,6 +7048,17 @@ the holder after the run.
   wake-mask run is cleaner: without bit 10 in `SPM_WAKEUP_EVENT_MASK`,
   `0x4b2`-`0x4ec` never runs, which tests the store and the loop at once,
   on unmodified firmware.
+- **Log search (custodian, 2026-11-22):** no retained log shows `r12`
+  bit 10. Across the station logs, journals and RAM console copies, the
+  wake values are `00400020`, `00000001`, `00000000` and `00400000`. The
+  two-state hang runs' returned periods show only `00400020`, with an
+  occasional `00400000`. Only returned periods are logged, so the hung
+  period's `r12` stays unseen. `SW_RSV_3` read 0 in every latch read so
+  far, but those come before a module loads or after a Gemian landing,
+  not after two-state periods on the same boot. **Reading:** no SCP wake
+  is seen in thousands of returned periods, so the SCP branch is unlikely
+  and the wake-mask run is not triggered. D5ai's before-and-after reads
+  remain.
 
 ### Request D5n (proposed): two states with no resource events
 
