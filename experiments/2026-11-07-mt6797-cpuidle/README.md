@@ -8333,7 +8333,10 @@ Started 11:43:00.
 `SODI variant 6: word 0x2b2 20000020 -> 20000200` at 67.950 s; `sodi mm`
 ungated then gated at 147.939 s; CPU7 to CPU1 killed at 148.146-148.748
 s; `sodi crumb 1: kick` at 151.184 s, 2.44 s later, and nothing after it.
-Gemian (boot fdaac085) was up at 11:45:52. Variant 7's log (read on this
+Gemian (boot fdaac085) was up at 11:45:52. Its log (read on boot
+bf0be86d) confirms `sodi_variant 6`, the pin at 221000 kHz at 11:44:54,
+then `period 1, try 1` and nothing after; the journal (2724 lines) is
+kept privately. Variant 7's log (read on this
 boot) confirms its pin at 221000 kHz and `sodi_variant 7`, then `period
 1, try 1` and nothing after; its journal (2717 lines) is kept privately.
 
@@ -8356,7 +8359,9 @@ each checked against its original before any is written:
 | 10 | > `00000000` | > `00000000` | No master selected |
 
 Compile-checked with `W=1`, with and without `CONFIG_CPU_FREQ` and
-`CONFIG_CPU_IDLE`; checkpatch `--strict` is quiet.
+`CONFIG_CPU_IDLE`; checkpatch `--strict` is quiet. Buildbox build of
+638e88cbe (custodian): module sha256 b5399d6c, vermagic
+`7.1.3-gemini-a53-station`, listing variants 8-10.
 
 ### Request D5av (proposed): the pause masks at 221 MHz
 
