@@ -7453,6 +7453,40 @@ The boot read decides: if the module is loaded at boot, D5am is moot and
 the pings remain; if it is absent, D5am runs with `D5M_GATE_UNUSED=1`
 (keeping `D5M_USB_AUTO=1` costs nothing).
 
+**The reviewer and the program session on D5am (2026-11-23).**
+- **Reviewer:** the vendor's SODI admission refuses a period while any
+  clock in its infra masks (`0x00440802`, `0x03aff900`, `0x21fe36fd`,
+  bit set = must be gated) or its display masks is running; `sodi_busy()`
+  checks only AP_DMA, the three SSUSB gates, MSDC0/1 and audio.
+  `mt6797-gate-unused` is the step that closes most of the rest. The
+  SSUSB gates were already off at every `d5m.sh` kick, or `sodi_busy()`
+  would have refused, so the gate step is the half expected to matter.
+  The bit names the reviewer gave follow the mainline word order, which
+  D5w found reversed against the vendor's (first mask on `0x94`, second on
+  `0x90`); the masks themselves stand.
+- **Program session:** neither `SPM_SRC_MASK` nor `SPM_SRC2_MASK` has a
+  USB input, so a powered SSUSB cannot hold infra or 26 MHz through the
+  SPM. But every period pauses the top bus masters: `0x438` writes
+  `SPM_MAS_PAUSE_MASK_B` `0x6ff00b01` and `MAS_PAUSE2_MASK_B`
+  `0xfe00ffff`, and `0x43e` calls `0x2b0`, which sets `r7` bit 2
+  (`TOP_MAS_PAU_REQ`), waits a fixed delay and polls no acknowledgement;
+  the exit clears it at `0x519`. Which masters those masks select is not
+  named. *Inference:* a master with its clock running, paused in the
+  middle of a transaction, is a plausible way an ungated clock blocks the
+  exit, and a reason the vendor refuses SODI with those clocks on.
+  Removing the pause would be an IM patch at `0x2b0` (`a1d10407`), like
+  variants 4 and 5; it needs the owner's admission and is not proposed.
+- **No new read is needed for the gate words:** the module's return line
+  carries `cg0`, `cg1` and `cg2` (`0x10001090`, `0x94`, `0xb0`) before
+  and after each period. D5ak's period 1 and D5m redo run 1 have them for
+  `d5m.sh`, and D5af's `d4.log` for `d4.sh`. With the masks applied as D5w
+  did (`~cg1 & 0x00440802`, `~cg0 & 0x03aff900`, `~cg2 & 0x21fe36fd`),
+  nonzero terms in `d5m.sh`'s runs and zero in D5af's would make the gate
+  step the difference and name the clocks. G1's boot values without the
+  module (`0x00001800`, `0x00004014`, `0x080000e7`) give large nonzero
+  terms, so if the boot no longer loads `mt6797-gate-unused`, that is
+  what to expect.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
