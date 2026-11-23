@@ -6848,6 +6848,13 @@ periods, against 58 in D5ae.
   one in nine periods) 50 clean periods happen by chance under 0.5 % of
   the time.
 - **No separate control run:** D5ac is the same env without the flag.
+- **Timer (program session):** the SODI path never reads or compares
+  `PCM_TIMER_VAL`; it only arms the timer (`0x410`), disarms it (`0x517`)
+  and copies `PCM_TIMER_OUT` at exit. Its one time-dependent branch is the
+  early abort at `0x434`-`0x436` and `0x456`: a wake already pending skips
+  the pause, the clock cut and the wait. Two-state idle entries can be as
+  short as one tick (about 30 µs) and may take it; 2000 ms test periods
+  never do. The `0x514` watchdog store runs after the wake.
 - **Admission:** the same flag value D5ae ran; the owner approves the run.
 
 | Result | Reading | Next |
