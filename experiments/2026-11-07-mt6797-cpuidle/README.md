@@ -7241,14 +7241,16 @@ keeps today's start.
   `d4.sh`'s 5 s wait. Up to five runs, with rmmod and 30 s between them,
   stopping at the first hang.
 - **Pass rule:** all five runs clean, as D5aj.
+- **Per run, record** the time from the last PSCI kill line to period 1's
+  `kick` crumb (about 1.2 s in D5aj), so passes and hangs sit on one axis.
 - **Admission:** no new register write or parameter; the owner approves
   the run.
 
 | Result | Reading | Next |
 | --- | --- | --- |
-| Passes | A period started while the CPU power-downs settle hangs; D5af's start avoided it | Find what is still settling: the same with 2 s, and with the CPUs left online; the two-state hang, which comes long after offlining, is then a separate hazard |
+| Passes | A period started while the CPU power-downs settle hangs; D5af's start avoided it | One run at 2 s to bracket it; the reviewer reads what the firmware's CPU and cluster power-down still do in the second after the last CPU_OFF; the two-state hang, which comes long after offlining, is then a separate hazard |
 | Hangs in period 1 | Not the start delay | The length: `d5m.sh` with 2000 ms periods |
-| Hangs later | The settle helps period 1 only | Compare the period gaps (1 s here, about 1.5 s in `d4.sh`) and the length |
+| Hangs later | The settle helps period 1 only; the periods still run back to back, so the missing gap between periods is the lead, not offlining | Longer gaps between periods (1 s here, about 1.5 s in `d4.sh`), then the length |
 
 ### Request D5n (proposed): two states with no resource events
 
