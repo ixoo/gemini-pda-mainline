@@ -9071,6 +9071,19 @@ a3c38b62, no SPM module loaded; the A72s were not up on this boot
   is unconfirmed live, but `CPU_EXT_BUCK_ISO` bit 1 is set throughout, as
   the firmware leaves it with MP2 off.
 
+**Build for D6a (custodian).** Buildbox build of a778e5a64: the image
+exports `psci_cpu_suspend_enter` (0851 in); module
+`mt6797-spm-sleep.ko` sha256 4aa576a0, vermagic
+`7.1.3-gemini-a53-station`, with `sodi_cpu_pdn` and the new log line;
+station boot image 138 (DVFS DTB, same initramfs and tools as 137),
+boot2-padded sha256 `6a96300c…ef90a7c`. The package also carries 0785,
+0818 and 0823; a standing owner decision turns `a72-at-boot` on at the
+first install of the 0785 image. That does not block D6a: `d5m.sh` takes
+CPU8 and 9 offline like the others, the firmware powers MP2 off and sets
+`CPU_EXT_BUCK_ISO` bit 1, and 0852's check would refuse a period with
+MP2 still on, so a boot with the A72s up would also confirm bit 17 live.
+Whether to keep it off for the first run is the owner's call.
+
 ### Request D6a (proposed): SODI with CPU0 powered down, pinned at 221 MHz
 
 - **Hypothesis:** with CPU0 out of coherency in the firmware's WFI, the
