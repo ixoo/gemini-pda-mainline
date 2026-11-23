@@ -6771,8 +6771,9 @@ alone, Wi-Fi joined, pings throughout window C.
 - Ping loss 0.5 % (6 of 1200), average 128 ms.
 - The script then stopped in window A ("pings still arriving after
   300 s"), because the custodian's ping run outlasted window C. Not a
-  device fault: CPUs and the gadget were restored, taint 0, module
-  removed, no warning lines, station up.
+  device fault: CPUs and the gadget were restored, taint 0, no warning
+  lines, station up. The module stayed loaded (corrected by the
+  custodian); `d4.sh` unloads it at the start of the next run.
 
 **Result.**
 - **Pass:** 60 clean periods against a rule of 20, on a setup that hung
@@ -6821,6 +6822,10 @@ alone, Wi-Fi joined, pings throughout window C.
 5 drops `0x420` (infra; original `a1de8407`), keeping only 26 MHz's.
 Neither word is a branch target or a delay slot. `d4.sh` takes
 `D4_VARIANT=4|5` only with `D4_KEEP_26M=1`.
+
+**D5af started** 2026-11-22 19:22 on boot 5ea39fb6: module d157e512,
+`d4.sh` blob 0a0567a2, D5ae's env without `D4_KEEP_26M`, pings over
+window C only.
 
 ### Request D5ag (proposed, after D5af hangs): which force-wake avoids the hang
 
