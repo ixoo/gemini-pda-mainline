@@ -7566,7 +7566,7 @@ hung within two periods in four of its last five runs.
 | --- | --- | --- |
 | USB `power/control` | `auto` (already `auto`), then 10 s | not touched |
 | `mt6797-gate-unused` | loaded if absent | not touched |
-| Console log level | not touched | 8, with `sodi_crumbs=1` |
+| Console log level | 8, set by the custodian before the launch (from D5r on) | 8, with `sodi_crumbs=1` |
 | insmod | `sodi_wake_src=0 sodi_idle=0` and the seven options | the same |
 | After the blank | `sodi_mm_cg=2` | the same |
 | CPUs | 9 to 1 offline | the same |
@@ -7591,7 +7591,9 @@ kick could be the variable. The records answer it without a run:
 - The custodian raises the level to 8 for `d4.sh` runs from D5r on, and
   D5ac's and D5ah's crumbs were read from the RAM console, so `d4.sh`'s
   crumb runs printed to `ttyS0` right before each kick. D5af ran with
-  crumbs and passed; its level is to be confirmed.
+  crumbs and passed; the custodian's launch record sets
+  level 8 right before it (the log does not record it), the same level
+  `d5m.sh` read back in D5aj, D5ak and D5al.
 - `d4.sh`'s `uart_tx` only reads the transmit count after each period; it
   does not wait for the transmitter to drain.
 - So the no-driver hang needs no console output, and console output
