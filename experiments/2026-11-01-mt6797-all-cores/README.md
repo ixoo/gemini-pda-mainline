@@ -1744,6 +1744,38 @@ What this means for the A72s on battery:
   2026-11-11.
 - **The low-battery interrupt backstop** is a separate decision.
 
+**First battery boots with the A72s on (image 138, 2026-11-23): three power losses.**
+Image 138 was built from a778e5a6, with `battery-headroom` at the 50 % margin
+(`afa5b324`).
+- **What happened:** the owner set `a72-at-boot`. Three boots on battery
+  (`c9cc6a85`, `8b296753`, `5011ed85`) each lost power within about a minute, before
+  SSH came up.
+- **Start state:** the gauge read a start-up OCV of 3.726-3.730 V (16-17 %), the
+  level T11 started from.
+- **The cap:** each kernel journal shows `battery-headroom` loading with "no headroom
+  reported, no cap". The journal ends 1-3 s later, during the root's start-up.
+- **Recovery:** a fourth boot on the cable came up with all ten CPUs. The owner
+  turned `a72-at-boot` back off for battery boots.
+
+Cause, inferred from the order of events:
+- The init set schedutil, then loaded `battery-headroom`, which caps nothing until
+  the gauge's first headroom, about 20 s into boot (T10, T11).
+- So the whole start-up of the root ran with all ten CPUs uncapped on a cell at
+  about 3.73 V open-circuit, which is T4b's case.
+- T11 started from the same level but booted with the cap through the same gap and
+  only loaded the CPUs after it. Its boot happened to survive the gap.
+- The moment of power loss is not in the journals.
+
+Fix, in the station init:
+- `battery-headroom` now loads before schedutil is set, while the governor is still
+  the DVFS profile's userspace one at the boot points.
+- It loads with `fallback_ua=1000000`. Until the gauge reports, it caps as for a
+  1 A headroom: a 0.3 A CPU budget, which gives A72 338, L 325 and LL 897 MHz.
+- That needs a recomposed image, not a new kernel.
+
+A better source for the gap is the gauge itself: it knows the start-up OCV at probe,
+and could report a headroom from it at once. That is for the fuel-gauge session.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
