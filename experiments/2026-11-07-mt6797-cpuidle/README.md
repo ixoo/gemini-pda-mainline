@@ -8817,6 +8817,31 @@ loaded, panfrost loaded; read at about 30 s of uptime. Policy0 was
 - Its result sets the hold's floor (`sodi_min_khz` for test periods, and
   the threshold of a future idle-path refusal).
 
+### D5ay at 1274 MHz: hangs at the first kick (custodian, 2026-11-23)
+
+**Approved** by the owner in the custodian's session, with D5ax; D5ay
+ran first so D5ax could follow on the same boot after a pass.
+
+**Setup.** Boot 3bc7b33e (fresh at 14:32, only the read-only protect
+reads before), cable out, battery 23 %, module 17a226f4 with stock masks
+(no variant), `d5m.sh` blob 218631f5, D5ao step 3's command plus
+`D5M_PIN_KHZ=1274000`. Started 14:59:16.
+
+**Observed** (RAM console read in Gemian, 1950 B, kept privately): no
+variant line at insmod; `sodi mm` ungated then gated at 1687.528 s; CPU1
+killed at 1688.337 s; `sodi crumb 1: kick` at 1690.684 s, 2.35 s later,
+and nothing after it. Gemian (boot 9d72e249) was up at 15:01:20. D5ax did
+not run.
+
+**Result.**
+- **1274 MHz hangs** with the stock masks. `d4.sh`'s clean periods that
+  logged 1274-1391 MHz read the frequency about 1 s before the kick, so
+  CPU0 may have been higher at the kick itself; they do not contradict
+  this.
+- The floor lies above 1274 MHz: 1339000 next, and if it hangs, 1443000,
+  then 1495000. A floor near the top OPP would make the hold close to a
+  standing maximum frequency for every period.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
