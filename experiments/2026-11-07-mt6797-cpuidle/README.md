@@ -8570,6 +8570,28 @@ and each group's masks; two runs per step.
   explanation of why it is safe here; the hold stays the default until
   then.
 
+**The program session: the first word looks like the infra bus-protect
+layout (2026-11-23).** *Inference from matching groups.*
+- `MAS_PAUSE_MASK_B`'s groups match the vendor's MT6797 bus-protect masks
+  for `INFRA_TOPAXI_PROTECTEN` (`0x10001220`): MD1 = bits 3, 4, 5, 7, 10,
+  16, exactly group F (paused only around the EMI clock-off); the display
+  = bits 1, 2, exactly group E (exempt in SODI; mainline's scpsys uses the
+  same bits for the MM domain); CONN = 17, 18 and C2K = 13-15, inside
+  group G (paused only before the AXI clock goes off); **MFG (the GPU) =
+  bit 21, inside group C**. An older vendor power file with another layout
+  disagrees with both and is discounted.
+- So in C, bit 21 is the GPU and bits 20 and 22-27 are unnamed.
+  *Inference:* the rest of C is likely always-on infra or peripheral DMA
+  paths, since modem, CONN and display have their own groups.
+- **A read-only check that could shrink the search:**
+  `INFRA_TOPAXI_PROTECTEN` (`0x10001220`), `PROTECTSTA0` (`0x10001224`),
+  `PROTECTSTA1` (`0x10001228`), `PROTECTEN_1` (`0x10001250`) and
+  `PROTECTSTA1_1` (`0x10001258`) on the running station. A bit already
+  protected marks a master already parked, unlikely to wedge when paused
+  again; the unprotected bits of C are the candidates.
+- If the bisection lands on bit 21, the next question is whether mainline
+  leaves the GPU's power domain on and unprotected while idle.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
