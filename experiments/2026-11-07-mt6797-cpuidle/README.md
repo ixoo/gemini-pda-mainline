@@ -7794,6 +7794,56 @@ The converse: the passing script, held at the bottom of the table.
 | Hangs early in C | Confirmed from both sides: a low OPP at the kick hangs, whatever the script | The two-state setup pinned at 1547 MHz to the 50-period rule; then the edge (1274 MHz and lower) and, with a build, the cluster divider and PLL words read at entry |
 | Passes | The operating point is not sufficient alone: `d4.sh`'s load or pings matter beyond the frequency | D5an's hash and pings on `d5m.sh` pinned at 221 MHz |
 
+**The reviewer on the mechanism (2026-11-23).** No proof; what the
+sources fix:
+- The cluster clock driver changes no voltage, so this is not a rail
+  effect.
+- The SODI program writes no cluster PLL, mux or divider register (its
+  only MCUCFG-range stores are `0x10229004` and `0x10229008`). Any
+  dependence is on the state CPU0's clock is in, or on CPU0's speed.
+- The mainline cluster clock sets its dividers by rate: 1050 MHz and up,
+  post-divider 1 and clock divider 1; 525-1049, 2 and 1; 263-524, 2 and
+  2; below 263 (221 MHz), 2 and 4. Every clean `d4.sh` period started at
+  1274 MHz or more, with both dividers at 1.
+
+Two families, which the edge separates:
+- **A, divider state:** something at entry or exit cannot take a divided
+  cluster clock (the ARM clock stop and restart, the FHCTL pause, or the
+  sync DCM divider at MCUCFG `0x744`, whose select follows the rate).
+  Predicts a step at a divider boundary.
+- **B, CPU0's speed:** between the kick and CPU0's first WFI, CPU0 still
+  programs SYS_CIRQ, the GIC masks, the timer and the late ACINACTM while
+  the program runs; at 221 MHz that takes about seven times longer. At
+  `0x42e` the program waits for standby or a wake, then pauses the bus
+  masters (`0x438`-`0x43e`) and never checks again that CPU0 is still in
+  WFI. CPU0 leaving WFI once and reading `SPM_IRQ_STA` under the pause
+  would hang it. Predicts a gradual rise as the frequency falls, and a
+  dependence on the work after the kick. Variant 1 kept the pause, so
+  its hang fits B.
+
+*Fix direction, either way:* the vendor pauses its DVFS processor before
+SODI and enters with CPU0 powered down. A frequency QoS request from the
+module, holding policy0 at a full-rate point across each period, is the
+module-level equivalent.
+
+### Request D5ar (proposed, after D5aq): the edge, four pinned points
+
+On `d5m.sh` with D5ao step 3's command, five runs each, stopping a point
+at its first hang:
+- the lowest OPP at or above 1050 MHz (dividers 1 and 1);
+- the highest below 1050 MHz (post-divider 2);
+- the highest below 525 MHz (clock divider 2);
+- 221 MHz (clock divider 4): the expected hang, run last or skipped if
+  D5aq already shows it.
+
+Entries come from policy0's `scaling_available_frequencies`, read first
+(read only). A step between the first two points to A and the
+post-divider; a step at 525 MHz to the clock divider; a gradual change
+to B. Every hang costs a Gemian round trip, so the order runs from the
+top down. *A build, later:* the counter at the kick write and before the
+first WFI on the return line, to time B directly; `loops` already counts
+WFI returns without the PCM interrupt.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
