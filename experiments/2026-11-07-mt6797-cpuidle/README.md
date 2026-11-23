@@ -8842,6 +8842,34 @@ not run.
   then 1495000. A floor near the top OPP would make the hold close to a
   standing maximum frequency for every period.
 
+### D5ay at 1339 MHz: four clean periods, then a hang (custodian, 2026-11-23)
+
+**Setup.** Fresh boot cbe2c769, cable out, battery 25 %, module 17a226f4
+with stock masks, `d5m.sh` blob 218631f5, D5ao step 3's command plus
+`D5M_PIN_KHZ=1339000`. D5ay at 1274 MHz's log (read on this boot)
+confirms its pin at 1274000 kHz before period 1.
+
+**Observed** (RAM console read in Gemian, 10071 B, kept privately):
+- Run 1: 3 of 3 periods returned (done 15:25:34); kick to first WFI
+  29.0, 29.2 and 29.5 µs.
+- Run 2: insmod at 225.92 s; CPU1 killed at 227.077 s; period 1 kick at
+  229.265 s, returned (29.4 µs to WFI); `sodi crumb 2: kick` at
+  230.672 s and nothing after it. Gemian (boot 54e83e64) was up at
+  15:27:47. D5ax did not run.
+
+**Result.**
+- **1339 MHz hangs too, but later:** four clean periods, then a hang at
+  the fifth kick. With stock masks and CPU0 pinned, the first hang came
+  at kick 1 at 221 and 1274 MHz, kick 2 at 1118 MHz and kick 5 at 1339
+  MHz, while 1547 MHz ran 15 of 15 (D5ap) and the two-state setup 227
+  periods. The hazard falls as the rate rises rather than stopping at a
+  clean edge; whether 1443 or 1495 MHz is safe needs those points.
+- Kick to first WFI: about 29 µs at 1339 MHz against 97-98 µs at
+  221 MHz, a ratio of about 3.3 for a rate ratio of about 6, so CPU0's
+  path to WFI is not purely CPU-clock bound.
+- *For the decision:* a hold would sit at or near the top OPP for every
+  period.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
