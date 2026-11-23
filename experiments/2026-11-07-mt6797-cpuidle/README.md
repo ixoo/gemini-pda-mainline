@@ -8545,6 +8545,31 @@ and each group's masks; two runs per step.
   must hang to confirm, then `0x03000000`, then one bit. If neither half
   hangs alone, two bits of C are needed together; stop.
 
+**The reviewer on group C (2026-11-23).**
+- No source names bits 20-27: every vendor header describes
+  `SPM_MAS_PAUSE_MASK_B` as one 32-bit field written `0xffffffff` at
+  init, and no code touches single bits.
+- Every value any of the three programs writes to the first word has
+  bits 20-27 set (`0x6ff00b01`, `0x6ff00b07`, `0x6ff10fbf`,
+  `0xffffffbf`): the vendor pauses these masters in every mode, so the
+  failure is specific to our entry, a retained, clocked cluster at a low
+  OPP.
+- They are never stepped by a power routine. *Guess from shape:* eight
+  contiguous always-set bits fit the ports of one shared resource, such
+  as the memory controller's master ports (the AP cluster's among them).
+- Once a bit hangs, test its neighbours alone too: exactly one points at
+  one master, all eight at a shared acknowledge.
+- *A later option:* the program never reads the acknowledgement
+  (`R13` bit 22), but a second CPU could read `PCM_REG13_DATA` during a
+  passing variant 10 or 11 period and before a hang; an acknowledgement
+  that never comes at 221 MHz but does at 1547 MHz would be the
+  mechanism. The CPU8 observer was retired at D5u, so that is a new kind
+  of test, not proposed now.
+- **The fix stays cautious:** with all three shipped programs pausing
+  this group, stock masks minus the bit should not ship without an
+  explanation of why it is safe here; the hold stays the default until
+  then.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
