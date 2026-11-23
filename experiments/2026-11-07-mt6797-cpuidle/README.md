@@ -8465,8 +8465,8 @@ checkpatch `--strict` is quiet.
 
 - **Candidate:** a module from a Buildbox build carrying 0846-0850,
   `d5m.sh` blob 218631f5 with D5at's command and `sodi_variant=11
-  sodi_pause_mask=X sodi_pause2_mask=Y` in `D5M_ARGS`. Each step up to
-  five runs; a hang ends the boot. The insmod log must show both words.
+  sodi_pause_mask=X sodi_pause2_mask=Y` in `D5M_ARGS`. A hang ends the
+  boot. The insmod log must show both words.
 - **Steps**, starting from the common set (`0x6ff00b01`/`0xfe00f000`),
   assuming one master:
   1. `0x6ff00b01`/`0`: the first word alone. Hangs → the culprit is in
@@ -8477,6 +8477,16 @@ checkpatch `--strict` is quiet.
   3. Confirm with SODI's own values minus that bit, five runs.
 - If no single bit hangs alone but a set does, two masters interact;
   stop and report.
+- **Pass rule per step (reviewer):** every hang at 221 MHz has come at the
+  first kick, so an intermediate step passes after two runs (six
+  periods); only the final checks run five (15 periods): SODI's masks
+  minus the bit must pass, and the bit alone must hang.
+- **Reviewer on 0850:** correct, no finding; variant 11 without mask
+  parameters reproduces the stock program, a control to run only if a
+  later result looks odd. A culprit bit is a fix only if its master can
+  be named or shown idle here; leaving an unnamed master unpaused before
+  the clock cut may not be acceptable, and then the hold stays the fix and
+  the bit is the explanation.
 - **Admission:** firmware data variants in RAM, new values each step;
   the owner approves the bisection as a whole or step by step.
 
