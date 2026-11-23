@@ -8572,10 +8572,41 @@ and each group's masks; two runs per step.
   defines `INFRA_BUS_IDLE_STA5` at infra `0x190`) around the kick might
   identify it.
 
+**The reviewer on bit 25 (2026-11-23).**
+- The same searches: the vendor's compiled power table names nothing at
+  24-27; the older file with MD1 at 24-28 is not even compiled and
+  contradicts the measured `PROTECTEN`. Mainline has no table for this
+  chip or its siblings. On at least one other MediaTek chip, bits in that
+  range of a second protect register are CPU-side bridge requests (an
+  infra bridge at 24, a cluster L2 FIFO at 27), so "a bridge on the AP
+  MCU side" is a reasonable guess here, no more.
+- Deep idle (`0x4b8`), suspend (`0x49c`) and the vcore programs store
+  `0xffff` to `INFRA_TOPAXI_PROTECTEN`; SODI never writes it.
+- *Reading, low confidence:* a master on the AP MCU side that is busy or
+  slow to quiesce when the cluster clock is low, paused without an
+  acknowledgement check, then the clock cut. The vendor never meets it
+  because its CPU0 has left coherency in the firmware before the pause.
+  If so, the hold is a workaround for the missing firmware entry, the
+  PSCI power-down path is the fix that removes the cause, and SODI minus
+  bit 25 would be safe only by luck.
+- **Identifying it by behaviour, cheapest first:**
+  1. Read only, no period: `PROTECTSTA0` (`0x10001224`) and
+     `PROTECTSTA1` (`0x10001228`) with CPU0 pinned at 221 MHz, then at
+     1547 MHz. A bit that differs between the rates is a first direct
+     link between the OPP and a master.
+  2. The queued check (SODI's masks minus bit 25, 15 periods at
+     221 MHz), then the same on the two-state setup unpinned, to 50
+     periods.
+  3. Only with a register-write admission: set `PROTECTEN` bit 25 from
+     Linux at 1547 MHz without SODI and watch `PROTECTSTA1` bit 25 and
+     the system. If it dies at once, bit 25 is a path CPU0 itself needs.
+     It costs a boot; last.
+
 - **The culprit is in bits 24-27** of `MAS_PAUSE_MASK_B`. No source names
   them (program session: none of the vendor's CPU DVFS, hotplug or SPM
-  CPU code writes them). All four read active, not idle, in
-  `PROTECTSTA1` at the GPU probe. *Inference (program session):* with the
+  CPU code writes them). All four read 0 in `PROTECTSTA1` at
+  the GPU probe (`0xe0415cb8`), which under the program session's reading
+  of that register as idle status means not idle. *Inference (program session):* with the
   GPU, display and modem cleared and the hang tied to CPU0's clock, they
   may be MCUSYS-side ports into infra (cluster or CCI paths) or
   peripheral DMA paths.
