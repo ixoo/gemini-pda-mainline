@@ -7180,6 +7180,20 @@ as `d4.sh`'s `D4_MM`. There is no module change.
   - a pass at 200 ms implicates this path; a run with `NO_EVENT` clear
     and the entry (`0x204`-`0x212`) skipped would then split it;
   - a hang clears it for this setup.
+- **Polarity settled (program session):** the `0x4a4` call is
+  call-if-zero, by the same field the jumps use (checked at `0x41d`), and
+  by meaning. `0x411` marks every resource awake, the sleep handlers clear
+  their bits, and the chain wakes only those still asleep. So the exit
+  undo exists and is gated correctly.
+- **Residual window (inference):** `PCM_EVENT_VECTOR_EN` stays `0xc0c0`
+  through the exit. If vectors are serviced during the exit's timed
+  delays, EV15 could re-enter self-refresh after the chain, while CPU0 is
+  still in WFI. The program does not show whether that happens.
+- **Variant held until D5aj passes:** no-op words at `0x209` (the
+  `0xcf4c` store) and `0x20d` and `0x212` (the two `r0` writes). EV15
+  then keeps its bookkeeping but never enters self-refresh, and EV14's
+  undo is harmless. None of the three is a branch target; the words are
+  to be checked against the listing before building.
 
 ### Request D5n (proposed): two states with no resource events
 
