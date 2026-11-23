@@ -8856,6 +8856,10 @@ confirms its pin at 1274000 kHz before period 1.
   229.265 s, returned (29.4 µs to WFI); `sodi crumb 2: kick` at
   230.672 s and nothing after it. Gemian (boot 54e83e64) was up at
   15:27:47. D5ax did not run.
+- **Log and journal** (read on boot a3c38b62, kept privately): the pin at
+  1339000 kHz in both runs; run 2's last lines are `cpu0 1339000 kHz just
+  before the write` at 15:26:49 and `period 2, try 2`, so the pin held for
+  the hanging kick.
 
 **Result.**
 - **1339 MHz hangs too, but later:** four clean periods, then a hang at
@@ -8901,9 +8905,8 @@ confirms its pin at 1274000 kHz before period 1.
 
 The owner chose "stop for PSCI work" in the custodian's session. D5ay's
 1443 and 1495 MHz points and D5ax were not run. Refinement of the legacy
-entry (CPU0 powered and coherent in WFI under the program) stops here.
-D5ay at 1339 MHz's log and journal are still to be saved on the next
-station boot.
+entry (CPU0 powered and coherent in WFI under the program) stops here,
+with all its evidence saved.
 
 **The diagnosis it rests on.** With CPU0 kept powered and coherent, the
 program's pause of one bus master, bit 25 of `MAS_PAUSE_MASK_B`, hangs
