@@ -7311,6 +7311,23 @@ command plus `D5M_SETTLE=5`, printk 8. Started 23:01:46.
   here, about 1.5 s in `d4.sh`, which also does more between periods).
   The gaps barely differ, so the length is tested first.
 
+**Evidence read on the next station boot** (64f3768b, 2026-11-23, module
+not loaded; all files kept privately):
+- **Log** (25 lines): every option read back `Y`, printk 8, CPUs offline
+  at 23:03:01, period 1 at 23:03:06 with the values above, and
+  `period 2, try 2` at 23:03:07 as the last line. Period 1's
+  `isr` was `00000018` and `event` `90100000`.
+- **Journal** (2734 lines) ends at 23:03:07 with period 1's crumbs
+  `kick`, `back`, `restored` and `done`, then period 2's lines before
+  its kick: `im fsm` `02c48910>02448910`, `io r7` `01415830`, the next
+  local timer event 4789 µs ahead, a period of 6553 ticks, and the 23
+  SYS_CIRQ lines. The `im fsm` and next-event values equal period 1's.
+  Only the RAM console has period 2's `kick` crumb.
+- **Latches** were read after Gemian and hold its usual cleared set: zero
+  except `008` 15830, `00c` 8000, `01c` 6c00, `034`, `618` and `61c`
+  ffffffff, and TOPRGU 0x15. `SW_RSV_3` (614) is 0, as Gemian leaves it,
+  so it says nothing about the SCP branch.
+
 ### Request D5al (proposed): D5ak with 2000 ms periods
 
 `d5m.sh` (blob 1eafd081, commit 90c89dc32) adds `D5M_MS=N`, the period length,
