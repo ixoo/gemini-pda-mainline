@@ -7394,8 +7394,13 @@ and all seven options), cable out, printk 8. Run 1 started 07:52:26.
 - `sodi crumb 1: kick` at 295.806 s, 6.13 s after the last kill; nothing
   after it.
 - The station stopped answering at 07:53:39, and Gemian (boot 1afd6b5c)
-  was up at 07:54:13. Runs 2-5 did not happen. The log and journal wait
-  for the next station boot; the latches will be Gemian's cleared set.
+  was up at 07:54:13. Runs 2-5 did not happen. The latches are Gemian's
+  cleared set.
+- **Log and journal** (read on boot 552b5453, kept privately): the blank
+  came within 1 s of the wait (07:52:58), CPUs offline at 07:52:59,
+  `periods of 2000 ms` at 07:53:04, then `period 1, try 1` and nothing
+  after. The journal (2721 lines) ends at 07:52:59 with CPU1's kill, so
+  only the RAM console has the kick.
 
 **Result.**
 - **The period length is not the cause:** a 2000 ms period, `d4.sh`'s
