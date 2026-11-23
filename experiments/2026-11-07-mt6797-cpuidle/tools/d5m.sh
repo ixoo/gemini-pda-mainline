@@ -28,6 +28,10 @@
 # wake mode, ends a stuck period 2 s after its timer (stage D5p).
 # D5M_RESET=0 skips the deliberate watchdog reset: after the three periods
 # the CPUs come back and the script ends.
+# D5M_ARGS="..." appends module parameters to the insmod line (stage D5aj),
+# each read back into the log; with sodi_crumbs=1 the console log level is
+# raised to 8 so the crumbs reach the RAM console. D5M_MM=1|2 writes
+# sodi_mm_cg after the blank, as d4.sh's D4_MM.
 set -u
 
 KO=${1:-}
@@ -80,6 +84,15 @@ if [ "${D5M_PCM_WDT:-0}" = 1 ]; then
 	grep -q 'sodi_pcm_wdt' "$KO" || stop "the module has no sodi_pcm_wdt parameter (0826)"
 	ARGS="$ARGS sodi_pcm_wdt=1"
 fi
+ARGS="$ARGS ${D5M_ARGS:-}"
+case ${D5M_MM:-0} in
+0) ;;
+1 | 2) grep -q 'sodi_mm_cg' "$KO" || stop "the module has no sodi_mm_cg parameter (0837)" ;;
+*) stop "D5M_MM must be 1 or 2" ;;
+esac
+case $ARGS in
+*sodi_crumbs=1*) echo 8 >/proc/sys/kernel/printk || stop "could not raise the console log level" ;;
+esac
 log "insmod args: $ARGS"
 log "wlan modules: $(lsmod | awk '/wlan|wmt|consys|gen4m/ {printf "%s ", $1}')"
 # shellcheck disable=SC2086
@@ -87,6 +100,11 @@ insmod "$KO" $ARGS || stop "insmod failed"
 [ -e "$SODI" ] || stop "no $SODI: the SODI program was not loaded"
 [ "$(cat "$CPUS/cpuidle/current_driver" 2>/dev/null)" = mt6797_sodi ] &&
 	stop "the cpuidle driver registered despite sodi_idle=0"
+for p in $ARGS; do
+	p=${p%%=*}
+	log "$p $(cat "/sys/module/mt6797_spm_sleep/parameters/$p" 2>/dev/null || echo unreadable)"
+done
+log "printk $(cat /proc/sys/kernel/printk)"
 log "sodi_wake_src $(printf '%08x' "$(cat /sys/module/mt6797_spm_sleep/parameters/sodi_wake_src)")"
 
 log "waiting up to 300 s for the idle blank; do not touch any input"
@@ -96,6 +114,11 @@ until blank; do
 	[ "$t" -gt 300 ] && stop "no blank within 300 s"
 	sleep 1
 done
+if [ "${D5M_MM:-0}" != 0 ]; then
+	echo "$D5M_MM" >/sys/module/mt6797_spm_sleep/parameters/sodi_mm_cg ||
+		stop "sodi_mm_cg=$D5M_MM was refused"
+	dmesg | grep -o 'sodi mm: .*' | tail -n 4 | sed 's/^/    /'
+fi
 for cpu in 9 8 7 6 5 4 3 2 1; do
 	[ "$(cat "$CPUS/cpu$cpu/online" 2>/dev/null)" = 1 ] || continue
 	echo 0 >"$CPUS/cpu$cpu/online" || stop "cpu$cpu did not go offline"
