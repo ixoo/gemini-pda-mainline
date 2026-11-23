@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 23 Nov 2026 13:01:11 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: add a SODI variant taking
+ the pause masks as parameters
+
+Variant 11 writes MAS_PAUSE_MASK_B and MAS_PAUSE2_MASK_B at pcm_sodi's
+entry (0x43a, 0x43d) from two load-time parameters, sodi_pause_mask and
+sodi_pause2_mask, after the same check of the original words. It lets the
+master selection be bisected without a build per step. The defaults are
+the program's own values.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 756e4aba9..8dde2dc8e 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -379,7 +379,8 @@ static u32 sodi_crumb_n;
+  * entry (0x43d), leaving its low 12 bits, the CPU cluster ports, unpaused.
+  * 8 to 10 set both pause mask words at entry, MAS_PAUSE_MASK_B (0x43a) and
+  * MAS_PAUSE2_MASK_B (0x43d): 8 to the deep-idle pair, 9 to all ones and
+- * 10 to all zeros, the request kept.
++ * 10 to all zeros, the request kept. 11 takes both words from
++ * sodi_pause_mask and sodi_pause2_mask, to bisect the selection (D5aw).
+  */
+ #define PCM_NOP			0x17c07c1f
+ static const u16 sodi_variant_words[][12] = {
+@@ -394,6 +395,7 @@ static const u16 sodi_variant_words[][12] = {
+ 	[8] = {},
+ 	[9] = {},
+ 	[10] = {},
++	[11] = {},
+ };
+ 
+ static const struct {
+@@ -406,10 +408,19 @@ static const struct {
+ 	[8] = { { 0x43a, 0x6ff00b01, 0x6ff00b07 }, { 0x43d, 0xfe00ffff, 0xfe00f000 } },
+ 	[9] = { { 0x43a, 0x6ff00b01, 0xffffffff }, { 0x43d, 0xfe00ffff, 0xffffffff } },
+ 	[10] = { { 0x43a, 0x6ff00b01, 0x00000000 }, { 0x43d, 0xfe00ffff, 0x00000000 } },
++	/* Values from sodi_pause_mask and sodi_pause2_mask */
++	[11] = { { 0x43a, 0x6ff00b01, 0 }, { 0x43d, 0xfe00ffff, 0 } },
+ };
++
++static uint sodi_pause_mask = 0x6ff00b01;
++module_param(sodi_pause_mask, uint, 0444);
++MODULE_PARM_DESC(sodi_pause_mask, "SODI variant 11: MAS_PAUSE_MASK_B at entry (a set bit pauses that master)");
++static uint sodi_pause2_mask = 0xfe00ffff;
++module_param(sodi_pause2_mask, uint, 0444);
++MODULE_PARM_DESC(sodi_pause2_mask, "SODI variant 11: MAS_PAUSE2_MASK_B at entry");
+ static uint sodi_variant;
+ module_param(sodi_variant, uint, 0444);
+-MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause, 3: neither, nor stores outside the SPM, 4: infra force-wake only, 5: 26 MHz force-wake only, 6: longer wait after the master pause, 7: CPU cluster ports not paused, 8: deep-idle pause masks, 9: pause masks all ones, 10: pause masks all zeros)");
++MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause, 3: neither, nor stores outside the SPM, 4: infra force-wake only, 5: 26 MHz force-wake only, 6: longer wait after the master pause, 7: CPU cluster ports not paused, 8: deep-idle pause masks, 9: pause masks all ones, 10: pause masks all zeros, 11: pause masks from sodi_pause_mask and sodi_pause2_mask)");
+ 
+ static bool sodi_obs_noread;
+ module_param(sodi_obs_noread, bool, 0444);
+@@ -2313,6 +2324,8 @@ static int spm_load_program(struct device *dev, const char *name, const u8 *sha,
+ 
+ 			if (!w)
+ 				continue;
++			if (sodi_variant == 11)
++				val = i ? sodi_pause2_mask : sodi_pause_mask;
+ 			dev_info(dev, "SODI variant %u: word %#x %08x -> %08x\n", sodi_variant,
+ 				 w, readl(s.carve + offset + 4 * w), val);
+ 			writel(val, s.carve + offset + 4 * w);
+-- 
+2.43.0
+
