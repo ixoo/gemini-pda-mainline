@@ -8537,7 +8537,8 @@ and each group's masks; two runs per step.
 | 4 | C, bits 20-23 | `0x00f00000` / `0` | **Passed**, 6 of 6 on fresh boot 8cac7635 (13:36:47, 13:38:06): the GPU pair (21, 23) and bits 20 and 22 alone do not hang |
 | 5 | C, bits 24-27 | `0x0f000000` / `0` | **Hung**, run 1 period 1, same boot after step 4: words logged `0f000000`/`00000000` at 353.748 s, CPU7-1 killed by 354.965 s, `kick` at 357.354 s and nothing after; Gemian (boot 85c7fa18) at 13:41:11. RAM console (15854 B) kept privately |
 | 6 | bits 24-25 | `0x03000000` / `0` | **Hung**, run 1 period 1, fresh boot 6b69c5e9: words logged `03000000`/`00000000` at 65.251 s, CPU1 killed at 148.130 s, `kick` at 150.568 s and nothing after; Gemian (boot 31de2d5c) at 13:45:07. RAM console (2259 B) kept privately; boot 8cac7635's log and journal also kept |
-| 7 | bit 24 | `0x01000000` / `0` | next boot; if it passes, bit 25 (`0x02000000`) must hang; if it hangs, bit 25 alone runs as the neighbour check |
+| 7 | bit 24 | `0x01000000` / `0` | **Passed**, 6 of 6 on fresh boot 7ffdbbaf (13:48:14, 13:49:32) |
+| 8 | bit 25 | `0x02000000` / `0` | running; must hang |
 
 - **The culprit is in bits 24-27** of `MAS_PAUSE_MASK_B`. No source names
   them (program session: none of the vendor's CPU DVFS, hotplug or SPM
