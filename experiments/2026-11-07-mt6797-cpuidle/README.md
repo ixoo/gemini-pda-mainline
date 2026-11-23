@@ -7043,6 +7043,11 @@ the holder after the run.
   returned period with `r12` bit 10. If bit 10 or bit 3 shows, the next
   run is D5ah's setup with `D4_WAKE=0x0f57c1e5` (the default minus SCP),
   ahead of variants 2 and 3.
+- **No existing variant covers the SCP branch:** variant 3 leaves both the
+  store and the jumps back to `0x498` (`0x4c2`, `0x4e8`, `0x4ec`). The
+  wake-mask run is cleaner: without bit 10 in `SPM_WAKEUP_EVENT_MASK`,
+  `0x4b2`-`0x4ec` never runs, which tests the store and the loop at once,
+  on unmodified firmware.
 
 ### Request D5n (proposed): two states with no resource events
 
