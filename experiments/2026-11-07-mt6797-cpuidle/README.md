@@ -7328,6 +7328,21 @@ with 200 as the default.
 | Passes | Short periods hang; 2000 ms do not, in the same script | What a 200 ms period changes: the timer's arming value, or a hazard tied to how soon the exit follows the entry. Try 500 ms and 1000 ms to find the edge |
 | Hangs | Not the length; the gap or what `d4.sh` does between periods | Longer gaps (a `d5m.sh` option), then `d4.sh`'s between-period steps |
 
+**Between periods, from the scripts (for the reviewer).**
+
+Both scripts write one synced log line (`date`, `echo`, `sync`), sleep
+1 s and write the next period's length to `sodi_once_ms`, so the last
+`sync` comes about 1 s before each kick in both. After a period returns:
+
+| Script | Steps |
+| --- | --- |
+| `d5m.sh` | one `dmesg \| grep \| tail \| sed`, one `sync`, then the next period's synced line |
+| `d4.sh` | `dmesg \| wc` before the write; after the return, several `dmesg` reads, `grep` and `sed` parses, one or two synced log lines, the cpufreq `scaling_cur_freq` read, and the window's per-period line (`uart_tx` in C); in A and B a program hash check through the `mhz` helper after every period |
+
+The extra work in `d4.sh` all happens before its synced line and sleep,
+so the 1 s just before each kick looks the same in both. *Inference:*
+if D5al hangs, the hash check and the extra syncs are the candidates.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
