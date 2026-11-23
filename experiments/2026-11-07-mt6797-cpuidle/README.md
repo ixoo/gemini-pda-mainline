@@ -8437,7 +8437,9 @@ with `sodi_variant=10`, then 9.
   CPU1 killed at 640.042-640.513 s; `sodi crumb 1: kick` at 642.908 s,
   2.40 s later, and nothing after it. Gemian (boot 11de809e) was up at
   13:00:16.
-- The logs and journal wait for the next boot.
+- **Log and journal** (read on boot 6b302727, kept privately): the pin
+  line in all six runs, `cpu0 221000 kHz` before all 15 variant 10
+  periods; variant 9's log ends at `period 1, try 1` at 12:59:07.
 
 **Result.**
 - **Polarity confirmed: a set bit pauses that master.** With the pause
@@ -8517,6 +8519,20 @@ checkpatch `--strict` is quiet.
 **What a culprit bit gives.** SODI with its own masks minus that master is
 the fix candidate, a pause selection nearest the vendor's, at no power
 cost; it then goes to the two-state setup unpinned, to the 50-period rule.
+
+### D5aw: the group bisection at 221 MHz (custodian, 2026-11-23, running)
+
+**Approved** by the owner in the custodian's session, as a whole.
+
+**Setup.** Boot 6b302727 (up 13:03, no SPM module before 13:19), cable
+out, battery 32 %, module 17a226f4 (Buildbox 296a8dbf2), `d5m.sh` blob
+218631f5, D5at's command (`D5M_PIN_KHZ=221000`) with `sodi_variant=11`
+and each group's masks; two runs per step.
+
+| Step | Group | `sodi_pause_mask` / `sodi_pause2_mask` | Result |
+| --- | --- | --- | --- |
+| 1 | H | `0` / `0x0000f000` | **Passed**, 6 of 6 periods at 221 MHz (13:20:57, 13:22:18); both words logged as set |
+| 2 | I | `0` / `0xfe000000` | running |
 
 ### Request D5n (proposed): two states with no resource events
 
