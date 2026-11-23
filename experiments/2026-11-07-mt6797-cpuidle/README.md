@@ -8009,8 +8009,12 @@ d157e512, `d5m.sh` blob 218631f5, D5ao step 3's command plus
 - `sodi crumb 2: kick` at 703.733 s, 1.29 s after period 1 ended;
   nothing after it. Gemian (boot b9a3b87d) was up at 10:30:19. The
   1014000 and 481000 points did not run.
-- The pin line and the frequency before each write are in `d5m.log` on
-  the card, read on the next boot.
+- **Log and journal** (read on boot 58210a12, kept privately): `policy0
+  pinned at 1118000 kHz (was 221000-1547000)` at 10:29:04; period 1
+  returned with `timer_out` `0000199c`; `cpu0 1118000 kHz just before the
+  write` and `period 2, try 2` at 10:29:06, nothing after. **The pin held
+  at 1118 MHz for the hanging kick.** The journal (3064 lines) ends at
+  10:29:05 with period 1's timer and SYS_CIRQ lines.
 
 **Result.**
 - **1118 MHz hangs**, with both cluster dividers at 1, while 1547 MHz
