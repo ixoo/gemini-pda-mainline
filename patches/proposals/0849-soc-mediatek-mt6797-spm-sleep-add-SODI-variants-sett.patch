@@ -1,0 +1,105 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 23 Nov 2026 11:46:57 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: add SODI variants setting
+ both pause masks
+
+Variants 8 to 10 set both master pause mask words that pcm_sodi stores at
+entry, MAS_PAUSE_MASK_B (0x43a) and MAS_PAUSE2_MASK_B (0x43d), with the
+pause request kept: 8 to the pair the deep-idle and suspend programs use
+(0x6ff00b07, 0xfe00f000), 9 to all ones and 10 to all zeros. A variant
+may now change two data words; every word is checked against its
+original before any is written.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 45 ++++++++++++++++++-------
+ 1 file changed, 33 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index d91d43a34..756e4aba9 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -377,6 +377,9 @@ static u32 sodi_crumb_n;
+  * lengthens the fixed wait after the master pause request (0x2b2, 0x20 to
+  * 0x200 PCM cycles); 7 gives MAS_PAUSE2_MASK_B the deep-idle value at
+  * entry (0x43d), leaving its low 12 bits, the CPU cluster ports, unpaused.
++ * 8 to 10 set both pause mask words at entry, MAS_PAUSE_MASK_B (0x43a) and
++ * MAS_PAUSE2_MASK_B (0x43d): 8 to the deep-idle pair, 9 to all ones and
++ * 10 to all zeros, the request kept.
+  */
+ #define PCM_NOP			0x17c07c1f
+ static const u16 sodi_variant_words[][12] = {
+@@ -388,19 +391,25 @@ static const u16 sodi_variant_words[][12] = {
+ 	[5] = { 0x420 },
+ 	[6] = {},
+ 	[7] = {},
++	[8] = {},
++	[9] = {},
++	[10] = {},
+ };
+ 
+ static const struct {
+ 	u16 word;
+ 	u32 orig;
+ 	u32 val;
+-} sodi_variant_data[] = {
+-	[6] = { 0x2b2, 0x20000020, 0x20000200 },
+-	[7] = { 0x43d, 0xfe00ffff, 0xfe00f000 },
++} sodi_variant_data[][2] = {
++	[6] = { { 0x2b2, 0x20000020, 0x20000200 } },
++	[7] = { { 0x43d, 0xfe00ffff, 0xfe00f000 } },
++	[8] = { { 0x43a, 0x6ff00b01, 0x6ff00b07 }, { 0x43d, 0xfe00ffff, 0xfe00f000 } },
++	[9] = { { 0x43a, 0x6ff00b01, 0xffffffff }, { 0x43d, 0xfe00ffff, 0xffffffff } },
++	[10] = { { 0x43a, 0x6ff00b01, 0x00000000 }, { 0x43d, 0xfe00ffff, 0x00000000 } },
+ };
+ static uint sodi_variant;
+ module_param(sodi_variant, uint, 0444);
+-MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause, 3: neither, nor stores outside the SPM, 4: infra force-wake only, 5: 26 MHz force-wake only, 6: longer wait after the master pause, 7: CPU cluster ports not paused)");
++MODULE_PARM_DESC(sodi_variant, "SODI: load a test variant of the program (1: no clock cut, 2: no master pause, 3: neither, nor stores outside the SPM, 4: infra force-wake only, 5: 26 MHz force-wake only, 6: longer wait after the master pause, 7: CPU cluster ports not paused, 8: deep-idle pause masks, 9: pause masks all ones, 10: pause masks all zeros)");
+ 
+ static bool sodi_obs_noread;
+ module_param(sodi_obs_noread, bool, 0444);
+@@ -2280,21 +2289,33 @@ static int spm_load_program(struct device *dev, const char *name, const u8 *sha,
+ 				 w, readl(s.carve + offset + 4 * w), PCM_NOP);
+ 			writel(PCM_NOP, s.carve + offset + 4 * w);
+ 		}
+-		if (sodi_variant < ARRAY_SIZE(sodi_variant_data) &&
+-		    sodi_variant_data[sodi_variant].word) {
+-			u16 w = sodi_variant_data[sodi_variant].word;
+-			u32 old = readl(s.carve + offset + 4 * w);
++		/* Both tables cover every variant, so sodi_variant indexes either */
++		BUILD_BUG_ON(ARRAY_SIZE(sodi_variant_data) != ARRAY_SIZE(sodi_variant_words));
++		/* Check every word before writing any */
++		for (i = 0; i < ARRAY_SIZE(sodi_variant_data[0]); i++) {
++			u16 w = sodi_variant_data[sodi_variant][i].word;
++			u32 old;
+ 
+-			if (old != sodi_variant_data[sodi_variant].orig) {
++			if (!w)
++				continue;
++			old = readl(s.carve + offset + 4 * w);
++			if (old != sodi_variant_data[sodi_variant][i].orig) {
+ 				ret = dev_err_probe(dev, -EINVAL,
+ 						    "SODI variant %u: word %#x is %08x, not %08x\n",
+ 						    sodi_variant, w, old,
+-						    sodi_variant_data[sodi_variant].orig);
++						    sodi_variant_data[sodi_variant][i].orig);
+ 				goto out;
+ 			}
++		}
++		for (i = 0; i < ARRAY_SIZE(sodi_variant_data[0]); i++) {
++			u16 w = sodi_variant_data[sodi_variant][i].word;
++			u32 val = sodi_variant_data[sodi_variant][i].val;
++
++			if (!w)
++				continue;
+ 			dev_info(dev, "SODI variant %u: word %#x %08x -> %08x\n", sodi_variant,
+-				 w, old, sodi_variant_data[sodi_variant].val);
+-			writel(sodi_variant_data[sodi_variant].val, s.carve + offset + 4 * w);
++				 w, readl(s.carve + offset + 4 * w), val);
++			writel(val, s.carve + offset + 4 * w);
+ 		}
+ 	}
+ 	/* The SPM fetches the program from DRAM: make the copy visible first */
+-- 
+2.43.0
+
