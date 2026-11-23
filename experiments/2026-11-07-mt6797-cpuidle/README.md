@@ -1778,7 +1778,7 @@ reload it each time, as S1 does.
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
-| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; run 2 hung in period 3 and showed the SMI async DCM already on, so the vendor's write is a no-op; both landed in Gemian without latches; D5aa was skipped, since nothing can wake CPU0 in the window; D5ab hung in period 2 with ACINACTM set only around WFI, so the entry now matches the vendor's on every listed difference; D5ac's stage lines place the hang inside the period, after the kick; D5ad variant 1 hung in period 2 without the clock cut; an independent review found the vendor's SODI flags keep 26 MHz and infra forced awake (bit 15) and power CPU0 down; D5ae passed 60 of 60 periods with bit 15 on the timer-only setup, but D5af passed 60 of 60 without it, so today's module no longer hangs there; D5ah hung in period 13 with bit 15 on the two-state setup, stopping at the same `kick` crumb, so bit 15 is not the cause; `d5m.sh` unchanged on today's module passed run 1 and hung in run 2, so the no-driver, timer-only hang survives with the module's defaults; D5aj runs `d5m.sh`'s timing with D5af's options |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; run 2 hung in period 3 and showed the SMI async DCM already on, so the vendor's write is a no-op; both landed in Gemian without latches; D5aa was skipped, since nothing can wake CPU0 in the window; D5ab hung in period 2 with ACINACTM set only around WFI, so the entry now matches the vendor's on every listed difference; D5ac's stage lines place the hang inside the period, after the kick; D5ad variant 1 hung in period 2 without the clock cut; an independent review found the vendor's SODI flags keep 26 MHz and infra forced awake (bit 15) and power CPU0 down; D5ae passed 60 of 60 periods with bit 15 on the timer-only setup, but D5af passed 60 of 60 without it, so today's module no longer hangs there; D5ah hung in period 13 with bit 15 on the two-state setup, stopping at the same `kick` crumb, so bit 15 is not the cause; `d5m.sh` unchanged on today's module passed run 1 and hung in run 2, so the no-driver, timer-only hang survives with the module's defaults; D5aj, `d5m.sh`'s timing with D5af's options, hung at the first kick, so the options and the self-refresh path are not needed; D5ak adds a 5 s settle after offlining |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
@@ -7200,6 +7200,55 @@ as `d4.sh`'s `D4_MM`. There is no module change.
   - None of the four words is a branch target or a delay slot.
   - It is needed only to split the EMI clock-off from the PHY steps.
     D5aj, with `NO_EVENT` set, already removes the whole path.
+
+### D5aj run 1: D5af's options hang at the first kick (custodian, 2026-11-22)
+
+**Approved** by the owner in the custodian's session.
+
+**Setup.** Boot 02f760b3, module d157e512, `d5m.sh` blob 8f70b789 with
+the requested `D5M_RESET=0 D5M_MM=2 D5M_ARGS=...`, printk 8 set
+beforehand. Started 22:50:32.
+
+**Observed.**
+- The station was silent from about 22:52:30, and Gemian (boot 4487123b)
+  booted at about 22:53:10, with no clip.
+- The RAM console (2020 B, kept privately) ends:
+  - two `sodi mm:` lines, the four MMSYS gates closed and the vendor's
+    SODI terms 0;
+  - the PSCI lines for CPUs 7 to 1 killed, 3944.745-3945.296 s;
+  - `sodi crumb 1: kick` at 3946.533 s, the last line.
+- So period 1 hung after the kick, about 1.2 s after CPU1 went offline.
+- The parameter read-backs in `d5m.log` are to be checked on the next
+  station boot.
+
+**Result.**
+- **Hang: D5af's options do not prevent the no-driver hang.** `NO_EVENT`
+  was set, so the DRAM self-refresh path is not needed for it.
+  Interrupt-side options, bus-side options and the MMSYS gates make no
+  difference here.
+- What separates this hang from D5af's 159 clean periods is now `d5m.sh`'s
+  timing: the start about 1 s after the CPUs go offline, periods 1 s
+  apart, and 200 ms periods. Both hangs since D5m was redone came in
+  period 1.
+
+### Request D5ak (proposed): D5aj with a 5 s settle after offlining
+
+`d5m.sh` (blob given at the commit) adds `D5M_SETTLE=N`, a wait of N
+seconds after the CPUs go offline and before period 1; the default 0
+keeps today's start.
+
+- **Candidate:** D5aj's command plus `D5M_SETTLE=5`, which matches
+  `d4.sh`'s 5 s wait. Up to five runs, with rmmod and 30 s between them,
+  stopping at the first hang.
+- **Pass rule:** all five runs clean, as D5aj.
+- **Admission:** no new register write or parameter; the owner approves
+  the run.
+
+| Result | Reading | Next |
+| --- | --- | --- |
+| Passes | A period started while the CPU power-downs settle hangs; D5af's start avoided it | Find what is still settling: the same with 2 s, and with the CPUs left online; the two-state hang, which comes long after offlining, is then a separate hazard |
+| Hangs in period 1 | Not the start delay | The length: `d5m.sh` with 2000 ms periods |
+| Hangs later | The settle helps period 1 only | Compare the period gaps (1 s here, about 1.5 s in `d4.sh`) and the length |
 
 ### Request D5n (proposed): two states with no resource events
 

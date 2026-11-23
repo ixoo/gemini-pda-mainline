@@ -32,6 +32,8 @@
 # each read back into the log; with sodi_crumbs=1 the console log level is
 # raised to 8 so the crumbs reach the RAM console. D5M_MM=1|2 writes
 # sodi_mm_cg after the blank, as d4.sh's D4_MM.
+# D5M_SETTLE=N waits N seconds after the CPUs go offline before period 1
+# (stage D5ak); the default 0 keeps the start about 1 s after.
 set -u
 
 KO=${1:-}
@@ -125,6 +127,14 @@ for cpu in 9 8 7 6 5 4 3 2 1; do
 	TAKEN="$cpu $TAKEN"
 done
 log "online: $(cat "$CPUS/online")"
+case ${D5M_SETTLE:-0} in
+'' | *[!0-9]*) stop "D5M_SETTLE must be a whole number of seconds" ;;
+0) ;;
+*)
+	log "settling ${D5M_SETTLE} s before period 1"
+	sleep "$D5M_SETTLE"
+	;;
+esac
 
 # Three periods; each must return, or this is not the passing setup.
 n=0
