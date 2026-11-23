@@ -7654,8 +7654,15 @@ printk 8. Before the run: latches at the usual post-Gemian values, USB
     nothing after it.
   - The station stopped answering at 08:40:39; Gemian (boot df2ffb28)
     was up at 08:41:14. RAM console (65524 B, with step 1's late crumbs,
-    the last d4 kick being crumb 162) kept privately; the log and
-    journal wait for the next station boot.
+    the last d4 kick being crumb 162) kept privately.
+  - **Log and journal** (read on boot 1d3a0381, kept privately): before
+    insmod, USB `auto` and runtime suspended, `mt6797-gate-unused`
+    loaded (by step 1), every option `Y`, printk `8 4 1 7`; the MMSYS
+    gates already closed before gating (terms 0); `online: 0`, `periods
+    of 200 ms` and `period 1, try 1` at 08:40:00, nothing after. The
+    journal (4454 lines) ends at 08:39:59 with CPU1's kill.
+  - So step 3 hung with every `d4.sh` setup state in place: the gates,
+    USB and MMSYS as `d4.sh` leaves them.
 
 **Result.**
 - **The script decides, not the boot.** On one boot, `d4.sh` ran 80
