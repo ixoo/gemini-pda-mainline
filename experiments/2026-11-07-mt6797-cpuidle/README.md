@@ -8467,8 +8467,32 @@ checkpatch `--strict` is quiet.
   `d5m.sh` blob 218631f5 with D5at's command and `sodi_variant=11
   sodi_pause_mask=X sodi_pause2_mask=Y` in `D5M_ARGS`. A hang ends the
   boot. The insmod log must show both words.
-- **Steps**, starting from the common set (`0x6ff00b01`/`0xfe00f000`),
-  assuming one master:
+- **The program session's groups (2026-11-23),** from which paths widen
+  or narrow each mask (no source names the bits; 1 = paused):
+
+  | Group | Word | Bits | Where the programs pause it |
+  | --- | --- | --- | --- |
+  | A | 1 | 0 (`0x00000001`) | every value |
+  | B | 1 | 8, 9, 11 (`0x00000b00`) | every value |
+  | C | 1 | 20-27 (`0x0ff00000`) | every value; never touched by a power step |
+  | D | 1 | 29, 30 (`0x60000000`) | every value |
+  | E | 1 | 1, 2 | deep idle and suspend; exempt in SODI (likely display or MM) |
+  | F | 1 | 3-5, 7, 10, 16 | only for the EMI clock-off |
+  | G | 1 | 12-15, 17-19, 28, 31 | only before the AXI clock goes off |
+  | H | 2 | 12-15 (`0x0000f000`) | every value; next to the cluster steps, never stepped |
+  | I | 2 | 25-31 (`0xfe000000`) | every value |
+  | J | 2 | 0-11 | the CPU cluster steps around MP0's power-off |
+  | K | 2 | 16-24 | only before the AXI clock goes off |
+
+  The common hanging set is A-D and H-I. *Inference:* H could be an
+  MCUSYS-level port (the CCI or the A72 path), which would fit a clock-rate
+  effect; C looks like core infra masters.
+- **Steps by group** (each alone, the rest 0), in this order: H
+  (`0`/`0x0000f000`), I (`0`/`0xfe000000`), C (`0x0ff00000`/`0`), D, B,
+  A. The first group that hangs is bisected bit by bit. If none hangs
+  alone, two groups are needed together; stop and report.
+- **Steps by halves** (the fallback if the groups mislead), starting from
+  the common set (`0x6ff00b01`/`0xfe00f000`), assuming one master:
   1. `0x6ff00b01`/`0`: the first word alone. Hangs → the culprit is in
      it; passes → step 1b, `0`/`0xfe00f000`, to confirm the second.
   2. Halve the word that hung, keeping the other 0, until one bit is
