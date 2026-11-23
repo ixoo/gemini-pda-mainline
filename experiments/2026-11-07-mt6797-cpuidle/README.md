@@ -7991,6 +7991,21 @@ was gone between runs.
      vendor's formula gives (3 at 221 MHz), no variant; a register write
      with its own admission.
 
+**The hold, as a module option (0846).**
+[`0846`](../../patches/proposals/0846-soc-mediatek-mt6797-spm-sleep-optionally-hold-CPU0-a.patch)
+(module only) adds `sodi_min_khz` (default 0, off). With it set, each
+`sodi_once_ms` period adds a frequency QoS minimum on CPU0's policy
+before the PMIC preparation and drops it after the restore. The limit is
+applied from a work item, so the period waits up to about 100 ms for
+`policy->cur` to reach the floor; if it does not, the period is refused
+with `EBUSY` and a `sodi hold:` line, before anything touches the SPM.
+Each held period logs `sodi hold: CPU0 at N kHz (floor M)`. It covers
+the test path only; the cpuidle path cannot sleep, so the two-state setup
+needs a different hold later. Compile-checked with `W=1`, with and
+without `CONFIG_CPU_FREQ` and `CONFIG_CPU_IDLE`; checkpatch `--strict`
+is quiet. It waits for a Buildbox build, which can carry the delay
+variant (test 2) too once its word is known; D5ar's edge picks the floor.
+
 **The program session on the `0x42e` wait (2026-11-23).** *Inferred
 from the programs' structure, not observed.*
 - `r14`'s top nibble decomposes into bits: bit 29 alone is a plain delay;

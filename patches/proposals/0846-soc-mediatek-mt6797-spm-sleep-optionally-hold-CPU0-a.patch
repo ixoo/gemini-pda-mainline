@@ -1,0 +1,136 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 23 Nov 2026 10:31:57 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally hold CPU0 at a
+ floor across a SODI period
+
+A test period started with CPU0 at a low operating point hangs in
+pcm_sodi's master pause, while one started at the top operating point
+returns. sodi_min_khz adds a frequency QoS minimum on CPU0's policy
+before each sodi_once_ms period and drops it after the restore. The limit
+is applied from a work item, so the period waits up to about 100 ms for
+CPU0 to reach the floor and is refused with -EBUSY if it does not. The
+default 0 leaves cpufreq alone.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 68 +++++++++++++++++++++++++
+ 1 file changed, 68 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 616a83378..12a77547f 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -20,6 +20,7 @@
+ #include <linux/bitops.h>
+ #include <linux/backlight.h>
+ #include <linux/bits.h>
++#include <linux/cpufreq.h>
+ #include <linux/cpuidle.h>
+ #include <linux/debugfs.h>
+ #include <linux/delay.h>
+@@ -36,6 +37,7 @@
+ #include <linux/of_platform.h>
+ #include <linux/of_reserved_mem.h>
+ #include <linux/platform_device.h>
++#include <linux/pm_qos.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/regmap.h>
+ #include <linux/seq_file.h>
+@@ -258,6 +260,15 @@ static bool sodi_keep_26m;
+ module_param(sodi_keep_26m, bool, 0644);
+ MODULE_PARM_DESC(sodi_keep_26m, "SODI: set DIS_SRCCLKEN_LOW, so 26 MHz and infra stay forced awake");
+ 
++/*
++ * A test period started with CPU0 at a low operating point hangs in the
++ * program's master pause (D5ap-D5as). This holds CPU0's policy at a floor
++ * across each test period and refuses the period if CPU0 is not there.
++ */
++static unsigned int sodi_min_khz;
++module_param(sodi_min_khz, uint, 0644);
++MODULE_PARM_DESC(sodi_min_khz, "SODI: hold CPU0 at this kHz or more across each test period, refusing it otherwise (0: off)");
++
+ static bool sodi_pcm_wdt;
+ module_param(sodi_pcm_wdt, bool, 0644);
+ MODULE_PARM_DESC(sodi_pcm_wdt, "SODI: the PCM watchdog ends a stuck test period 2 s late");
+@@ -1733,8 +1744,59 @@ static u64 sodi_timer_left(void);
+ #define SODI_IDLE_EXIT_US	1000
+ #define SODI_IDLE_MIN_US	2000
+ 
++#define SODI_HOLD_WAIT_MS	100
++
++static int sodi_hold_get(struct freq_qos_request *req,
++			 struct cpufreq_policy **pol, unsigned int khz)
++{
++	struct cpufreq_policy *policy;
++	unsigned int cur;
++	int i, ret;
++
++	*pol = NULL;
++	if (!khz)
++		return 0;
++	policy = cpufreq_cpu_get(0);
++	if (!policy) {
++		dev_info(&s.pdev->dev, "sodi hold: no cpufreq policy for CPU0, refused\n");
++		return -ENODEV;
++	}
++	ret = freq_qos_add_request(&policy->constraints, req, FREQ_QOS_MIN, khz);
++	if (ret < 0) {
++		cpufreq_cpu_put(policy);
++		return ret;
++	}
++	/* The limit is applied from a work item: wait until CPU0 runs there */
++	for (i = 0; i < SODI_HOLD_WAIT_MS; i++) {
++		cur = READ_ONCE(policy->cur);
++		if (cur >= khz)
++			break;
++		usleep_range(1000, 2000);
++	}
++	if (cur < khz) {
++		dev_info(&s.pdev->dev, "sodi hold: CPU0 at %u kHz, below %u, refused\n",
++			 cur, khz);
++		freq_qos_remove_request(req);
++		cpufreq_cpu_put(policy);
++		return -EBUSY;
++	}
++	dev_info(&s.pdev->dev, "sodi hold: CPU0 at %u kHz (floor %u)\n", cur, khz);
++	*pol = policy;
++	return 0;
++}
++
++static void sodi_hold_put(struct freq_qos_request *req, struct cpufreq_policy *pol)
++{
++	if (!pol)
++		return;
++	freq_qos_remove_request(req);
++	cpufreq_cpu_put(pol);
++}
++
+ static int sodi_once(u64 ms)
+ {
++	struct freq_qos_request hold_req = {};
++	struct cpufreq_policy *hold;
+ 	struct i2c_adapter *i2c6;
+ 	enum sodi_no busy;
+ 	u64 cntv, cntp, left_us;
+@@ -1753,6 +1815,11 @@ static int sodi_once(u64 ms)
+ 		dev_info(&s.pdev->dev, "sodi: no I2C6 adapter, refused\n");
+ 		return -ENODEV;
+ 	}
++	ret = sodi_hold_get(&hold_req, &hold, READ_ONCE(sodi_min_khz));
++	if (ret) {
++		put_device(&i2c6->dev);
++		return ret;
++	}
+ 	ret = spm_pmic_prepare();
+ 	if (ret) {
+ 		dev_info(&s.pdev->dev, "sodi: PMIC preparation failed (%d)\n", ret);
+@@ -1831,6 +1898,7 @@ static int sodi_once(u64 ms)
+ 			 s.wake.obs_seq, s.wake.obs_ticks, SODI_OBS_CPU, s.wake.obs_gap_us);
+ out_pmic:
+ 	spm_pmic_finish();
++	sodi_hold_put(&hold_req, hold);
+ 	put_device(&i2c6->dev);
+ 	return ret;
+ }
+-- 
+2.43.0
+
