@@ -6816,6 +6816,18 @@ alone, Wi-Fi joined, pings throughout window C.
   undecoded. *Inference.*
 - The two force-wakes are separate channels and split with one program
   word each.
+- **The 26 MHz request to the PMIC cannot drop in a period.** With
+  `PCM_PWR_IO_EN` `0x81`, SRCLKENA0 follows `r7` bit 14, which starts set
+  from `SPM_POWER_ON_VAL1` (`0x15830` here) and which the SODI path never
+  writes. So bit 27 can only pin the arbiter's internal 26 MHz state,
+  whose effect the vendor's source does not say. *Inference.* Infra stays
+  the lead, and no live register read is needed.
+- **`SPM_CLK_CON` divergence, not ranked as a cause.** It reads `0x8000`
+  at boot (the reset value; `0x8040` in a period). The vendor's SPM init
+  also sets bits 2, 3, 12, 16 and 27, the modem's SYSCLK1 and CLKSQ1
+  control and two source masks; CONN is not among them, and the modem is
+  off here. `SPM_AP_STANDBY_CON` bit 23 makes no difference with
+  `SPM_SRC_MASK` bit 16 clear.
 
 0845 adds variants 4 and 5 for that split, with `sodi_keep_26m`: 4 drops
 `0x41f` (26 MHz force-wake; original `a1dd8407`), keeping only infra's;
