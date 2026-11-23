@@ -7956,6 +7956,41 @@ was gone between runs.
   hold must be.
 - D5ar runs as planned, without the variant, to find the edge.
 
+**The reviewer on the fix and the master (2026-11-23).**
+- **Build the frequency hold first:** it is the only fix with evidence
+  (D5ap, and 323 clean periods all at 1274 MHz or more). The vendor
+  always pauses the masters before its clock cut and `ddrphycfg` switch;
+  variant 2's 15 periods say nothing about a master caught mid-transfer
+  at the cut, the rare case the pause exists for. Variant 2 stays a
+  diagnostic.
+- *Shape:* a frequency QoS minimum on policy0, held from before the
+  pending check until after the restore, at a point above D5ar's edge,
+  refusing the period (`EBUSY`) if the rate read back at entry is still
+  below it, since a queued change can leave CPU0 low at the kick. The
+  two-state setup then needs the same hold in its idle path, and its
+  50-period run says whether it is the same hazard.
+- **The master cannot be named:** the pause mask bits are unnamed. One
+  frequency-dependent thing on the cluster side that neither the program
+  nor the module controls is the **idle clock**: the vendor rewrites the
+  sync DCM divider selects (MCUCFG `0x744`, select = MHz / 70 for LL, L
+  and CCI, then an update toggle) on every frequency change, so an idle
+  cluster and the CCI run at about 55-67 MHz at every OPP. The mainline
+  cluster clock reads `SYNC_DCM_CONFIG` once at probe and never rewrites
+  it. At 221 MHz the idle LL and CCI clocks are then 221 MHz over the
+  boot's selects. *Conjecture:* a pause handshake crossing into a domain
+  that slow outlasts the fixed `0x20` wait.
+- **Tests, cheapest first:**
+  1. Read only: `SYNC_DCM_CONFIG` (`0x744`) and the cluster word at
+     `0x74c` on the station, from the clock driver's probe line or its
+     debugfs file; the idle clocks at 221 and 1547 MHz follow.
+  2. A one-word variant: the delay at `0x2b0` lengthened from `0x20` to
+     about `0x200`, pause kept, at 221 MHz. A pass says the pause
+     completes late; a hang says it never completes or the fault comes
+     after it. Needs a build.
+  3. Only if 1 and 2 point there: at 221 MHz with the selects the
+     vendor's formula gives (3 at 221 MHz), no variant; a register write
+     with its own admission.
+
 **The program session on the `0x42e` wait (2026-11-23).** *Inferred
 from the programs' structure, not observed.*
 - `r14`'s top nibble decomposes into bits: bit 29 alone is a plain delay;
