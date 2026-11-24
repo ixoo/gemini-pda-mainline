@@ -10127,6 +10127,26 @@ module build is needed.
   the run.
 - **Comparable runs only:** the "sodi mm: cg0" line after the blank must
   read `3f9f8000`, as in D6-D7b; otherwise the run is repeated.
+
+**Why D7c's engines were clocked (display session, 2026-11-24).** On that
+boot a compositor session held the display. With a compositor on the VT
+the console is in graphics mode, so the console blank only marks it
+blanked; the station's backlight policy then turns the backlight off, but
+the blank never reaches DRM, and fbdev cannot take DRM master from the
+compositor to switch the output off. The CRTC stays active and the
+pipeline scans a dark panel. The other runs had the console owning the
+display, or the compositor had switched the output off.
+- **For D7d:** run with no compositor holding the display, or blank
+  through the compositor, and check the `cg0` line as above.
+- **For the idle state:** the backlight is the wrong proxy for "the
+  display is stopped" in exactly this case. With the vendor's mask that
+  is harmless (SODI honours a scanning display's requests); any future
+  masking of display requests in the idle state must use the clock-gate
+  check, as 0856 does for test periods.
+- **For the owner's power, separately:** on that setup the backlight
+  policy's blank leaves the whole display pipeline running until the
+  compositor's own screen-off. The display session is passing this to the
+  session that owns the station's base configuration.
 - **Records:** per period `pasr_dpd_0`, the debug word (bits 8 and 9),
   `pc=`, `r13` and the mask used.
 - **Hypothesis:** a stopped display read DMA holds the APSRC request, so
