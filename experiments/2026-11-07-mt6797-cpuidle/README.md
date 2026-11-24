@@ -9591,6 +9591,28 @@ between-period tap, a racing period, the re-blank, and a key wake.
 - **Admission:** D6f's configuration with a longer window B; the owner
   approves the run.
 
+**The reviewer on D6g (2026-11-24), applied in the commit recording
+this.**
+- If the display lit before the loop's next blank check, a tap between
+  periods still ended B as "the screen lit with no key wake seen". The
+  lit-screen branch now reads the count first: a rise is a tap between
+  periods and is waited out like the other case; only a lit screen with no
+  rise and no earlier tap ends B.
+- An inconclusive tap (a period another source ended early) now waits for
+  the next tap too. Only a pass and the real failure end B.
+- A later lit screen without a count rise is logged as "the screen lit
+  without a key", so a notification is not recorded as a tap.
+- The done line carries the outcome: `pass`, `fail`, `undelivered` (a key
+  wake whose count did not rise), `inconclusive`, `between` or `none`.
+- The re-blank delay decides whether the next tap finds periods running;
+  the script now logs it ("blanked again after N s"). The script does not
+  blank the display itself, so if that delay comes close to the 120 s
+  between taps, the taps are spaced further apart in the next run.
+
+All four paths were dry-run with stubbed device calls: a racing period
+after a tap, the screen lit before the next kick, an inconclusive tap
+followed by a failure, and no key.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)

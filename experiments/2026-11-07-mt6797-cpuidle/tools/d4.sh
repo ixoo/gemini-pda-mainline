@@ -604,6 +604,8 @@ BSEC=${D4_B_SECONDS:-300}
 log "B: press one key once (up to $BSEC s)"
 key=0
 seen=0
+outcome=none
+tapped=0
 k0=$(key_irqs)
 log "B: keyboard-path interrupt count $k0"
 key_lines | grep -q ' 5-005b$' || stop "no EINT line for the keyboard expander (5-005b)"
@@ -611,12 +613,18 @@ key_lines | sed 's/^/    B before: /'
 start=$(date +%s)
 while [ $(( $(date +%s) - start )) -lt "$BSEC" ]; do
 	if ! blank; then
-		if [ "$seen" = 0 ]; then
+		k=$(key_irqs)
+		if [ "$k" -gt "$k0" ]; then
+			seen=1
+			[ "$outcome" = none ] && outcome=between
+			log "B: the screen lit after a tap between periods ($k0>$k), with CPU0 awake: not a test of the key wake"
+		elif [ "$seen" = 0 ]; then
 			log "B: the screen lit with no key wake seen"
 			break
+		elif [ "$tapped" = 0 ]; then
+			log "B: the screen lit without a key ($k0>$k)"
 		fi
-		# A tap between periods lit the screen: wait for the blank, then
-		# go on for the next tap.
+		# Wait for the blank, then go on for the next tap.
 		t=0
 		until blank; do
 			t=$((t + 1))
@@ -624,8 +632,9 @@ while [ $(( $(date +%s) - start )) -lt "$BSEC" ]; do
 			sleep 1
 		done
 		blank || { log "B: no blank within 120 s after a tap"; break; }
+		tapped=0
 		k0=$(key_irqs)
-		log "B: blanked again, keyboard-path count $k0; waiting for the next tap"
+		log "B: blanked again after $t s, keyboard-path count $k0; waiting for the next tap"
 		continue
 	fi
 	period
@@ -636,8 +645,10 @@ while [ $(( $(date +%s) - start )) -lt "$BSEC" ]; do
 		k=$(key_irqs)
 		if [ "$k" -gt "$k0" ]; then
 			seen=1
+			outcome=pass
 			log "B: a key ended the period and reached Linux ($k0>$k)"
 		else
+			outcome=undelivered
 			log "B: a key ended the period but the keyboard-path count did not rise ($k0>$k)"
 		fi
 		break
@@ -648,19 +659,25 @@ while [ $(( $(date +%s) - start )) -lt "$BSEC" ]; do
 		seen=1
 		if [ "$KPRE" -gt "$k0" ]; then
 			log "B: the count rose between periods ($k0>$KPRE), with CPU0 awake: not a test of the key wake"
+			[ "$outcome" = none ] && outcome=between
 			k0=$k
+			tapped=1
 			continue
 		elif early; then
-			log "B: the count rose across a period that another source ended early ($KPRE>$k): inconclusive, repeat"
-		else
-			log "B: the count rose across a full period ($KPRE>$k) with no EINT or keypad wake: a press in the period did not wake it"
+			log "B: the count rose across a period that another source ended early ($KPRE>$k): inconclusive, waiting for the next tap"
+			outcome=inconclusive
+			k0=$k
+			tapped=1
+			continue
 		fi
+		outcome=fail
+		log "B: the count rose across a full period ($KPRE>$k) with no EINT or keypad wake: a press in the period did not wake it"
 		break
 	fi
 done
 sleep 2
 grep -iE 'eint|aw9523|keyboard' /proc/interrupts | sed 's/^/    after: /'
-[ "$key" = 1 ] || log "B: no key wake within the window"
+[ "$outcome" = none ] && log "B: no key wake within the window"
 k=$(key_irqs)
 [ "$key" = 1 ] || [ "$seen" = 1 ] || [ "$k" -gt "$k0" ] ||
 	log "B: no key seen (keyboard-path interrupt count $k0>$k)"
@@ -671,4 +688,4 @@ check_dmesg
 log "refusals in all: $REFUSED"
 restore
 check_dmesg
-log "done (C $early_c early, $pkt_c by packet; A $early_a early; B key $key, seen $seen)"
+log "done (C $early_c early, $pkt_c by packet; A $early_a early; B key $key, seen $seen, outcome $outcome)"
