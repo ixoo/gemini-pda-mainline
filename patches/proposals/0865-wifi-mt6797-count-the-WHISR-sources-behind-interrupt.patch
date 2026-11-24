@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 15:28:55 -0500
+Subject: [PATCH 865/865] wifi: mt6797: count the WHISR sources behind
+ interrupt-driven passes
+
+In SODI with power save on, every wake was the WLAN line, about one per
+beacon, more than the frames received. Count the interrupt-driven passes by
+the WHISR bits last read (TX done, RX, the firmware's software interrupts,
+abnormal, none) and whether the pass found work, and log the totals every
+1024 passes.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   | 20 +++++++++++++++++++
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  5 +++++
+ 2 files changed, 25 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 2cea32b79..d7eb0168f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -3060,6 +3060,26 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 		dev_info_once(wiphy_dev(mac->hw->wiphy),
+ 			      "one-shot WLAN interrupt served: found=%u\n",
+ 			      mac->join_pass_found);
++		{
++			struct mt6797_hif_rx_batch_stats batch;
++			u32 whisr;
++
++			mt6797_hif_rx_batch_stats(mac->hif, &batch);
++			whisr = batch.block_whisr;
++			mac->irq_passes++;
++			mac->irq_tx += !!(whisr & BIT(0));
++			mac->irq_rx += !!(whisr & (BIT(1) | BIT(2)));
++			mac->irq_d2h += !!(whisr & GENMASK(31, 8));
++			mac->irq_abnormal += !!(whisr & BIT(6));
++			mac->irq_none += !whisr;
++			mac->irq_found += mac->join_pass_found;
++			if (!(mac->irq_passes % 1024))
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "WLAN interrupt reasons: passes=%u tx=%u rx=%u d2h=%u abnormal=%u none=%u found=%u\n",
++					 mac->irq_passes, mac->irq_tx, mac->irq_rx,
++					 mac->irq_d2h, mac->irq_abnormal, mac->irq_none,
++					 mac->irq_found);
++		}
+ 		if (mac->join_pass_found)
+ 			mac->irq_empty = 0;
+ 		else if (++mac->irq_empty >= MT6797_MAC_IRQ_EMPTY_LIMIT)
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 3455a0a64..92ef956fe 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -503,6 +503,11 @@ struct mt6797_mac {
+ 	int ps_sent;
+ 	bool irq_armed, irq_gave_up, join_pass_read, join_pass_found;
+ 	unsigned int irq_empty;
++	/* Interrupt-driven passes by the WHISR bits last read: TX done, RX,
++	 * the firmware's software interrupts, abnormal, none; and found.
++	 */
++	unsigned int irq_passes, irq_tx, irq_rx, irq_d2h, irq_abnormal, irq_none,
++		     irq_found;
+ 	struct mt6797_data_slots data_slots;
+ 	struct sk_buff *join_inflight;
+ 	u64 join_deadline, join_frame_deadline;
+-- 
+2.43.0
+

@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 15:28:55 -0500
+Subject: [PATCH 864/865] wifi: mt6797: send one power-save profile command at
+ a time
+
+Each power-save change was logged twice, and at a link-down the second came
+back -ETIMEDOUT. The credit wait drops the mutex, so the work item and
+bss_info_changed could both send the same profile, and the second lost its
+credit to the first. Let only one send at a time; the worker retries after.
+---
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h | 2 +-
+ drivers/net/wireless/mediatek/mt6797/main.c     | 7 ++++++-
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index d1e39be5a..3455a0a64 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -499,7 +499,7 @@ struct mt6797_mac {
+ 	 * wants it on, and the profile last sent this lifetime.
+ 	 */
+ 	unsigned int ps_profile;
+-	bool ps_wanted, ps_failed;
++	bool ps_wanted, ps_failed, ps_busy;
+ 	int ps_sent;
+ 	bool irq_armed, irq_gave_up, join_pass_read, join_pass_found;
+ 	unsigned int irq_empty;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 5a1007ae9..6806667c7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1623,7 +1623,10 @@ void mt6797_mac_join_send_ps(struct mt6797_mac *mac)
+ 	unsigned int profile = mac->ps_wanted ? mac->ps_profile : 0;
+ 	int ret;
+ 
+-	if (!mac->ps_profile || mac->ps_sent == (int)profile)
++	/* The credit wait drops the mutex: a second caller then would send the
++	 * same profile again and time out. The worker retries afterwards.
++	 */
++	if (!mac->ps_profile || mac->ps_sent == (int)profile || mac->ps_busy)
+ 		return;
+ 	if (!mt6797_mac_join_ps_ready(mac)) {
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -1646,11 +1649,13 @@ void mt6797_mac_join_send_ps(struct mt6797_mac *mac)
+ 	reinit_completion(&mac->join_credit_done);
+ 	mac->join_credit_pending = true;
+ 	mac->join_page_debt = 1;
++	mac->ps_busy = true;
+ 	ret = mt6797_hif_join_ps_profile(mac->hif, mac->sequence++, profile,
+ 					 mac->join_credit_deadline);
+ 	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
++	mac->ps_busy = false;
+ 	if (!ret)
+ 		mac->ps_sent = profile;
+ 	else if (ret != -EBUSY)
+-- 
+2.43.0
+
