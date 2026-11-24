@@ -1,0 +1,79 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 24 Nov 2026 13:13:17 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: refuse SODI while a masked
+ infra clock runs
+
+The SODI admission checked only AP DMA, USB, MSDC and audio. With the
+idle state able to take DRAM into self-refresh (0859), it is the only
+guard for masters that move data by DMA with no request line into the
+SPM. Add the vendor's infra admission in full: no gate in its three
+masks (0x03aff900, 0x00440802 and 0x21fe36fd over the status words at
+0x90, 0x94 and 0xb0) may be running. They cover SPI, crypto, I2C, UART
+and the modem interfaces. D5w found all three met in a test run with
+the screen blank. Refusals count under a new reason, and a test period's
+refusal logs the three status words.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 59eb240e7..8d3d2b863 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -1884,7 +1884,7 @@ static struct i2c_adapter *spm_i2c6(void)
+ enum sodi_no {
+ 	SODI_GO, NO_AP_DMA, NO_USB, NO_MSDC, NO_AUDIO,
+ 	NO_BROKEN, NO_CPUS, NO_LIT, NO_SUSPEND, NO_SHORT, NO_I2C, NO_SPM,
+-	NO_PENDING, NO_BACKOFF, NO_COUNT
++	NO_PENDING, NO_BACKOFF, NO_INFRA, NO_COUNT
+ };
+ 
+ static const char * const sodi_no_name[NO_COUNT] = {
+@@ -1895,8 +1895,19 @@ static const char * const sodi_no_name[NO_COUNT] = {
+ 	[NO_I2C] = "I2C6 busy", [NO_SPM] = "PCM or modem busy",
+ 	[NO_PENDING] = "interrupt pending",
+ 	[NO_BACKOFF] = "short periods back-off",
++	[NO_INFRA] = "an infra clock",
+ };
+ 
++/*
++ * The vendor's SODI admission for infra: no gate in these masks may be
++ * running (a status bit set means gated). They cover masters that move data
++ * by DMA with no request line into the SPM (SPI, crypto, I2C, UART, the
++ * modem interfaces), so they also guard DRAM self-refresh (D5w, D7d).
++ */
++#define INFRA_SODI_CG0		0x03aff900
++#define INFRA_SODI_CG1		0x00440802
++#define INFRA_SODI_CG2		0x21fe36fd
++
+ static enum sodi_no sodi_busy(void)
+ {
+ 	struct device *afe = s.afe_dev;
+@@ -1910,6 +1921,10 @@ static enum sodi_no sodi_busy(void)
+ 	if (afe && READ_ONCE(afe->driver) && pm_runtime_active(afe) &&
+ 	    (readl(s.afe + AFE_DAC_CON0) & AFE_MEMIF_ON))
+ 		return NO_AUDIO;
++	if ((~readl(s.infra + INFRA_CG0_STA) & INFRA_SODI_CG0) ||
++	    (~readl(s.infra + INFRA_CG1_STA) & INFRA_SODI_CG1) ||
++	    (~readl(s.infra + INFRA_CG2_STA) & INFRA_SODI_CG2))
++		return NO_INFRA;
+ 	return SODI_GO;
+ }
+ 
+@@ -2156,7 +2171,11 @@ static int sodi_once(u64 ms)
+ 	if (!busy && s.sodi.src2_mask != SODI_SRC2_MASK)
+ 		src2_busy = sodi_src2_busy(s.sodi.src2_mask);
+ 	ret = busy || src2_busy ? -EBUSY : spm_run(&s.sodi);
+-	if (busy)
++	if (busy == NO_INFRA)
++		dev_info(&s.pdev->dev, "sodi: an infra clock running, refused: cg0 %08x cg1 %08x cg2 %08x\n",
++			 readl(s.infra + INFRA_CG0_STA), readl(s.infra + INFRA_CG1_STA),
++			 readl(s.infra + INFRA_CG2_STA));
++	else if (busy)
+ 		dev_info(&s.pdev->dev, "sodi: %s running, refused\n",
+ 			 sodi_no_name[busy]);
+ 	else if (src2_busy)
+-- 
+2.43.0
+

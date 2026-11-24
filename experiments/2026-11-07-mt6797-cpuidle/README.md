@@ -10323,24 +10323,50 @@ display session gave no cheap register for it, and the gate and write-DMA
 checks cover the engines that move data. Compile-checked in the VM with
 `W=1` and checkpatch; a module build is needed.
 
+**The reviewer on 0859 (2026-11-24).** No finding in the patch: the mask
+is rebuilt from the full value at every entry, narrowed only when the
+display is provably stopped, and fails safe. One addition outside it
+before live idle takes DRAM down: the vendor's infra clock admission in
+full. The module's short list (AP DMA, USB, MSDC, audio) guarded a clock
+cut; it now also guards self-refresh, and it is the only guard for
+masters that move data by DMA with no request line into the SPM (SPI,
+crypto, I2C, UART, the modem interfaces).
+
+**0860** adds it: no gate in the vendor's three infra masks (`0x03aff900`,
+`0x00440802`, `0x21fe36fd` over the status words at `0x90`, `0x94`,
+`0xb0`) may be running, after the existing specific checks; refusals count
+under a new reason ("an infra clock"), and a test period's refusal logs
+the three words. D5w found all three met with the screen blank. Compile-
+checked in the VM with `W=1` and checkpatch.
+
 ### Request D7e (proposed): a soak in test periods with the display pair masked
 
 The reviewer asked for a longer soak before live idle, since refresh
 faults are rare.
-- **Candidate:** image 138 on a fresh boot, a module with 0859, `d4.sh`
+- **Candidate:** image 138 on a fresh boot, a module with 0859 and 0860,
+  so the soak runs the admission that will go live, `d4.sh`
   6474ce11 with run A's options (`D4_SRC2_MASK=0x08f9009f`, flag 13
   clear, CONN2AP masked, `D4_ONLY_B=1`) and `D4_B_SECONDS=1500`, about
   400 full 2000 ms periods; the Wi-Fi timer lengthened to cover the run
   (about 30 minutes down); cable out.
 - **Pass:** every period returns with the memory hash equal; debug bit 9
   in the periods; `pasr_dpd_0` now shows the DRAM-down count per period;
-  `pc=` 0; and the new "CPU0 back to the return flag" line well under
-  5 ms in every period.
+  `pc=` 0 (any nonzero count is the DRAM-side acknowledgement failing,
+  to look at before idle uses it); and the "CPU0 back to the return flag"
+  line's maximum reported against the 5 ms poll; if it comes near a
+  millisecond, the poll is raised before live idle, since one miss stops
+  the state for good. Refusals by "an infra clock" are reported with
+  their status words.
+- **The hash:** the reviewer notes refresh faults show as rare bit errors
+  in rarely touched pages; the soak keeps the existing hash helper, whose
+  coverage the custodian states in the result.
 - **Admission:** run A's configuration for longer; the owner approves the
   run.
 
 After D7e, D7f would be D7a's off/on windows with `sodi_no_event=0` and
-`sodi_idle_disp_mask=1`, to measure the current with DRAM in self-refresh.
+`sodi_idle_disp_mask=1` at load, with Wi-Fi up: CONN's own requests stay
+honoured and hold DRAM up whenever it is active, which is correct and
+limits how often DRAM-down is reached.
 
 **The display-state check (display session, 2026-11-24).** MMSYS
 `CG_CON0` (`0x14000100`) reads a set bit for a gated clock. The DRAM
