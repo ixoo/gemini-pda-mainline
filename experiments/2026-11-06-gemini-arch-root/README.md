@@ -2750,3 +2750,16 @@ toggle.
 
 Built in an Arch chroot over card-32's image (systemd 262.1): `gemini-base-69` (`81469585…`). Not
 on the device; DHCP starting when iwd raises the link is part of the test.
+
+#### No saved rfkill state (gemini-base 70, owner, 2026-11-24)
+
+The owner approved the wifi-daily session's fix 1, through the custodian. When the Wi-Fi
+driver restarts (0862), it replaces the phy. systemd-rfkill dropped the queued save of an
+unblock when the old phy went, and applied the stale saved "blocked" to the new one. That save
+also carried into the next boot: card-32 boot `863fd625` had no Wi-Fi for about 75 min.
+gemini-base masks `systemd-rfkill.service` and `systemd-rfkill.socket`, with `/dev/null` links in
+`/etc/systemd/system`, since the systemd package owns the units in `/usr/lib`. The cost, which
+the owner accepted, is that an rfkill block no longer survives a reboot. The diagnosis is the
+wifi-daily session's.
+
+Built in an Arch chroot over card-32's image: `gemini-base-70` (`11be2595…`). Not on the device.
