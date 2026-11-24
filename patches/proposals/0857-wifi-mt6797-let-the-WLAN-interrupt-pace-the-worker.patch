@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 13:00:15 -0500
+Subject: [PATCH] wifi: mt6797: let the WLAN interrupt pace the worker
+
+On an idle, connected station the join worker still ran about 32 times a
+second against 12 WLAN interrupts. After a frame it polled at once up to 32
+times while work was owed, and at 20 ms for a second after any unicast frame.
+With the interrupt serving the link, which also signals TX done, pass at once
+only after progress, wait 20 ms while work is owed, and otherwise wait 1 s,
+unless a frame is held for reordering, whose deadline needs the short interval.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c | 39 ++++++++++++++++-----
+ 1 file changed, 30 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 91fa2bf41..1cdce2210 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -1056,17 +1056,29 @@ bool mt6797_mac_join_retire_idle_scan(struct mt6797_mac *mac)
+ /* An established link with nothing received or sent for a while and no
+  * frame held for reordering, whose deadline needs the short interval.
+  */
+-static bool mt6797_mac_join_quiet(const struct mt6797_mac *mac)
++static bool mt6797_mac_join_reorder_held(const struct mt6797_mac *mac)
+ {
+ 	unsigned int tid;
+ 
++	for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++)
++		if (mac->rx_reorder[tid].waiting || mac->rx_reorder[tid].has_bubble)
++			return true;
++	return false;
++}
++
++static bool mt6797_mac_join_quiet(const struct mt6797_mac *mac)
++{
+ 	if (!mac->join_data_phase || mac->join_data_ended || !mac->join_pump_active_ns ||
+ 	    ktime_get_ns() - mac->join_pump_active_ns < MT6797_JOIN_PUMP_QUIET_AFTER_NS)
+ 		return false;
+-	for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++)
+-		if (mac->rx_reorder[tid].waiting || mac->rx_reorder[tid].has_bubble)
+-			return false;
+-	return true;
++	return !mt6797_mac_join_reorder_held(mac);
++}
++
++/* The WLAN interrupt serves this established link. */
++static bool mt6797_mac_join_irq_served(const struct mt6797_mac *mac)
++{
++	return mac->irq_armed && !mac->irq_gave_up &&
++	       mac->join_data_phase && !mac->join_data_ended;
+ }
+ 
+ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+@@ -3011,10 +3023,19 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 		mac->join_pump_active_ns = ktime_get_ns();
+ 		mac->join_pass_found = true;
+ 	}
+-	if (delay_ms == MT6797_JOIN_PUMP_IDLE_MS && !pending &&
+-	    mt6797_mac_join_quiet(mac))
+-		delay_ms = mac->irq_armed && !mac->irq_gave_up ?
+-			   MT6797_JOIN_PUMP_IRQ_QUIET_MS : MT6797_JOIN_PUMP_QUIET_MS;
++	if (mt6797_mac_join_irq_served(mac)) {
++		/* The interrupt wakes the worker for receive and for TX done, so
++		 * only progress earns an immediate pass. Work still owed waits
++		 * for the interrupt or 20 ms; otherwise only a frame held for
++		 * reordering needs the short interval.
++		 */
++		if (!pump_progress)
++			delay_ms = pending || mt6797_mac_join_reorder_held(mac) ?
++				   MT6797_JOIN_PUMP_IDLE_MS : MT6797_JOIN_PUMP_IRQ_QUIET_MS;
++	} else if (delay_ms == MT6797_JOIN_PUMP_IDLE_MS && !pending &&
++		   mt6797_mac_join_quiet(mac)) {
++		delay_ms = MT6797_JOIN_PUMP_QUIET_MS;
++	}
+ 	if (pending && delay_ms == MT6797_JOIN_PUMP_IDLE_MS)
+ 		dev_info_once(wiphy_dev(mac->hw->wiphy),
+ 			      "one-shot WLAN join pump stalled: queued=%u inflight=%u slots=%u credit=%u debt=%u data_debt=%u\n",
+-- 
+2.43.0
+
