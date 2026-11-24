@@ -9429,8 +9429,12 @@ Two consequences for the next try:
 ### Request D6e (proposed): the key window with Wi-Fi down
 
 - **Candidate:** as D6d on a fresh boot, with this `d4.sh`. The
-  custodian takes the Wi-Fi interface down before launch (the session
-  runs over USB) and brings it back after.
+  custodian's session reaches the station over Wi-Fi, and USB would need
+  the cable, which `d4.sh` refuses. So a detached timer started with the
+  launch takes the Wi-Fi interface down about 25 s after launch (inside
+  the script's 30 s wait) and brings it back 8 minutes later whatever
+  happens. The custodian cannot see a hang until then; the owner's
+  terminal on the station is the fallback.
 - **Change:** no CONN2AP wakes, so periods run their 2000 ms, as in D6a.
   The owner presses one key once at a clock time fixed before launch,
   about 60 s after B opens, and touches no input before that.
@@ -9444,6 +9448,32 @@ Two consequences for the next try:
 | A key ends a period and the count rises | The key wake works with CPU0 powered down | The idle-path design, once the CPU0-alone trigger is decided |
 | "rose across the period" without a wake | A press in a period was not a wake | The reviewer's checks: EINT mask and status, the SPM wake mask for EINT, the SYS_CIRQ clone of line 98 |
 | "rose between periods" | The press missed the periods | Another fresh-boot try |
+
+**The reviewer on D6e (2026-11-24).** A rise across a period without a
+key wake has three causes: the press fell between the count read and the
+kick; the EINT wake ended the period but only another source shows in the
+wake word; or the press did not wake the period, which is the failure.
+The period's length and the raw wake word separate them, and both are
+logged (`r12` and the SYS_CIRQ words). `d4.sh` (commit recording this)
+now reads the count right before each attempt, refused ones included, and
+splits the case:
+- **Fail:** the count rose across a full period (timer end) with no EINT
+  or keypad bit in `r12` or SYS_CIRQ word 3.
+- **Pass:** a period ended early with one of those bits, whatever else is
+  set with it (already the script's key test).
+- **Inconclusive, repeat:** the count rose across a period that another
+  source ended early.
+
+The reviewer also suggested holding the key for a few seconds so it spans
+a period. That does not help as hoped: the expander's line is only held
+until the driver reads it, and a held key makes one event at the press and
+one at the release. A press that lands between periods is read at once,
+and it turns the display on, which ends window B before the release.
+So D6e stays a single tap, with about an even chance of landing in a
+period. The reviewer's other points: read the first period after the
+press, not the display's wake that follows it, and report the lowest
+start frequency, since no two-state window has started a pdn period below
+1118 MHz yet.
 
 ### Request D5n (proposed): two states with no resource events
 

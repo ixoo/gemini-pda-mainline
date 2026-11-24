@@ -239,9 +239,9 @@ period() {
 	# sync; synced right before the attempt, every attempt was refused.
 	log "    start, cpu0 $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo -) kHz"
 	sleep 1
-	KPRE=$(key_irqs)
 	while :; do
 		n0=$(dmesg | wc -l)
+		KPRE=$(key_irqs)
 		echo 2000 >"$SODI" && break
 		if dmesg | tail -n +"$((n0 + 1))" | grep -q 'refused'; then
 			tries=$((tries + 1))
@@ -630,8 +630,10 @@ while [ $(( $(date +%s) - start )) -lt 300 ]; do
 		seen=1
 		if [ "$KPRE" -gt "$k0" ]; then
 			log "B: the count rose between periods ($k0>$KPRE), with CPU0 awake: not a test of the key wake"
+		elif early; then
+			log "B: the count rose across a period that another source ended early ($KPRE>$k): inconclusive, repeat"
 		else
-			log "B: the count rose across the period ($KPRE>$k) without a key wake: a press in the period did not wake it"
+			log "B: the count rose across a full period ($KPRE>$k) with no EINT or keypad wake: a press in the period did not wake it"
 		fi
 		break
 	fi
