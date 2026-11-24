@@ -10110,7 +10110,12 @@ the vendor's mask. `d4.sh` (commit recording this) passes it as
 `D4_SRC2_MASK`. Compile-checked in the VM with `W=1` and checkpatch; a
 module build is needed.
 
-- **Candidate:** image 138 on a fresh boot per run, a module with 0856,
+- **Module:** Buildbox job at 6401ebd4c (0856 with the per-period
+  requester check), profile `mt6797-a53-station-dvfs` with
+  `BUILD_MODULES=1`, validated by the custodian: `mt6797-spm-sleep.ko`
+  sha256 `e1f1848af74c1efe…`. An earlier build from 8d17fccd9, without
+  the requester check, is not used. `d4.sh` 6474ce11.
+- **Candidate:** image 138 on a fresh boot per run, that module,
   D7c's options (Wi-Fi down by the timer, CONN2AP masked, flag 13 clear,
   `D4_ONLY_B=1`) plus `D4_B_SECONDS=120` and one mask per run. C first,
   as the reviewer advised: it is the suspend scenario's own mask, the one
