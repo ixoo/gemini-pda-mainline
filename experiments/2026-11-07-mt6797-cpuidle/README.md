@@ -10128,25 +10128,24 @@ module build is needed.
 - **Comparable runs only:** the "sodi mm: cg0" line after the blank must
   read `3f9f8000`, as in D6-D7b; otherwise the run is repeated.
 
-**Why D7c's engines were clocked (display session, 2026-11-24).** On that
-boot a compositor session held the display. With a compositor on the VT
-the console is in graphics mode, so the console blank only marks it
-blanked; the station's backlight policy then turns the backlight off, but
-the blank never reaches DRM, and fbdev cannot take DRM master from the
-compositor to switch the output off. The CRTC stays active and the
-pipeline scans a dark panel. The other runs had the console owning the
-display, or the compositor had switched the output off.
-- **For D7d:** run with no compositor holding the display, or blank
-  through the compositor, and check the `cg0` line as above.
-- **For the idle state:** the backlight is the wrong proxy for "the
-  display is stopped" in exactly this case. With the vendor's mask that
-  is harmless (SODI honours a scanning display's requests); any future
-  masking of display requests in the idle state must use the clock-gate
-  check, as 0856 does for test periods.
-- **For the owner's power, separately:** on that setup the backlight
-  policy's blank leaves the whole display pipeline running until the
-  compositor's own screen-off. The display session is passing this to the
-  session that owns the station's base configuration.
+**Why D7c's gate read showed clocked engines (display session,
+2026-11-24, corrected).** The card root has no backlight policy; D7c's
+blank was the compositor's own battery screen-off, which fades the
+backlight and switches the output off through DPMS about 2 s later.
+`d4.sh` read the MMSYS gates the moment the backlight read blank, so the
+read most likely fell between the fade and the DPMS. It does not show a
+pipeline that stayed up, and D7c's periods, which started well after, were
+probably gated too, though nothing logged the gates later. The custodian's
+read-only reads on that boot after 20 minutes idle gave `CG_CON0`
+`3f9fc000` and `CG_CON1` `ffffffd3`: gated.
+- `d4.sh` (commit recording this) now waits after the blank until the
+  panel's DPMS reads Off before reading the gates.
+- For the idle state, the backlight remains the wrong proxy for "the
+  display is stopped" in that window; any masking of display requests
+  in the idle state must use the clock-gate check, as 0856 does for test
+  periods. With the vendor's mask that window is harmless.
+- The custodian waits about 11 minutes idle after each fresh boot before
+  launching a D7d run.
 - **Records:** per period `pasr_dpd_0`, the debug word (bits 8 and 9),
   `pc=`, `r13` and the mask used.
 - **Hypothesis:** a stopped display read DMA holds the APSRC request, so

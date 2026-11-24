@@ -493,6 +493,18 @@ until [ "$(cat /sys/class/backlight/*/bl_power 2>/dev/null | head -n 1)" = 4 ]; 
 	sleep 1
 done
 log "blanked"
+# A compositor fades the backlight first and switches the output off about
+# 2 s later; read the MMSYS gates only once the panel's DPMS reads Off (D7d).
+DPMS=/sys/class/drm/card0-DSI-1/dpms
+if [ -r "$DPMS" ]; then
+	t=0
+	until [ "$(cat "$DPMS")" = Off ]; do
+		t=$((t + 1))
+		[ "$t" -gt 60 ] && stop "the panel's DPMS not Off within 60 s of the blank"
+		sleep 1
+	done
+	log "panel DPMS Off after $t s"
+fi
 if [ "${D4_MM:-0}" != 0 ]; then
 	if echo "$D4_MM" >/sys/module/mt6797_spm_sleep/parameters/sodi_mm_cg; then
 		new_dmesg | grep -o 'sodi mm: .*' | sed 's/^/    /'
