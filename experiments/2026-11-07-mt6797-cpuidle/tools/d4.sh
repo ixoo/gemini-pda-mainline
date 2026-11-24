@@ -63,6 +63,7 @@
 # for each period and restored after it (0838, stage D5z).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
+# D4_ONLY_B=1 skips windows C and A and runs only the key window (D6c).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
 # local timer event (0821, stage D5f).
 # No period starts while the screen is lit: SODI with the display scanning
@@ -75,7 +76,11 @@
 #      three minutes), then runs 60 periods back to back while they arrive;
 #   A  quiet: once the pings have stopped, 20 periods;
 #   B  key: up to 300 s of periods; the owner presses one key once when the
-#      custodian says so; the window ends at the first period a key ends.
+#      custodian says so; the window ends at the first period a key ends
+#      or at the first period after which the keyboard's interrupt count
+#      (EINT, expander, keyboard lines in /proc/interrupts) has risen; each
+#      period's line carries that count, and the window says "no key seen"
+#      when neither happens.
 # Each period is logged with its wake reason and the SYS_CIRQ status. The
 # log is /var/tmp/d4.log, synced after every line.
 #
@@ -211,6 +216,12 @@ in_echos() {
 # One 2000 ms period. A refusal (a gate briefly running) is retried after
 # 1 s (past the synced refusal line), ten at most in a row. Sets R12 and
 # SLEPT for the caller.
+# The summed /proc/interrupts counts of the EINT, expander and keyboard lines.
+key_irqs() {
+	grep -iE 'eint|aw9523|keyboard' /proc/interrupts |
+		awk '{ for (k = 2; k <= NF && $k ~ /^[0-9]+$/; k++) n += $k } END { print n + 0 }'
+}
+
 period() {
 	tries=0
 	# Synced once before the period's attempts: a reset after this line and
@@ -519,6 +530,10 @@ REF=$(hash)
 log "hash reference $REF"
 grep -iE 'eint|aw9523|keyboard' /proc/interrupts | sed 's/^/    before: /'
 
+if [ "${D4_ONLY_B:-0}" = 1 ]; then
+	log "C and A skipped (D4_ONLY_B=1)"
+	early_c=-; pkt_c=-; early_a=-
+else
 # ---- C: inbound ping ----
 log "C: waiting up to 300 s for inbound pings (ping the device now)"
 e0=$(in_echos)
@@ -569,10 +584,14 @@ for i in $(seq 1 20); do
 done
 log "A: $early_a of 20 ended early"
 check_dmesg
+fi
 
 # ---- B: a key ----
 log "B: press one key once (up to 300 s)"
 key=0
+seen=0
+k0=$(key_irqs)
+log "B: keyboard interrupt count $k0"
 start=$(date +%s)
 while [ $(( $(date +%s) - start )) -lt 300 ]; do
 	if ! blank; then
@@ -586,14 +605,24 @@ while [ $(( $(date +%s) - start )) -lt 300 ]; do
 		log "B: a key ended the period"
 		break
 	fi
+	k=$(key_irqs)
+	log "B: keyboard interrupt count $k"
+	if [ "$k" -gt "$k0" ]; then
+		seen=1
+		log "B: a key reached Linux ($k0>$k) without ending a period"
+		break
+	fi
 done
 sleep 2
 grep -iE 'eint|aw9523|keyboard' /proc/interrupts | sed 's/^/    after: /'
 [ "$key" = 1 ] || log "B: no key wake within the window"
+k=$(key_irqs)
+[ "$key" = 1 ] || [ "$seen" = 1 ] || [ "$k" -gt "$k0" ] ||
+	log "B: no key seen (keyboard interrupt count $k0>$k)"
 check_dmesg
 
 # ---- restore ----
 log "refusals in all: $REFUSED"
 restore
 check_dmesg
-log "done (C $early_c early, $pkt_c by packet; A $early_a early; B key $key)"
+log "done (C $early_c early, $pkt_c by packet; A $early_a early; B key $key, seen $seen)"
