@@ -9768,6 +9768,12 @@ already in it).
   compare values are restored before the controls with interrupts off, so
   at worst one spurious timer interrupt. A missed return marks the state
   stopped for good.
+- On the revised 0854: no finding. For after D7a: with a wake stuck on,
+  the guard still allows eight power-down cycles a second for as long as
+  it lasts, a steady cost on battery with Wi-Fi off for hours. When the
+  constants are revisited, either double the back-off on each consecutive
+  trip up to a ceiling, or mask CONN2AP while the interface is down. The
+  `backoffs` counter will show whether it trips in normal use.
 
 ### Request D7a (proposed): the power-down idle state on its own
 
