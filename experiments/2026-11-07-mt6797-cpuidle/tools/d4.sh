@@ -215,18 +215,32 @@ obs_affinity() {
 	done
 }
 
-# Retention (D4_RETAIN_MB): a tmpfs file of random data written once and
-# hashed again later, so data left untouched across many periods is checked,
-# not only the freshly written buffer the cpu-mhz hash uses (D7e).
+# Retention (D4_RETAIN_MB): a tmpfs file of seeded pseudo-random data
+# written once and read back in full later, so data left untouched across
+# many periods is checked, not only the freshly written buffer the cpu-mhz
+# hash uses (D7e). The data comes from AES-CTR over zeros with a fixed key,
+# so a changed file can be compared with a regenerated copy: on a change the
+# differing bytes (up to 1000) go to /var/tmp/retain-diff.txt before the
+# power-off. Swap is refused, since a swapped page would not test DRAM.
 RETAIN=""
 RETAIN_SUM=""
+retain_gen() {
+	openssl enc -aes-128-ctr -nosalt -K 000102030405060708090a0b0c0d0e0f \
+		-iv 00000000000000000000000000000000 -in /dev/zero 2>/dev/null |
+		head -c $(( D4_RETAIN_MB * 1048576 ))
+}
+
 retain_start() {
 	[ -n "${D4_RETAIN_MB:-}" ] || return 0
+	command -v openssl >/dev/null || stop "no openssl for the retention data"
+	command -v cmp >/dev/null || stop "no cmp for the retention check"
+	[ "$(wc -l </proc/swaps)" -le 1 ] || stop "swap is active: the retention file could leave DRAM"
 	avail=$(awk '/^MemAvailable:/ { print int($2 / 1024) }' /proc/meminfo)
 	[ "$avail" -gt $(( D4_RETAIN_MB + 256 )) ] ||
-		stop "D4_RETAIN_MB=$D4_RETAIN_MB needs more than ${avail} MiB available"
+		stop "D4_RETAIN_MB=${D4_RETAIN_MB} needs more than ${avail} MiB available"
 	RETAIN=$(mktemp /dev/shm/retain.XXXXXX) || stop "no tmpfs file for the retention check"
-	head -c $(( D4_RETAIN_MB * 1048576 )) /dev/urandom >"$RETAIN" || stop "retention file not written"
+	retain_gen >"$RETAIN" || stop "retention file not written"
+	[ "$(wc -c <"$RETAIN")" -eq $(( D4_RETAIN_MB * 1048576 )) ] || stop "retention file short"
 	RETAIN_SUM=$(sha256sum <"$RETAIN" | cut -c1-64)
 	log "retention: ${D4_RETAIN_MB} MiB in tmpfs, sha256 $(echo "$RETAIN_SUM" | cut -c1-16)"
 }
@@ -234,7 +248,8 @@ retain_start() {
 retain_check() {
 	[ -n "$RETAIN" ] || return 0
 	if [ "$(sha256sum <"$RETAIN" | cut -c1-64)" != "$RETAIN_SUM" ]; then
-		log "STOP: the retention file changed after $1; powering off"
+		retain_gen | cmp -l - "$RETAIN" | head -n 1000 >/var/tmp/retain-diff.txt
+		log "STOP: the retention file changed after $1, $(wc -l </var/tmp/retain-diff.txt) differing bytes listed in /var/tmp/retain-diff.txt; powering off"
 		sync
 		systemctl poweroff
 		exit 1

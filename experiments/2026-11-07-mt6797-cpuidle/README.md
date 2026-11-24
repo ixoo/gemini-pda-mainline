@@ -10415,22 +10415,50 @@ mismatch. The check was tested in the VM, including a deliberate change.
 
 ### Request D7f (proposed): the idle state with DRAM self-refresh
 
+**The reviewer on D7e and D7f (2026-11-24).** No separate retention soak:
+D7e's 864 DRAM-downs with every hash equal and no abort already show entry
+and exit are right, and a test-period soak would reach no longer time in
+self-refresh than the idle state (both cap at 2000 ms). D7f's per-window
+retention check is enough, on two conditions:
+- D7f must be quiet, or it does not test retention: with Wi-Fi up, CONN's
+  requests cut the DRAM-down time short, as in D7e. So the interface is
+  down for the run and CONN2AP is out of the idle wake set (as in D6f,
+  otherwise the standing wake trips the back-off).
+- The file must stay in DRAM and be read back in full: no swap or zram
+  during the run, and random data, since zeros or a repeating pattern can
+  hide stuck bits.
+- A mismatch with the kernel still healthy would be the first sign of a
+  refresh problem, as rare bits; the positions and bit directions tell
+  decay from a write under self-refresh.
+- D7e's return flag (194 µs at most) settles the 5 ms poll.
+
+`d4.sh` and `d5.sh` (commit recording this) now generate the retention
+data from AES-CTR with a fixed key, refuse to start with swap active, and
+on a mismatch list up to 1000 differing bytes (offset, expected, found)
+against a regenerated copy in `/var/tmp/retain-diff.txt` before the
+power-off. Tested in the VM with a deliberate one-byte change.
+
 - **Candidate:** image 138 on a fresh boot, module `4337adfd`, `d5.sh`
   (commit recording this) with `D5_PDN=1`,
-  `D5_PARAMS="sodi_keep_26m=1 sodi_no_event=0 sodi_idle_disp_mask=1"`
-  and `D5_RETAIN_MB=1024`, four 180 s windows off/on/off/on, Wi-Fi joined
-  and up, cable out, no touching.
+  `D5_PARAMS="sodi_keep_26m=1 sodi_no_event=0 sodi_idle_disp_mask=1 sodi_wake_src=0x0f57c5c5"`
+  and `D5_RETAIN_MB=1024`, four 180 s windows off/on/off/on, the Wi-Fi
+  timer taking the interface down from 25 s after launch for 20 minutes,
+  cable out, no touching. If the interface comes back up by itself, as in
+  D6g and D7e, the result says so; the windows are then not quiet.
 - **Hypothesis:** in live idle the state takes DRAM into self-refresh
   when the display is stopped and CONN is quiet, every entry returns, data
-  survives, and the current falls below D7a's 71-74 mA.
+  survives, and the current falls against the run's own off windows.
 - **Pass:** both on windows complete; stopped 0; hashes and retention
   equal after every window; "dram abort" 0; "dram down" and "display
   masked" above 0.
-- **Records:** current per window against D7a; entries, refusals by
-  reason (with "an infra clock"), dram down, dram abort, display masked,
-  back-offs; the mean entry and exit costs.
-- **Admission:** D7e's configuration from the idle loop, with Wi-Fi up;
-  the owner approves the run.
+- **Records:** current per window against the off windows (D7a's were
+  with Wi-Fi up); entries, refusals by reason (with "an infra clock"),
+  dram down, dram abort, display masked, back-offs per window; the mean
+  sleep per entry, as the measure of how long DRAM could stay down; the
+  mean entry and exit costs; whether the interface stayed down.
+- **Admission:** D7e's configuration from the idle loop, with the Wi-Fi
+  timer and CONN2AP masked as in D6f; the owner approves the run. A run
+  with Wi-Fi up comes after.
 
 **The display-state check (display session, 2026-11-24).** MMSYS
 `CG_CON0` (`0x14000100`) reads a set bit for a gated clock. The DRAM
