@@ -59,6 +59,9 @@
 # D4_CPU_PDN=1 sets sodi_cpu_pdn: test periods power CPU0 down through PSCI
 # CPU_SUSPEND, as the vendor does (0852, D6); the cpuidle driver's own SODI
 # entries keep CPU0 powered. It refuses the observer.
+# D4_SRC2_MASK=0x... sets sodi_src2_mask: test periods use that narrower
+# SPM_SRC2_MASK, refused by the module unless the backlight is blank (0856,
+# D7d).
 # D4_SMI_ASYNC=1 sets sodi_smi_async: SMI_COMMON_ASYNC_DCM is set in the M4U
 # for each period and restored after it (0838, stage D5z).
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
@@ -420,6 +423,10 @@ if [ "${D4_CPU_PDN:-0}" = 1 ]; then
 	grep -q 'sodi_cpu_pdn' "$KO" || stop "the module has no sodi_cpu_pdn parameter (0852)"
 	[ "${D4_OBS:-0}" = 0 ] || stop "D4_CPU_PDN=1 refuses the observer"
 	level="$level sodi_cpu_pdn=1"
+fi
+if [ -n "${D4_SRC2_MASK:-}" ]; then
+	grep -q 'sodi_src2_mask' "$KO" || stop "the module has no sodi_src2_mask parameter (0856)"
+	level="$level sodi_src2_mask=$D4_SRC2_MASK"
 fi
 case ${D4_VARIANT:-0} in
 0) ;;

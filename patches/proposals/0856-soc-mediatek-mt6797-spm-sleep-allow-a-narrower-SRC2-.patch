@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 24 Nov 2026 11:31:16 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: allow a narrower SRC2 mask
+ in SODI test periods
+
+With CONN quiet, SODI's DRAM path still never starts with the screen
+blanked: some requester on the display side keeps the APSRC request
+asserted (stage D7c). SODI's SPM_SRC2_MASK honours the display, display
+1, display OD, GPU and GCE requests, as the vendor's SODI does; the
+vendor's deep idle ignores the display and GCE ones.
+
+Add sodi_src2_mask for test periods only, so each group can be left out
+in turn (D7d). It may only clear bits of the SODI mask, and a period
+with it set is refused unless the backlight is blank, since a scanning
+display must keep its DRAM requests. Log the mask used with each period.
+The idle state keeps the vendor's mask.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 36 ++++++++++++++++++++++---
+ 1 file changed, 33 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 8f78ade71..e61334a48 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -281,6 +281,22 @@ module_param(sodi_cpu_pdn, bool, 0644);
+ MODULE_PARM_DESC(sodi_cpu_pdn, "SODI: power CPU0 down through PSCI CPU_SUSPEND in test periods, as the vendor does");
+ #define SODI_PSCI_CLUSTER_PDN	0x01010000
+ 
++/*
++ * SODI's SPM_SRC2_MASK, as the vendor's MT6797 SODI table: the display,
++ * display 1, display OD, GPU and GCE requests are honoured (D3, D7b).
++ */
++#define SODI_SRC2_MASK		0x08ff009f
++
++/*
++ * Test periods only (D7d): a narrower SPM_SRC2_MASK, so fewer requesters
++ * can hold DRAM awake. 0 keeps SODI_SRC2_MASK. It may only clear bits of
++ * SODI_SRC2_MASK, and a period with it set is refused unless the backlight
++ * is blank, since a scanning display must keep its DRAM requests.
++ */
++static unsigned int sodi_src2_mask;
++module_param(sodi_src2_mask, uint, 0644);
++MODULE_PARM_DESC(sodi_src2_mask, "SODI test: SPM_SRC2_MASK with fewer requesters, blank screen only (0: the vendor's)");
++
+ static unsigned int sodi_min_khz;
+ module_param(sodi_min_khz, uint, 0644);
+ MODULE_PARM_DESC(sodi_min_khz, "SODI: hold CPU0 at this kHz or more across each test period, refusing it otherwise (0: off)");
+@@ -553,6 +569,7 @@ struct spm_wake {
+ 	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
+ 	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
+ 	u32 r6;			/* resources still down at the wake (bit 31: DRAM) */
++	u32 src2_mask;		/* SPM_SRC2_MASK in the period */
+ 	u32 wfi_loops;
+ 	u32 obs_seq, obs_ticks, obs_gap_us;	/* the observer's view of the period */
+ 	u32 fsm;		/* PCM_FSM_STA after the wait */
+@@ -1562,6 +1579,7 @@ static int spm_run(const struct spm_scen *sc)
+ 	s.wake.timer_out = spm_rd(SPM_BSI_D1_SR);
+ 	s.wake.r13 = spm_rd(PCM_REG13_DATA);
+ 	s.wake.r6 = spm_rd(PCM_REG6_DATA);
++	s.wake.src2_mask = spm_rd(SPM_SRC2_MASK);
+ 	s.wake.r0 = spm_rd(PCM_REG0_DATA);
+ 	s.wake.r7 = spm_rd(PCM_REG7_DATA);
+ 	s.wake.idle_sta = spm_rd(SUBSYS_IDLE_STA);
+@@ -1794,8 +1812,8 @@ static void spm_log_wake(const char *what)
+ 		 s.wake.timer_out, s.wake.r13, s.wake.idle_sta,
+ 		 s.wake.debug_flag, s.wake.event_reg, s.wake.isr,
+ 		 s.wake.assert_pc);
+-	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x r6=%08x\n", what, s.dummy1,
+-		 spm_rd(SPM_PASR_DPD_0), s.wake.r6);
++	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x r6=%08x src2_mask=%08x\n",
++		 what, s.dummy1, spm_rd(SPM_PASR_DPD_0), s.wake.r6, s.wake.src2_mask);
+ 	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns, cpu pdn %d ret %d, cpu power %08x %08x, buck iso %08x>%08x\n",
+ 		 what, mul_u64_u64_div_u64(s.wake.cnt_wfi - s.wake.cnt_pcm_kick, NSEC_PER_SEC,
+ 					   arch_timer_get_cntfrq()),
+@@ -1966,6 +1984,18 @@ static int sodi_once(u64 ms)
+ 	}
+ 	/* A refused period must not print the previous period's wake lines */
+ 	s.entered = false;
++	s.sodi.src2_mask = READ_ONCE(sodi_src2_mask);
++	if (!s.sodi.src2_mask) {
++		s.sodi.src2_mask = SODI_SRC2_MASK;
++	} else if (s.sodi.src2_mask & ~SODI_SRC2_MASK) {
++		dev_info(&s.pdev->dev, "sodi: src2 mask %08x sets bits outside %08x, refused\n",
++			 s.sodi.src2_mask, SODI_SRC2_MASK);
++		return -EINVAL;
++	} else if (!s.bl || !backlight_is_blank(s.bl)) {
++		dev_info(&s.pdev->dev, "sodi: src2 mask %08x with the screen lit, refused\n",
++			 s.sodi.src2_mask);
++		return -EBUSY;
++	}
+ 	i2c6 = spm_i2c6();
+ 	if (!i2c6) {
+ 		dev_info(&s.pdev->dev, "sodi: no I2C6 adapter, refused\n");
+@@ -2656,7 +2686,7 @@ static int __init spm_sleep_init(void)
+ 
+ 	/* SODI (D3) is optional: suspend works without it */
+ 	s.sodi.src_req = 0;
+-	s.sodi.src2_mask = 0x08ff009f;
++	s.sodi.src2_mask = SODI_SRC2_MASK;
+ 	s.sodi.wfi_count = 8;
+ 	s.sodi.cirq = true;
+ 	s.cirq = ioremap(CIRQ_PHYS, 0x400);
+-- 
+2.43.0
+
