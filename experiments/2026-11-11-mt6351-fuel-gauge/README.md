@@ -1287,7 +1287,14 @@ saved by gemini-base at shutdown. The custodian's condition: not after a charge 
 
 **gemini-base (Arch root):** save the value with its basis and wall time at a clean shutdown.
 At bind, restore it once and only within about 30 min, then discard it. So an abrupt power
-loss later, with no shutdown save, never restores an old value.
+loss later, with no shutdown save, never restores an old value. Built in gemini-base 68 (`65167c8d`):
+- the order is Q, R, then the counted charge;
+- the counted line is removed before the write, and restored only within 0-1800 s by the wall
+  clock;
+- `EBUSY` and `ESTALE` are logged once, not retried;
+- saves on change events keep an unused counted line.
+
+Not on a device yet.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
