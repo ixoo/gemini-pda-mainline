@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 15:04:40 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: defer a WLAN restart inside the
+ spacing
+
+A WLAN restart request less than 30 s after the last one was dropped. After
+an rfkill unblock the restart that 0670 asked for completed, the new interface
+was closed again within seconds, and its restart request fell inside the
+spacing: Wi-Fi stayed down for 640 s, until someone asked again by hand.
+Schedule such a request for the end of the spacing instead, so restarts stay
+at most one per 30 s and none is lost.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 19 +++++++++++--------
+ 1 file changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index d6f33573c..a6bf864a5 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1091,11 +1091,11 @@ static void mt6797_consys_wlan_detach_now(const struct mt6797_mac_ops *ops)
+ }
+ 
+ static void mt6797_consys_wlan_restart_work(struct work_struct *work);
+-static DECLARE_WORK(mt6797_consys_wlan_restart, mt6797_consys_wlan_restart_work);
++static DECLARE_DELAYED_WORK(mt6797_consys_wlan_restart, mt6797_consys_wlan_restart_work);
+ 
+ void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops)
+ {
+-	cancel_work_sync(&mt6797_consys_wlan_restart);
++	cancel_delayed_work_sync(&mt6797_consys_wlan_restart);
+ 	mt6797_consys_wlan_detach_now(ops);
+ }
+ EXPORT_SYMBOL_GPL(mt6797_consys_wlan_detach);
+@@ -1132,16 +1132,19 @@ static void mt6797_consys_wlan_restart_work(struct work_struct *work)
+ void mt6797_consys_wlan_request_restart(void)
+ {
+ 	static u64 last;
+-	u64 now = ktime_get_ns();
++	u64 now = ktime_get_ns(), delay = 0;
+ 
+ 	/* Built in, CONSYS has no remove path to restart through. A fault that
+-	 * repeats at once stays down between tries.
++	 * repeats at once waits out the spacing; the request is kept, not lost,
++	 * since an interface closed again just after a restart stayed down for
++	 * good when its request was dropped.
+ 	 */
+-	if (!IS_MODULE(CONFIG_MTK_MT6797_CONSYS) ||
+-	    (last && now - last < MT6797_CONSYS_RESTART_SPACING_NS))
++	if (!IS_MODULE(CONFIG_MTK_MT6797_CONSYS))
+ 		return;
+-	last = now;
+-	schedule_work(&mt6797_consys_wlan_restart);
++	if (last && now - last < MT6797_CONSYS_RESTART_SPACING_NS)
++		delay = MT6797_CONSYS_RESTART_SPACING_NS - (now - last);
++	if (schedule_delayed_work(&mt6797_consys_wlan_restart, nsecs_to_jiffies(delay)))
++		last = now + delay;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_consys_wlan_request_restart);
+ 
+-- 
+2.43.0
+

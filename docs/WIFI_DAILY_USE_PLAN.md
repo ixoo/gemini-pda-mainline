@@ -301,6 +301,12 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   0857), WLAN interrupts 287 a minute (723 before), the DA9214 I2C bus 416 (1545). Transmit measured 2.40 to 2.47
   MB/s with 0861 and 2.45 with 0857 on the same boot, against 2.68 for the old module on an earlier boot; receive
   4.84 to 5.33. Whether that transmit gap is the change or the boot is not settled.
+- After an rfkill block and unblock on card-32 (boot `0dad538a`, custodian), Wi-Fi did not come back. From the
+  kernel log: the unblock's `up` hit the closed instance and its restart (0670) completed with a new phy, a scan
+  was cancelled 0.3 s later, and nothing followed for 640 s until a manual unblock restarted it again. A restart
+  request less than 30 s after the last one was dropped, so an interface closed again just after a restart
+  stayed down. 0862 defers such a request to the end of the spacing instead. Why the new interface closed again
+  is not known yet; iwd's log may tell. Compiled only.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
