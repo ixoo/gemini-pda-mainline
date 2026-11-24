@@ -14,22 +14,24 @@ due".
 Set the exit latency to 2000 us, which also ends each period 2 ms before
 the next event.
 ---
- drivers/soc/mediatek/mt6797-spm-sleep.c | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
-index dfad504f9..eb495f801 100644
+index dfad504f9..814b7ef0e 100644
 --- a/drivers/soc/mediatek/mt6797-spm-sleep.c
 +++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
-@@ -1954,10 +1954,12 @@ MODULE_PARM_DESC(sodi_idle_disp_mask, "SODI idle: ignore the display's DRAM requ
+@@ -1954,10 +1954,14 @@ MODULE_PARM_DESC(sodi_idle_disp_mask, "SODI idle: ignore the display's DRAM requ
  /*
   * The idle state with CPU0 powered down: the firmware saves and restores the
   * GIC on each side, so entry and exit cost far more than the WFI numbers
 - * above. Deliberately conservative until measured (D7a): enter only for 20 ms
 - * or more, and end the period 5 ms before the next local timer event.
 + * above. From a PCM-timer wake to CPU0 back in the idle path took 1.5-1.7 ms
-+ * (1682 us at most) at every OPP, 221 MHz included, so end the period 2 ms
-+ * before the next local timer event. The 20 ms floor stays until a current
++ * (1682 us at most) at every OPP, 221 MHz included, leaving DRAM self-refresh
++ * in most periods, with 26 MHz kept on (sodi_keep_26m): without it the exit
++ * adds the oscillator's settling and must be measured again. End the period
++ * 2 ms before the next local timer event. The 20 ms floor stays until a current
 + * reading shows shorter periods pay.
   */
 -#define SODI_PDN_EXIT_US	5000

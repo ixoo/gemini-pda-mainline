@@ -10691,6 +10691,13 @@ timer-only wakes returned in at most 1682 µs.
 measured maximum plus about 320 µs, or 10 periods of the 32 kHz timer.
 The 20 ms floor stays.
 
+**The reviewer on 0868 (2026-11-24).** No objection. The figure holds
+for the configuration measured: it already includes leaving DRAM
+self-refresh (85% of entries), and it is with `sodi_keep_26m` on, so
+26 MHz and infra never go down. Without that flag the exit adds the
+oscillator's settling and must be measured again. The patch comment
+says both.
+
 ### Request D7h (proposed): the idle state with a 2 ms exit latency
 
 - **Candidate:** a module with 0854-0860, 0863 and 0868, run 1's `d5.sh`
