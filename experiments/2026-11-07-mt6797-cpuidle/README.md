@@ -9405,7 +9405,15 @@ desktop wake turned the display on, and the next period started before
 the backlight read as lit; OVL0 then woke that period. The key wake while
 CPU0 is powered down is still untested. The 96 earlier periods did not
 see the press: either the owner pressed after 07:51:38, or presses in
-periods were lost. The owner's timing is being asked.
+periods were lost.
+
+**The owner on D6d (2026-11-24).** The keys showed up in the station's
+terminal, so the presses arrived as input. No press times were given, so
+the count log is the timing evidence: the first rise came after 07:51:40.
+A press around 07:49:30 would have been lost entirely, not just missed as
+a wake, since the expander's level line would have counted after the next
+resume. That stays unresolved; D6e's count before each kick is meant to
+settle such a case.
 
 Two consequences for the next try:
 - With Wi-Fi up, a press has about a 15% chance of landing in a period.
