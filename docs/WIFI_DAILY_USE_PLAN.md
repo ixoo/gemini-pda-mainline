@@ -294,6 +294,13 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   received frames. Cable-in checks: 180 pings, no loss, median 97 ms; a download at 4.69 MB/s. Each power-save
   log line appears twice, not yet explained. One boot. The owner chose it on by default ("Yes, on by default"):
   `0818` sets `power_save=2` as the default. Compiled only; it reaches the device with the next image.
+- On an idle, connected station with power save on, the join worker still ran about 32 times a second against
+  12 WLAN interrupts (custodian, image 138): after each frame it polled at once while work was owed, and every
+  20 ms for a second after any unicast frame. 0857 lets the interrupt pace it, and 0861 allows 8 immediate passes
+  after progress while work is owed. On card-32, idle and blanked: about 4.9 runs a second with 0861 (5.5 with
+  0857), WLAN interrupts 287 a minute (723 before), the DA9214 I2C bus 416 (1545). Transmit measured 2.40 to 2.47
+  MB/s with 0861 and 2.45 with 0857 on the same boot, against 2.68 for the old module on an earlier boot; receive
+  4.84 to 5.33. Whether that transmit gap is the change or the boot is not settled.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
