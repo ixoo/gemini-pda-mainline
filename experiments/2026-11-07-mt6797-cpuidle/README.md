@@ -10015,15 +10015,38 @@ what SODI gives on this station with the screen dark, unless the display
 pipeline lets go of DRAM when blanked; the 26 MHz and DRAM savings belong
 to the vendor's screen-off idle program, not SODI.
 
-**Decision for the owner.** Two ways on:
+**The reviewer on D7b (2026-11-24).** It agrees, with one correction and
+one more mark:
+- `r6` bit 31 set means the DRAM side is up; the program starts with it
+  set and the exit replays the undo, so it can never show a DRAM-down
+  after the fact. The pass rule written for D7b was wrong on that point.
+- `SPM_PASR_DPD_0` counts completed DRAM-downs: the program zeroes it at
+  entry, EV15 increments it, and the exit stores it back (the low half for
+  CG mode). It read 0 in all 223 D7b periods, a third mark that EV15 never
+  completed.
+- EV15 fires on the merged APSRC request dropping (the APSRC-sleep
+  event), not on the DDR enable as such. CONN's APSRC request (`r13` bit
+  15) held it in 192 periods; `r13` bit 10 (the multimedia state) in all
+  of them. `sodi_keep_26m` forces only the 26 MHz and infra lines, not
+  APSRC.
+- A run with CONN quiet (D6f's setup: Wi-Fi down, CONN2AP masked) would
+  separate the two holders. In D6f `r13` read `00066400`, with bit 10
+  still set, so the display side is the first suspect.
+
+**Decision for the owner.** Three ways on:
 - Keep the power-down SODI idle state as it ran in D7a (flags 13 and 15
   set), which is safe and gives a few mA, and stop the SODI work there.
+- Or a cheap check first, D7c: D6f's quiet setup (Wi-Fi down, CONN2AP
+  masked, `D4_ONLY_B=1` or windows A only) with flag 13 clear, reading
+  `pasr_dpd_0`, the debug word and `pc=` per period, no new code. If
+  `pasr_dpd_0` counts, the handlers work with CPU0 off and the idle state
+  can take them; if it stays 0, the display side holds APSRC.
 - Or look first at why the multimedia state stays set with the screen
   blanked (the display pipeline's power and clocks after the blank, with
   the display work), and then at the vendor's screen-off idle program,
   which has its own stage.
-D7c, the idle state with flag 13 clear, would only add the handlers with
-nothing for them to do while the display holds DRAM, so it is withdrawn.
+The earlier D7c, the idle state with flag 13 clear, is withdrawn; the
+quiet test-period run above takes its name if chosen.
 
 ### Request D5n (proposed): two states with no resource events
 
