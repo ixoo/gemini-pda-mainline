@@ -9886,7 +9886,52 @@ where a hang stops cleanly with evidence, before the idle state takes them.
 
 ### Request D7b (proposed): power-down test periods with resource events
 
-- **Candidate:** image 138 on a fresh boot, module `d83a6fd6`, `d4.sh`
+**The reviewer on D7b (2026-11-24), from the SODI program and the vendor's
+SODI power-control table.**
+- With flag 13 clear in CG mode the program enables four handlers: EV15
+  (every resource request released) asks for the DRAM-side quiesce and
+  polls its acknowledgement in `r13` bit 21 up to eight times; without it
+  the request is withdrawn and a CPU wake event is written, an abort; with
+  it, DRAM goes into self-refresh and the clock lines behind it drop. EV14
+  (a request back) undoes that. EV6 and EV7 drop and restore three `r0`
+  bits around an `SPM_MDBSI_CON` change. None of them tests flag 0 or
+  reads a CPU power state.
+- The exit order suits a powered-down CPU0: the program first undoes
+  whatever is still down (DRAM out of self-refresh), then restores the
+  clocks, and only then powers CPU0 on.
+- **Flag 7 must stay clear:** with it, EV6 and EV7 store to the MCU
+  configuration range, which is off while CPU0 is powered down. The
+  module already clears it; 0855 says why in the code.
+- `SPM_SRC_MASK` `0x10aa007e` matches the vendor's SODI value. For
+  `SPM_SRC2_MASK` the reviewer computes the vendor's SODI value as
+  `0x00f7009f`, against our `0x08ff009f`: bits 19 (the GPU's request)
+  and 27 (the DRAM controller's special-command request) are set only
+  here. This contradicts the earlier note in this record that our masks
+  match the vendor's; the D3 table names MFG (the GPU) deliberately, and
+  bit 27's origin is not recorded. A set bit lets that requester hold
+  resources awake, so the difference is in the safe direction: it can
+  only keep EV15 from firing. If D7b shows the handlers never take DRAM
+  down, try the vendor's value before concluding anything else.
+- D5a-D5m ran these handlers with a powered, coherent cluster under them,
+  the condition of the pause hazard, so nothing carries over from them
+  either way. With CPU0 off, the wait has no CPU-side activity, which is
+  what the handlers were written for.
+- New is the timing: a wake out of self-refresh takes EV14 and its waits
+  before CPU0 is powered on, so the exit is slower than in D6, and D7c
+  must measure the idle state's exit again. An EV15 abort shows as a very
+  short period with no external wake bit in `r12`; it is the handler, not
+  a fault, and counts toward the idle state's back-off.
+- Log per period `r6` at the wake (bits 26, 29, 30, 31: which resources
+  were down; bit 31 DRAM), `r13` bit 21, the debug flag word and `r0`,
+  and count the periods where DRAM went down. A pass that never took the
+  deeper path has only shown that enabling the handlers is harmless.
+
+0855 adds `r6` to each period's log and a "dram down at the wake" count
+to `sodi_idle`, and comments flag 7. `r13`, the debug word and `r0` were
+already logged. Compile-checked in the VM with `W=1` and checkpatch; a
+module build is needed.
+
+- **Candidate:** image 138 on a fresh boot, a module with 0855, `d4.sh`
   815ccde5 with D6b's options without `D4_NO_EVENT=1` (so flag 13 clear
   and the resource handlers run, as the vendor's SODI), `D4_KEEP_26M=1`
   kept, `D4_CPU_PDN=1`, no pin, windows C and A with pings, no tap needed,
@@ -9894,8 +9939,11 @@ where a hang stops cleanly with evidence, before the idle state takes them.
 - **Hypothesis:** with CPU0 powered down, periods with the resource
   handlers running return as they do without them.
 - **Pass:** 50 periods or more with no hang, hashes equal, no warning.
-- **Records:** `r13` across periods (the resource requests), the periods'
-  wakes, and any refusal.
+- **Records:** per period `r6`, `r13` bit 21, the debug word and `r0`;
+  the count of periods that woke with DRAM down; short periods with no
+  external wake bit (EV15 aborts); the wakes and any refusal.
+- **A pass needs DRAM down in some periods.** If none, the next step is
+  the vendor's `SPM_SRC2_MASK`, not D7c.
 - **Admission:** D6b's configuration with flag 13 clear; the earlier
   periods with resource events ran with CPU0 powered (D5a-D5m), where the
   low-OPP pause hazard was not yet known. The owner approves the run.

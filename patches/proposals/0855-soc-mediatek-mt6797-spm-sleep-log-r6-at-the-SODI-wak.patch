@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 24 Nov 2026 10:17:37 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: log r6 at the SODI wake
+
+With flag 13 clear the SODI program's resource handlers can take DRAM
+into self-refresh during a period. r6 holds which resources are still
+down when the wake comes (bit 31: DRAM), so log it with each test period
+and count the idle state's periods that woke with DRAM down, to tell a
+period that took the deeper path from one that only enabled the
+handlers (stage D7b).
+
+Also say why flag 7 stays clear: with it, the handlers EV6 and EV7
+store to the MCU configuration range, which is off while CPU0 is
+powered down.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 41b8229e5..8f78ade71 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -552,6 +552,7 @@ struct spm_scen {
+ struct spm_wake {
+ 	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
+ 	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
++	u32 r6;			/* resources still down at the wake (bit 31: DRAM) */
+ 	u32 wfi_loops;
+ 	u32 obs_seq, obs_ticks, obs_gap_us;	/* the observer's view of the period */
+ 	u32 fsm;		/* PCM_FSM_STA after the wait */
+@@ -1560,6 +1561,7 @@ static int spm_run(const struct spm_scen *sc)
+ 	s.wake.wake_misc = spm_rd(SPM_BSI_D0_SR);
+ 	s.wake.timer_out = spm_rd(SPM_BSI_D1_SR);
+ 	s.wake.r13 = spm_rd(PCM_REG13_DATA);
++	s.wake.r6 = spm_rd(PCM_REG6_DATA);
+ 	s.wake.r0 = spm_rd(PCM_REG0_DATA);
+ 	s.wake.r7 = spm_rd(PCM_REG7_DATA);
+ 	s.wake.idle_sta = spm_rd(SUBSYS_IDLE_STA);
+@@ -1792,8 +1794,8 @@ static void spm_log_wake(const char *what)
+ 		 s.wake.timer_out, s.wake.r13, s.wake.idle_sta,
+ 		 s.wake.debug_flag, s.wake.event_reg, s.wake.isr,
+ 		 s.wake.assert_pc);
+-	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x\n", what, s.dummy1,
+-		 spm_rd(SPM_PASR_DPD_0));
++	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x r6=%08x\n", what, s.dummy1,
++		 spm_rd(SPM_PASR_DPD_0), s.wake.r6);
+ 	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns, cpu pdn %d ret %d, cpu power %08x %08x, buck iso %08x>%08x\n",
+ 		 what, mul_u64_u64_div_u64(s.wake.cnt_wfi - s.wake.cnt_pcm_kick, NSEC_PER_SEC,
+ 					   arch_timer_get_cntfrq()),
+@@ -1982,6 +1984,10 @@ static int sodi_once(u64 ms)
+ 
+ 	s.sodi.ticks = div_u64(ms * 32768, 1000);
+ 	s.sodi.wake_src = (READ_ONCE(sodi_wake_src) & SODI_WAKE_SRC) | BIT(0);
++	/*
++	 * Flag 7 stays clear: with it, the resource handlers EV6/EV7 store to
++	 * the MCU configuration range, which is off with CPU0 powered down.
++	 */
+ 	s.sodi.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
+ 	if (READ_ONCE(sodi_no_event))
+ 		s.sodi.flags |= SODI_FLAG_NO_EVENT;
+@@ -2106,7 +2112,7 @@ static struct {
+ 	u64 tried, entered, refused[NO_COUNT];
+ 	u64 wake[ARRAY_SIZE(sodi_wake_bit)], wake_other;
+ 	u64 cnt_entry, cnt_sleep, cnt_exit, cnt_sleep_max;
+-	u64 backoff_end, backoffs;
++	u64 backoff_end, backoffs, dram_down;
+ 	unsigned int short_run;
+ 	u32 cirq_hits[CIRQ_LINES];
+ 	int err;
+@@ -2167,6 +2173,8 @@ static void sodi_idle_count(u64 t0)
+ 	u32 r12 = s.wake.r12, hit = 0;
+ 
+ 	st.entered++;
++	if (s.wake.r6 & BIT(31))
++		st.dram_down++;
+ 	if (sleep < mul_u64_u64_div_u64(SODI_PDN_MIN_US, arch_timer_get_cntfrq(),
+ 					USEC_PER_SEC)) {
+ 		if (++st.short_run >= SODI_SHORT_RUN) {
+@@ -2300,6 +2308,7 @@ static int sodi_idle_show(struct seq_file *m, void *v)
+ 
+ 	seq_printf(m, "tried %llu\nentered %llu\nstopped %d\nerror %d\nbackoffs %llu\n",
+ 		   st.tried, st.entered, st.broken, st.err, st.backoffs);
++	seq_printf(m, "dram down at the wake %llu\n", st.dram_down);
+ 	for (i = 1; i < NO_COUNT; i++)
+ 		seq_printf(m, "refused %s: %llu\n", sodi_no_name[i], st.refused[i]);
+ 	for (i = 0; i < ARRAY_SIZE(sodi_wake_bit); i++)
+@@ -2344,6 +2353,7 @@ static void sodi_idle_register(void)
+ 	}
+ 	s.idle = s.sodi;
+ 	s.idle.idle = true;
++	/* Flag 7 stays clear, as in sodi_once_ms */
+ 	s.idle.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
+ 	if (sodi_keep_26m)
+ 		s.idle.flags |= SODI_FLAG_KEEP_26M;
+-- 
+2.43.0
+
