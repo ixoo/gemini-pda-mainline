@@ -10656,6 +10656,57 @@ residency.
   state on or off, so the drops are not the idle state's. Passed to the
   Wi-Fi work.
 
+### D7g run 2: the return path does not depend on the OPP (custodian, 2026-11-24)
+
+**Candidate.** Image 139, fresh boot `2de14aa4`, module `c0cfc8c3`,
+`d5.sh` d488d5e8 with run 1's options plus `D5_PIN_KHZ=221000` (logged
+"pinned at 221000 kHz") and `D5_WINDOW=120`, Wi-Fi up, cable out, battery
+33% to 32%.
+
+**Observations.**
+
+| Window | mA | Entries | SODI time | wlan0 rx / dropped / tx |
+| --- | --- | --- | --- | --- |
+| off1 | 81 | 0 | 0 | 394 / 142 / 0 |
+| on1 | 67 | 778 | 110.0 s of 124 (89%) | 415 / 146 / 6 |
+| off2 | 80 | 0 | 0 | 405 / 146 / 0 |
+| on2 | 65 | 776 | 110.3 s of 124 (89%) | 417 / 149 / 0 |
+
+- Hashes and retention equal after every window; stopped 0, error 0,
+  back-offs 0, dram abort 0, taint 0; policy0 restored at the end.
+- At the end: entered 1691, dram down 1423 (84%); "timer due" 923, all
+  1-4 ms away; timer-only wakes 930.
+- Return after the PCM timer's end: 1651 µs on average, 1677 µs at most,
+  every one at 1.5-2 ms. Mean entry 231 µs, exit 91 µs.
+- The custodian's runner polled the station once during the last
+  retention check, after on2's measurement; the windows were untouched.
+- Logs kept privately.
+
+**Result.** **Pass.** At 221 MHz the return path is the same as
+unpinned (1677 against 1682 µs at most): it is set by the program and
+the firmware's fixed waits, not CPU0's clock. Over both runs, 2404
+timer-only wakes returned in at most 1682 µs.
+
+**Decision.** 0868 (after 0863) sets the exit latency to 2000 µs: the
+measured maximum plus about 320 µs, or 10 periods of the 32 kHz timer.
+The 20 ms floor stays.
+
+### Request D7h (proposed): the idle state with a 2 ms exit latency
+
+- **Candidate:** a module with 0854-0860, 0863 and 0868, run 1's `d5.sh`
+  options, unpinned, on a fresh boot, cable out, no touching.
+- **Hypothesis:** each period now ends 2 ms before the next event and
+  CPU0 is back about 0.35 ms before it, so the timer-due refusals move
+  to the under-1 ms bucket with a WFI tail of about 0.35 ms instead of
+  3.4 ms; residency rises from 93% and the current falls a little from
+  66 mA.
+- **Pass:** as run 1; `late_max_us` stays under 2000, so no local event
+  is served late.
+- **Decision:** a `late_max_us` of 2000 µs or more means the margin is
+  too small: back to 5000 µs and look at the outliers.
+- **Admission:** run 1's configuration with one constant changed; the
+  owner approves the run.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
