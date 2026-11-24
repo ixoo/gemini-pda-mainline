@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# Keeps what the fuel gauge learns about the battery across boots (owner, 2026-11-11): the
+# Keeps what the fuel gauge learned about the battery across boots (owner, 2026-11-11): the
 # driver forgets it at power-off, so this restores it when the gauge driver binds and saves
 # it when the driver changes it and at shutdown. After fitting a new battery, remove
 # /var/lib/gemini/battery-learned so the gauge learns the new cell.
@@ -10,14 +10,24 @@
 # with a read-only basis (device/design_full_uah, device/design_resistance_uohm). The file
 #   full <Q> <basis>
 #   resistance <R> <basis>
+#   counted <charge> <basis> <epoch seconds>
 # restores each value rescaled to today's basis. On an image without these attributes it
 # does nothing. A full charge saved before 0746 in /var/lib/gemini/battery-charge-full,
 # "<charge_full> <charge_full_design>" (0736) or 0732's single number (design 4268000),
 # restores as Q = value x 4268000 / its design, and goes once the new file is saved.
-# usage: battery-capacity restore|save
+#
+# The counted line keeps the charge level across a short power-off (owner, 2026-11-24): the
+# PMIC's start-up voltage hasn't relaxed after a load, and on a flat stretch of the table a
+# few mV read as tens of points. Only a clean shutdown saves it (save shutdown), with the
+# gauge's counted charge (device/counted_charge_uah, 0858); the next restore removes it first,
+# so it is used once, and writes it back only within 30 min of the shutdown. The driver
+# refuses it with EBUSY while a charger is present and with ESTALE when the battery was
+# charged while off; those are logged, not retried.
+# usage: battery-capacity restore|save|save shutdown
 dev=/sys/class/power_supply/battery/device
 file=/var/lib/gemini/battery-learned
 old=/var/lib/gemini/battery-charge-full
+counted_window=1800
 num() { case "$1" in '' | *[!0-9]*) return 1 ;; esac; }
 
 [ -e "$dev/learned_full_uah" ] || exit 0
@@ -36,33 +46,80 @@ put() { # ATTRIBUTE VALUE SAVED_BASIS BASIS_ATTRIBUTE
     return 1
 }
 
-# Save Q and R with their bases, if changed. Both still at their bases means nothing learned
-# or restored yet: a fresh install, or a save racing the restore at bind (a battery change
-# uevent can run beside it), which would overwrite the file with the defaults. So that state
-# is never saved, except as the result of a migration. Resetting means deleting the file.
-save() {
+# Replace the file's contents, or remove it when there is nothing to keep.
+store() { # TEXT
+    if [ -z "$1" ]; then
+        rm -f "$file"
+        return 0
+    fi
+    [ "$1" = "$(cat "$file" 2>/dev/null)" ] && return 0
+    mkdir -p "${file%/*}"
+    printf '%s\n' "$1" >"$file.new" && mv "$file.new" "$file"
+}
+
+# Save Q and R with their bases, if changed, and keep or (at shutdown) write the counted
+# line after them. Q and R both still at their bases means nothing learned or restored yet:
+# a fresh install, or a save racing the restore at bind (a battery change uevent can run
+# beside it), which would overwrite the file with the defaults. So that state is never
+# saved, except as the result of a migration; the lines already in the file stay instead.
+# Resetting means deleting the file.
+save() { # [migrated|shutdown]
     q=$(cat "$dev/learned_full_uah" 2>/dev/null)
     qb=$(cat "$dev/design_full_uah" 2>/dev/null)
     r=$(cat "$dev/learned_resistance_uohm" 2>/dev/null)
     rb=$(cat "$dev/design_resistance_uohm" 2>/dev/null)
     num "$q" && num "$qb" && num "$r" && num "$rb" || return 0
-    text="full $q $qb
+    if [ "${1:-}" = migrated ] || [ "$q" != "$qb" ] || [ "$r" != "$rb" ]; then
+        learned="full $q $qb
 resistance $r $rb"
-    [ "$text" = "$(cat "$file" 2>/dev/null)" ] && return 0
-    [ "$1" = migrated ] || [ "$q" != "$qb" ] || [ "$r" != "$rb" ] || return 0
-    mkdir -p "${file%/*}"
-    printf '%s\n' "$text" >"$file.new" && mv "$file.new" "$file" && rm -f "$old"
+    else
+        learned=$(grep -E '^(full|resistance) ' "$file" 2>/dev/null)
+    fi
+    if [ "${1:-}" = shutdown ]; then
+        c=$(cat "$dev/counted_charge_uah" 2>/dev/null)
+        counted=
+        num "$c" && counted="counted $c $qb $(date +%s)"
+    else
+        counted=$(grep '^counted ' "$file" 2>/dev/null)
+    fi
+    text=$(printf '%s\n%s' "$learned" "$counted" | sed '/^$/d')
+    store "$text" && { [ -z "$learned" ] || rm -f "$old"; }
 }
 
-case "$1" in
+# The counted line, once: removed from the file first, then written back if recent.
+restore_counted() {
+    line=$(grep '^counted ' "$file" 2>/dev/null) || return 0
+    store "$(grep -v '^counted ' "$file")" || return 0
+    [ -e "$dev/counted_charge_uah" ] || return 0
+    # shellcheck disable=SC2086 # one word per field
+    set -- $line
+    value=$2 basis=$3 saved=$4
+    num "$value" && num "$basis" && [ "$basis" -gt 0 ] && num "$saved" || return 0
+    age=$(($(date +%s) - saved))
+    if [ "$age" -lt 0 ] || [ "$age" -gt "$counted_window" ]; then
+        echo "battery-capacity: counted charge from ${age} s ago not restored" >&2
+        return 0
+    fi
+    now=$(cat "$dev/design_full_uah" 2>/dev/null)
+    num "$now" || return 0
+    if err=$( (echo $((value * now / basis)) >"$dev/counted_charge_uah") 2>&1); then
+        echo "battery-capacity: counted charge restored from ${age} s ago" >&2
+    else
+        echo "battery-capacity: counted charge not restored: ${err##*: }" >&2
+    fi
+}
+
+case "${1:-}" in
 restore)
     if [ -r "$file" ]; then
-        while read -r name value basis; do
+        while read -r name value basis _; do
             case "$name" in
             full) put "$dev/learned_full_uah" "$value" "$basis" "$dev/design_full_uah" ;;
             resistance) put "$dev/learned_resistance_uohm" "$value" "$basis" "$dev/design_resistance_uohm" ;;
             esac
         done <"$file"
+        # After Q: the driver rescales its start-up value with Q.
+        restore_counted
     elif [ -r "$old" ]; then
         read -r value design _ <"$old"
         design=${design:-4268000}
@@ -79,9 +136,9 @@ save)
         [ "$(cat "$dev/learned_full_uah" 2>/dev/null)" = "$(cat "$dev/design_full_uah" 2>/dev/null)" ]; then
         exit 0
     fi
-    save
+    save "${2:-}"
     exit 0
     ;;
 esac
-echo "usage: battery-capacity restore|save" >&2
+echo "usage: battery-capacity restore|save|save shutdown" >&2
 exit 2

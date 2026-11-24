@@ -14,4 +14,4 @@ ConditionPathExists=/sys/class/power_supply/battery/device/learned_full_uah
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/lib/gemini/battery-capacity restore
-ExecStop=/usr/lib/gemini/battery-capacity save
+ExecStop=/usr/lib/gemini/battery-capacity save shutdown

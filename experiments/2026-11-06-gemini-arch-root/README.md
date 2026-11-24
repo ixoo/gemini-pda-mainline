@@ -2705,3 +2705,30 @@ unplug up to about 7 s late, so a lid closed within that time after unplugging c
 external power and doesn't suspend. logind also doesn't suspend later, when the unplug
 registers with the lid still closed. The panel is off by then, thanks to 67, but the system
 stays awake on battery.
+
+#### The charge level survives a short power-off (gemini-base 68, 2026-11-24)
+
+From the fuel-gauge session, approved by the owner through the custodian: switched on 2 min
+after 10 min of load, the gauge read 19 % for a cell near 50 %. The PMIC's start-up voltage
+hadn't relaxed, and on a flat stretch of the table, about 4 mV per point, that error is tens of
+points. The driver side is 0858 (`d74b327dc`): `device/counted_charge_uah` reads the counted
+charge on the table's scale, and a write takes a value as the charge now. A write is refused
+with `EBUSY` while a charger is present, `ESTALE` when the start-up voltage shows the cell was
+charged while off, `ERANGE` above Q and `ENODATA` before the battery description loads.
+
+`battery-capacity` changes:
+
+- **At clean shutdown** (`ExecStop=… save shutdown`), it saves a third line,
+  `counted <charge> <design_full_uah> <epoch seconds>`, after Q and R. Other saves keep the
+  line, so a change uevent after the shutdown save doesn't drop it. A shutdown before an old
+  file's migration saves nothing, as before.
+- **At restore,** after Q and R (the driver rescales its start-up value with Q), it removes
+  the line from the file first, so it is used once and an abrupt power loss later finds
+  nothing old. It writes it back, rescaled to today's basis, only within 30 min of the
+  shutdown and never with the clock behind the saved time. The driver's refusals are logged,
+  not retried. Images without the attribute ignore the line.
+
+Tested against a fake sysfs in 14 cases, covering the earlier migration and race cases and
+the new line's save, keep, window, clock, refusal and old-image paths. Built in an Arch chroot
+over card-32's image: `gemini-base-68` (`ffe73fd8…`). Not on the device; it needs an image
+with 0858.
