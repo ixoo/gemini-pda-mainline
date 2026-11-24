@@ -305,8 +305,12 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   kernel log: the unblock's `up` hit the closed instance and its restart (0670) completed with a new phy, a scan
   was cancelled 0.3 s later, and nothing followed for 640 s until a manual unblock restarted it again. A restart
   request less than 30 s after the last one was dropped, so an interface closed again just after a restart
-  stayed down. 0862 defers such a request to the end of the spacing instead. Why the new interface closed again
-  is not known yet; iwd's log may tell. Compiled only.
+  stayed down. 0862 defers such a request to the end of the spacing instead. iwd's log then showed why it
+  closed again: networkd brought the new `wlan0` up at once, and iwd, keeping the default interface, toggled
+  it down and up during its setup. At boot that toggle is harmless because the earlier `up` fails before the
+  firmware is ready. Without a config change each restart could be closed the same way, so 0862 is not to be
+  tested alone; the suggested change is `[Link] ActivationPolicy=manual` in `50-gemini-wlan.network`, leaving
+  link-up to iwd. A reversible down/up in the driver remains the real fix and is not started. Compiled only.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
