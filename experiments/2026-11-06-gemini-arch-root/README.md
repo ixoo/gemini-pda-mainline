@@ -2687,5 +2687,21 @@ and `lid_open = "umbriel msg dpms-on"`. A user's own `~/.config/umbriel/config.t
 file and would need the same lines. On battery, logind still suspends on lid close, and the open
 command powers the output back on after resume.
 
-Built in an Arch chroot over card-32's image: `gemini-base-67` (`db6e7b2e…`). Not on the device;
-whether Umbriel sees the lid switch alongside `gemini-lid` is part of the test.
+Built in an Arch chroot over card-32's image: `gemini-base-67` (`db6e7b2e…`).
+
+**Result** (custodian, card-32, boot `1b042960`, a fresh session, no user Umbriel config):
+
+- **Charger in, lid closed:** Umbriel logged "lid closed" and ran the hook. DSI-1 went to DPMS
+  off with `bl_power` 4, OVL0's interrupt count stayed flat over 5 s, and MMSYS `cg0` read
+  `3f9f8000`, so the pipeline was off.
+- **Lid opened:** DPMS on and `bl_power` 0. The owner confirmed the panel lit, with keys and
+  touch working.
+- **On battery:** the lid suspended (s2idle) and the panel came back on at open.
+
+So Umbriel does see the lid switch alongside `gemini-lid`.
+
+A gap found on the way, not caused by 67: logind decides at the lid event. bq25890 reports an
+unplug up to about 7 s late, so a lid closed within that time after unplugging counts as on
+external power and doesn't suspend. logind also doesn't suspend later, when the unplug
+registers with the lid still closed. The panel is off by then, thanks to 67, but the system
+stays awake on battery.
