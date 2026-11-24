@@ -1,0 +1,454 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 17:23:17 -0500
+Subject: [PATCH 867/867] wifi: mt6797: keep the phy across a WLAN restart
+
+A restart unregistered the mac80211 layer and registered a new one, so
+phy0 became phy1 and wlan0 a new interface. systemd-rfkill writes a
+state change only when it exits, 5 s after the last event, and drops the
+queued write of an rfkill device that goes away; it applies the saved
+state to a device that appears. An unblock followed within 5 s by the
+restart it set off was lost that way: the new phy came up soft-blocked,
+and that state was saved for the next boot.
+
+Keep the phy instead. The restart halts the mac layer: an associated
+interface is disconnected while the firmware is still there, the join
+and the scan close as a stop closes them, and the interrupt, the work
+items and the queues are released before CONSYS frees the HIF. When the
+new firmware is ready, CONSYS hands the kept phy back to reg, which
+starts the lifetime group from zero under the wiphy lock and configures
+the firmware as a re-attach does. wlan0 stays, and rfkill sees no
+device come or go.
+
+Taking a closed interface up now succeeds: it asks for the restart once
+per lifetime and comes up at once; scans are refused until the new
+lifetime is ready, and the supplicant retries them. With CONSYS built
+in there is no restart and the up is refused as before.
+
+The mac layer and CONSYS must be loaded together: the ops structure
+gains the halt.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   |   7 +-
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |   7 +
+ drivers/net/wireless/mediatek/mt6797/mac.h    |   7 +-
+ drivers/net/wireless/mediatek/mt6797/main.c   | 175 +++++++++++++++---
+ drivers/soc/mediatek/mt6797-consys.c          |  29 ++-
+ 5 files changed, 192 insertions(+), 33 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index d7eb0168f..8a895f4cb 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -806,6 +806,9 @@ void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	struct sk_buff *skb, *internal = NULL;
+ 	bool wake_queues = false;
+ 
++	/* A halted lifetime was closed by the halt and its HIF is gone. */
++	if (READ_ONCE(mac->halted))
++		return;
+ 	skb_queue_head_init(&discard);
+ 	/* Fence every producer before cancellation, preserving idle eligibility.
+ 	 * 0180: an explicit close (stop/remove/poison) permanently invalidates
+@@ -1896,7 +1899,7 @@ int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 	mt6797_ccmp_withdraw(mac);
+ 	complete_all(&mac->ccmp_cleanup_done);
+ 	mt6797_mac_online_scan_end(mac, true);
+-	mt6797_consys_wlan_request_restart();
++	mt6797_mac_request_restart(mac);
+ 
+ 	dev_err(wiphy_dev(mac->hw->wiphy),
+ 		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u branch=%u\n",
+@@ -2005,6 +2008,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 	unsigned int branch __maybe_unused = 0;
+ 	int ret = 0;
+ 
++	if (READ_ONCE(mac->halted))
++		return;
+ 	skb_queue_head_init(&received);
+ 	skb_queue_head_init(&discard);
+ 	skb_queue_head_init(&data_completed);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 9af8bcd2d..2d43ff532 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -492,6 +492,10 @@ struct mt6797_mac {
+ 	int cqm_thold;
+ 	unsigned int cqm_hyst;
+ 	bool started;
++	/* Between a restart's halt and its resume: the lifetime is closed and
++	 * the HIF it used is gone. The work items return at once.
++	 */
++	bool halted;
+ 
+ 	/* One firmware lifetime: everything a registration starts from zero. */
+ 	struct_group(lifetime,
+@@ -511,6 +515,8 @@ struct mt6797_mac {
+ 		/* Re-arm passes a recycle has waited for TC4 credits, at most 25. */
+ 		unsigned int join_recycle_waits;
+ 		bool configured, closing;
++		/* A restart was requested for this lifetime. */
++		bool restart_pending;
+ 		int first_error;
+ 		bool join_deauth_status_valid;
+ 		bool join_deauth_timed_out;
+@@ -880,6 +886,7 @@ mt6797_mac_tx_rate(struct mt6797_mac *mac, struct sk_buff *skb,
+ void __maybe_unused mt6797_mac_tx_rate_status(struct sk_buff *skb, unsigned int attempts);
+ 
+ void mt6797_mac_join_close(struct mt6797_mac *mac);
++bool mt6797_mac_request_restart(struct mt6797_mac *mac);
+ 
+ void mt6797_native_diag_step(struct mt6797_mac *mac);
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.h b/drivers/net/wireless/mediatek/mt6797/mac.h
+index b3b47e020..767be172f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac.h
+@@ -18,6 +18,10 @@ struct mt6797_mac_ops {
+ 		   struct ieee80211_hw **out);
+ 	void (*scan_ready)(struct ieee80211_hw *hw);
+ 	void (*unreg)(struct ieee80211_hw *hw);
++	/* End the firmware lifetime and keep the phy registered; reg then
++	 * gives the kept phy, through *out, the next lifetime.
++	 */
++	void (*halt)(struct ieee80211_hw *hw);
+ };
+ 
+ extern const struct mt6797_mac_ops mt6797_mac_attach_ops;
+@@ -38,7 +42,8 @@ int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops);
+ void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops);
+ 
+ /* Ask for the firmware to be restarted and the layer attached afresh, after a
+- * fault that left it closed. Runs in its own work, at most every 30 s.
++ * fault that left it closed. Runs in its own work, at most every 30 s. The
++ * phy stays registered across it.
+  */
+ void mt6797_consys_wlan_request_restart(void);
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 6806667c7..ad114b773 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -848,6 +848,8 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 	bool done = false, notify = false, cancel = false;
+ 	int ret = 0;
+ 
++	if (READ_ONCE(mac->halted))
++		return;
+ 	skb_queue_head_init(&received);
+ 	mutex_lock(&mac->mutex);
+ 	if (!mac->scan_active)
+@@ -1046,7 +1048,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	mutex_lock(&mac->mutex);
+ 	/* A closed lifetime has nothing left to scan with. */
+ 	if (mac->vif == vif && (mac->closing || mac->first_error || mac->join_closed))
+-		mt6797_consys_wlan_request_restart();
++		mt6797_mac_request_restart(mac);
+ 	if (!mac->scan_ready || !mac->started || mac->vif != vif ||
+ 	    mac->closing || mac->first_error || mac->join_closed)
+ 		goto out;
+@@ -1219,6 +1221,20 @@ static void mt6797_mac_cancel_scan(struct ieee80211_hw *hw,
+ }
+ 
+ /* A passive scan interface is not an associated station or a data path. */
++/* Called with the mutex held. A restart is requested once per lifetime; false
++ * when CONSYS is built in and cannot restart.
++ */
++bool mt6797_mac_request_restart(struct mt6797_mac *mac)
++{
++	if (!IS_MODULE(CONFIG_MTK_MT6797_CONSYS))
++		return false;
++	if (!mac->restart_pending) {
++		mac->restart_pending = true;
++		mt6797_consys_wlan_request_restart();
++	}
++	return true;
++}
++
+ static int mt6797_mac_start(struct ieee80211_hw *hw)
+ {
+ 	struct mt6797_mac *mac = hw->priv;
+@@ -1229,12 +1245,15 @@ static int mt6797_mac_start(struct ieee80211_hw *hw)
+ 	    !mac->first_error && !mac->join_closed) {
+ 		mac->started = true;
+ 		ret = 0;
+-	} else if (mac->closing || mac->first_error || mac->join_closed) {
+-		/* Taking an interface down closes this instance for good, and iwd
+-		 * and networkd do that in turn. A restart brings back a new phy,
+-		 * which they take up again.
++	} else if ((mac->closing || mac->first_error || mac->join_closed) &&
++		   mt6797_mac_request_restart(mac)) {
++		/* Taking an interface down closes this lifetime for good, and iwd
++		 * and networkd do that in turn. The restart gives this phy a new
++		 * lifetime, so the interface comes up now; its scans are refused
++		 * until that lifetime is ready, and the supplicant retries them.
+ 		 */
+-		mt6797_consys_wlan_request_restart();
++		mac->started = true;
++		ret = 0;
+ 	}
+ 	mutex_unlock(&mac->mutex);
+ 	return ret;
+@@ -1258,8 +1277,9 @@ static int mt6797_mac_add_interface(struct ieee80211_hw *hw,
+ 	int ret = -EOPNOTSUPP;
+ 
+ 	mutex_lock(&mac->mutex);
+-	if (mac->scan_ready && !mac->vif && !mac->scan_used &&
+-	    !mac->closing && !mac->first_error &&
++	/* While a restart is pending the interface waits for the new lifetime. */
++	if (((mac->scan_ready && !mac->scan_used && !mac->closing &&
++	      !mac->first_error) || mac->restart_pending) && !mac->vif &&
+ 	    vif->type == NL80211_IFTYPE_STATION &&
+ 	    ether_addr_equal(vif->addr, hw->wiphy->perm_addr)) {
+ 		vif->driver_flags |= IEEE80211_VIF_BEACON_FILTER |
+@@ -1613,6 +1633,8 @@ static void mt6797_mac_ps_work(struct work_struct *work)
+ {
+ 	struct mt6797_mac *mac = container_of(work, struct mt6797_mac, ps_work);
+ 
++	if (READ_ONCE(mac->halted))
++		return;
+ 	mutex_lock(&mac->mutex);
+ 	mt6797_mac_join_send_ps(mac);
+ 	mutex_unlock(&mac->mutex);
+@@ -1928,6 +1950,8 @@ static void mt6797_mac_loss_work(struct work_struct *work)
+ 	struct mt6797_mac *mac = container_of(work, struct mt6797_mac,
+ 					      ccmp_loss_work.work);
+ 
++	if (READ_ONCE(mac->halted))
++		return;
+ 	mutex_lock(&mac->mutex);
+ 	if (mac->ccmp_loss_deferred) {
+ 		mac->ccmp_loss_deferred = false;
+@@ -2422,6 +2446,120 @@ static int mt6797_mac_load_record(struct mt6797_mac *mac,
+ 	return ret;
+ }
+ 
++/* Called with RTNL and the mutex held. */
++static int mt6797_mac_configure(struct mt6797_mac *mac,
++				const struct mt6797_wifi_record *record,
++				bool reattach)
++{
++	int ret;
++
++	/* An earlier layer may have left the monitor mask on. */
++	mac->monitor_left_on = reattach;
++	/* A re-attach finds the firmware configured; never replay the record.
++	 * The country may have changed while no driver was loaded, and the
++	 * notifier compares later updates with what this instance sent.
++	 */
++	if (reattach) {
++		mac->configured = true;
++		ret = mt6797_mac_send_regulatory(mac);
++	} else {
++		ret = mt6797_mac_load_record(mac, record);
++	}
++	if (ret) {
++		mac->first_error = ret;
++		mac->closing = true;
++	}
++	return ret;
++}
++
++/*
++ * A restart's first half. The firmware lifetime ends and the phy stays
++ * registered: an associated interface is disconnected while the firmware is
++ * still there, the join and the scan close as a stop closes them, and then
++ * nothing is left to reach the HIF, which CONSYS frees. The interface itself
++ * stays as mac80211 has it.
++ */
++static void mt6797_mac_halt(struct ieee80211_hw *hw)
++{
++	struct mt6797_mac *mac = hw->priv;
++
++	wiphy_lock(hw->wiphy);
++	if (mac->vif && mac->vif->cfg.assoc) {
++		ieee80211_connection_loss(mac->vif);
++		wiphy_work_flush(hw->wiphy, NULL);
++	}
++	mt6797_mac_join_close(mac);
++	mt6797_mac_cancel_scan(hw, NULL);
++	mutex_lock(&mac->mutex);
++	WRITE_ONCE(mac->halted, true);
++	mac->closing = true;
++	if (!mac->first_error)
++		mac->first_error = -ESHUTDOWN;
++	mac->scan_ready = false;
++	mutex_unlock(&mac->mutex);
++	if (mac->irq > 0)
++		disable_irq(mac->irq);
++	cancel_delayed_work_sync(&mac->ccmp_loss_work);
++	cancel_work_sync(&mac->ps_work);
++	cancel_delayed_work_sync(&mac->scan_work);
++	cancel_delayed_work_sync(&mac->join_work);
++	if (mac->irq > 0)
++		free_irq(mac->irq, mac);
++	mac->irq = 0;
++	skb_queue_purge(&mac->join_queue);
++	skb_queue_purge(&mac->credit_retired_queue);
++	mutex_lock(&mac->mutex);
++	mac->hif = NULL;
++	mutex_unlock(&mac->mutex);
++	wiphy_unlock(hw->wiphy);
++	dev_info(wiphy_dev(hw->wiphy), "WLAN lifetime halted; phy kept\n");
++}
++
++/*
++ * A restart's second half: the kept phy gets the new firmware. The lifetime
++ * starts from zero as a registration's does; mac80211's interface, the bands
++ * and its settings stay. Under the wiphy lock no mac80211 call runs, and
++ * the queue lock keeps the transmit path out while the lifetime is cleared.
++ */
++static int mt6797_mac_resume(struct device *dev, struct ieee80211_hw *hw,
++			     struct mt6797_hif *hif,
++			     const struct mt6797_wifi_record *record,
++			     bool reattach, int sequence)
++{
++	struct mt6797_mac *mac = hw->priv;
++	unsigned long flags;
++	int ret;
++
++	rtnl_lock();
++	wiphy_lock(hw->wiphy);
++	mutex_lock(&mac->mutex);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	memset(&mac->lifetime, 0, sizeof(mac->lifetime));
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	mac->hif = hif;
++	mac->sequence = sequence;
++	mac->join_next_pid = 1;
++	mac->ccmp_pid_pool.next = 1;
++	reinit_completion(&mac->join_channel_done);
++	reinit_completion(&mac->join_sta_done);
++	reinit_completion(&mac->join_credit_done);
++	reinit_completion(&mac->join_frame_done);
++	reinit_completion(&mac->ccmp_key_done);
++	reinit_completion(&mac->ccmp_cleanup_done);
++	reinit_completion(&mac->ccmp_dtim_done);
++	WRITE_ONCE(mac->halted, false);
++	ret = mt6797_mac_configure(mac, record, reattach);
++	mutex_unlock(&mac->mutex);
++	wiphy_unlock(hw->wiphy);
++	rtnl_unlock();
++	if (!ret) {
++		mac->irq = mt6797_mac_request_irq(dev, mac);
++		dev_info(dev, "one-shot WLAN interrupt: irq=%d\n", mac->irq);
++	}
++	dev_info(dev, "WLAN lifetime resumed on the kept phy: status=%d\n", ret);
++	return ret;
++}
++
+ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 			       const struct mt6797_normal_capability *capability,
+ 			       const struct mt6797_wifi_record *record, bool reattach,
+@@ -2441,7 +2579,6 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 
+ 	if (!out)
+ 		return -EINVAL;
+-	*out = NULL;
+ 	if (!dev || !hif || !capability || !record)
+ 		return -EINVAL;
+ 	if (capability->product != 0x6797 || capability->firmware_own != 0x0403 ||
+@@ -2460,6 +2597,8 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 			return sequence;
+ 		sequence = max(sequence, 5);
+ 	}
++	if (*out)
++		return mt6797_mac_resume(dev, *out, hif, record, reattach, sequence);
+ 	hw = ieee80211_alloc_hw(sizeof(*mac), &mt6797_mac_ops);
+ 	if (!hw)
+ 		return -ENOMEM;
+@@ -2579,22 +2718,7 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	 */
+ 	rtnl_lock();
+ 	mutex_lock(&mac->mutex);
+-	/* An earlier layer may have left the monitor mask on. */
+-	mac->monitor_left_on = reattach;
+-	/* A re-attach finds the firmware configured; never replay the record.
+-	 * The country may have changed while no driver was loaded, and the
+-	 * notifier compares later updates with what this instance sent.
+-	 */
+-	if (reattach) {
+-		mac->configured = true;
+-		ret = mt6797_mac_send_regulatory(mac);
+-	} else {
+-		ret = mt6797_mac_load_record(mac, record);
+-	}
+-	if (ret) {
+-		mac->first_error = ret;
+-		mac->closing = true;
+-	}
++	ret = mt6797_mac_configure(mac, record, reattach);
+ 	mutex_unlock(&mac->mutex);
+ 	rtnl_unlock();
+ 	if (ret) {
+@@ -2645,6 +2769,7 @@ const struct mt6797_mac_ops mt6797_mac_attach_ops = {
+ 	.reg = mt6797_mac_register,
+ 	.scan_ready = mt6797_mac_scan_ready,
+ 	.unreg = mt6797_mac_unregister,
++	.halt = mt6797_mac_halt,
+ };
+ 
+ #if IS_MODULE(CONFIG_MT6797_MAC80211)
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index a6bf864a5..9e6bc8af3 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1081,7 +1081,8 @@ static void mt6797_consys_wlan_detach_now(const struct mt6797_mac_ops *ops)
+ 	mutex_lock(&mt6797_consys_wlan_lock);
+ 	if (owner->wlan_pending == ops)
+ 		owner->wlan_pending = NULL;
+-	if (owner->wlan_attached && owner->wlan_hw) {
++	/* A halted phy is kept without being attached. */
++	if (owner->wlan_hw) {
+ 		ops->unreg(owner->wlan_hw);
+ 		owner->wlan_hw = NULL;
+ 		owner->wlan_attached = false;
+@@ -1090,6 +1091,21 @@ static void mt6797_consys_wlan_detach_now(const struct mt6797_mac_ops *ops)
+ 	mutex_unlock(&mt6797_consys_wlan_lock);
+ }
+ 
++/* End the firmware lifetime and keep the phy: no layer is attached until the
++ * restart attaches the kept phy again.
++ */
++static void mt6797_consys_wlan_halt_now(const struct mt6797_mac_ops *ops)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++
++	mutex_lock(&mt6797_consys_wlan_lock);
++	if (owner->wlan_attached && owner->wlan_hw) {
++		ops->halt(owner->wlan_hw);
++		owner->wlan_attached = false;
++	}
++	mutex_unlock(&mt6797_consys_wlan_lock);
++}
++
+ static void mt6797_consys_wlan_restart_work(struct work_struct *work);
+ static DECLARE_DELAYED_WORK(mt6797_consys_wlan_restart, mt6797_consys_wlan_restart_work);
+ 
+@@ -1100,10 +1116,11 @@ void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops)
+ }
+ EXPORT_SYMBOL_GPL(mt6797_consys_wlan_detach);
+ 
+-/* What a module reload did by hand: detach the mac layer, unbind and bind
+- * CONSYS, which powers CONN off and starts the firmware afresh, and attach
+- * again once it is ready. wlan0 comes back as a new interface. A fault during
+- * the start or the attach leaves Wi-Fi down; nothing here retries.
++/* What a module reload did by hand, with the phy kept: halt the mac layer,
++ * unbind and bind CONSYS, which powers CONN off and starts the firmware afresh,
++ * and attach the kept phy again once it is ready. wlan0 stays the same
++ * interface, so rfkill and userspace see no device leave. A fault during the
++ * start or the attach leaves Wi-Fi down; nothing here retries.
+  */
+ static void mt6797_consys_wlan_restart_work(struct work_struct *work)
+ {
+@@ -1121,7 +1138,7 @@ static void mt6797_consys_wlan_restart_work(struct work_struct *work)
+ 		return;
+ 	}
+ 	dev_info(dev, "WLAN restart: begin\n");
+-	mt6797_consys_wlan_detach_now(ops);
++	mt6797_consys_wlan_halt_now(ops);
+ 	ret = device_reprobe(dev);
+ 	if (!ret)
+ 		ret = mt6797_consys_wlan_attach(ops);
+-- 
+2.43.0
+

@@ -311,6 +311,16 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   firmware is ready. Without a config change each restart could be closed the same way, so 0862 is not to be
   tested alone; the suggested change is `[Link] ActivationPolicy=manual` in `50-gemini-wlan.network`, leaving
   link-up to iwd. A reversible down/up in the driver remains the real fix and is not started. Compiled only.
+- The retest with 0862 and gemini-base 69 (image 139, boot `b83b8049`, custodian) had one restart, status 0,
+  yet the new phy came up soft-blocked, and the block was restored on the next boot. Cause, from systemd's
+  rfkill source: it writes a change only on exit, 5 s after the last event, drops the queued write of a
+  device that goes away, and applies the saved state to a device that appears. The unblock was lost with the
+  old phy and the stale block applied to the new one. Inference: the log does not show the dropped write, but
+  the timings and a second boot fit it. gemini-base 70 masks systemd-rfkill. 0866 and 0867 keep the phy
+  instead: the restart halts the mac layer (disconnecting first), CONSYS reprobes, and the kept phy gets the
+  new lifetime with its state group cleared under the wiphy lock. An `up` of a closed interface now succeeds
+  at once; scans are refused until the new lifetime is ready. The mac and CONSYS modules go together, since
+  the ops structure gains the halt. Compiled only.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the

@@ -1,0 +1,542 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 17:21:43 -0500
+Subject: [PATCH 866/867] wifi: mt6797: group the state of one firmware
+ lifetime
+
+Move what lasts as long as the phy to the front of struct mt6797_mac: the
+locks, the queues and work items, mac80211's interface, bands and
+channels, and the settings mac80211 gives once (the power-save wish and
+the signal threshold). The rest, one firmware lifetime's state, becomes
+the lifetime struct group, so that a WLAN restart can start it from zero
+while the phy stays registered.
+
+No functional change.
+---
+ .../net/wireless/mediatek/mt6797/mac-priv.h   | 488 +++++++++---------
+ 1 file changed, 251 insertions(+), 237 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 92ef956fe..9af8bcd2d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -12,6 +12,7 @@
+ #include <linux/mutex.h>
+ #include <linux/rcupdate.h>
+ #include <linux/rtnetlink.h>
++#include <linux/stddef.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
+ #include <linux/unaligned.h>
+@@ -456,258 +457,271 @@ struct mt6797_join_pid_pool {
+ #define MT6797_JOIN_DATA_LAST_PID 126U
+ 
+ struct mt6797_mac {
+-	struct mt6797_hif *hif;
+-	/* Order: RTNL -> this mutex -> HIF mutex. No CONSYS callback here. */
++	/* What lasts as long as the phy: mac80211's view, the locks, queues and
++	 * work items, and settings mac80211 gives once. A WLAN restart keeps it.
++	 */
++	/* Order: RTNL -> wiphy -> this mutex -> HIF mutex. No CONSYS callback here. */
+ 	struct mutex mutex;
++	struct ieee80211_hw *hw;
++	struct ieee80211_vif *vif;
+ 	struct ieee80211_supported_band band, band_5g;
+-	bool join_ht_requested, join_ht_accepted;
+-	/* The access point's HT capability and operation element bodies from
+-	 * its association response, declared in the post-association records.
+-	 */
+-	u8 join_ht_peer_cap[26], join_ht_op[22];
+-	bool join_ht_peer_cap_seen, join_ht_op_seen;
+ 	struct ieee80211_channel channels[MT6797_CHANNELS];
+ 	struct ieee80211_rate rates[12];
+ 	char alpha2[2];
+-	/* The domain and power the firmware last accepted. */
+-	struct mt6797_regulatory_payloads reg_sent;
+-	bool reg_sent_valid, reg_pending;
+-	unsigned int sequence;
+-	/* The first command sequence of lifetime 1, where a recycle restarts. */
+-	unsigned int sequence_base;
+-	/* Re-arm passes a recycle has waited for TC4 credits, at most 25. */
+-	unsigned int join_recycle_waits;
+-	bool configured, closing;
+-	int first_error;
+-	bool join_deauth_status_valid;
+-	bool join_deauth_timed_out;
+-	u8 join_deauth_status, join_lifetimes;
+-	struct ieee80211_hw *hw;
+-	struct ieee80211_vif *vif;
+ 	struct delayed_work scan_work;
+ 	/* Single-use join queue. Admission is closed until owned state callbacks. */
+ 	struct sk_buff_head join_queue;
+ 	struct delayed_work join_work;
+-	unsigned int join_pump_zero_runs;
+-	u64 join_pump_active_ns;
+-	/* The WLAN interrupt: 0 when there is none. The handler masks it and
+-	 * wakes the worker, which unmasks it after a pass that read WHISR.
+-	 */
+-	int irq;
+-	atomic_t irq_masked;
+-	/* 802.11 power save: the profile offered (0: none), whether mac80211
+-	 * wants it on, and the profile last sent this lifetime.
+-	 */
+-	unsigned int ps_profile;
+-	bool ps_wanted, ps_failed, ps_busy;
+-	int ps_sent;
+-	bool irq_armed, irq_gave_up, join_pass_read, join_pass_found;
+-	unsigned int irq_empty;
+-	/* Interrupt-driven passes by the WHISR bits last read: TX done, RX,
+-	 * the firmware's software interrupts, abnormal, none; and found.
+-	 */
+-	unsigned int irq_passes, irq_tx, irq_rx, irq_d2h, irq_abnormal, irq_none,
+-		     irq_found;
+-	struct mt6797_data_slots data_slots;
+-	struct sk_buff *join_inflight;
+-	u64 join_deadline, join_frame_deadline;
+-	u8 join_ap[ETH_ALEN], join_pid, join_next_pid;
+-	struct mt6797_join_pid_pool ccmp_pid_pool;
+-	bool ccmp_reserved_pid_used;
+-	/* Records framed for the other monitor state, dropped after data end. */
+-	unsigned int join_teardown_framing_drops;
+-	u8 join_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+-	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
+-	/* Authentication and association request frames queued in this
+-	 * lifetime, each bounded at MT6797_JOIN_ATTEMPTS (0304).
+-	 */
+-	unsigned int join_auth_attempts, join_assoc_attempts;
+-	unsigned int join_tx_status_skipped;
+-	/* The firmware's receive block-ack sessions per TID, and their
+-	 * sub-frames (0318, 0319).
+-	 */
+-	u8 rx_ba_active;
+-	u16 rx_ba_window[8], rx_ba_ssn[8];
+-	unsigned int rx_ba_starts, rx_ba_stops;
+-	/* The receive reorder windows (0321), under the MAC mutex; pending
+-	 * marks a TID whose session an ADDBA or DELBA event changed.
+-	 */
+-	struct mt6797_rx_reorder rx_reorder[MT6797_RX_REORDER_TIDS];
+-	u8 rx_reorder_pending;
+-	/* mac80211's queues stopped while the data queue is at its bound (0282). */
+-	bool tx_queues_stopped;
+-	unsigned int tx_queue_stops, tx_queue_wakes, tx_dropped_full, tx_queue_high_water;
+-	/* WMM requested in our association and answered by the access point,
+-	 * the frames carried each way by kind, and the receive check's refusals.
+-	 */
+-	bool join_wmm_requested, join_wmm_accepted;
+-	unsigned int qos_ac_params, qos_tx, qos_tx_nonqos, qos_tx_tid_refused;
+-	unsigned int qos_tx_tid[8]; /* admitted QoS data by TID (0291) */
+-	unsigned int qos_rx, qos_rx_nonqos, qos_rx_refused, qos_rx_refused_qos;
+-	unsigned int join_page_debt;
+-	bool join_running, join_open, join_retired;
+-	/* Reusable bounded two-lifetime milestone (proposal 0180): the mac80211
+-	 * station teardown (sta_state -> NOTEXIST) and the worker's healthy
+-	 * stage-3 cleanup rendezvous in either order; the already-serialized
+-	 * join_work does the one reset after both. Lifetimes re-arm while the
+-	 * wire identities do not wrap. These are not an authenticated
+-	 * key-completion barrier (ADD_PKEY_DONE carries no generation).
+-	 */
+-	bool join_sta_removed, join_rearm_pending, join_closed;
+-	/* mac80211 key removals seen in this epoch; the re-arm waits for both. */
+-	unsigned int ccmp_key_disables;
+-	/* Scans that mac80211 never followed with a join; boot-scoped. */
+-	unsigned int join_idle_scans;
+-	/* Copied stack state only: no BSS/STA/chanctx pointer is retained. */
+-	u8 join_bssid[ETH_ALEN];
+-	u32 join_basic_rates;
+-	unsigned int join_desired_rates, join_peer_basic_rates;
+-	u16 join_beacon_interval;
+-	bool join_bss_valid, join_channel_valid;
+-	/* The join channel, from the last valid operating channel. */
+-	u8 join_chan_number;
+-	u16 join_chan_freq;
+-	enum nl80211_band join_chan_band;
+-	/* Its secondary offset at HT40: 1 (above) or 3 (below), else 0 (0323). */
+-	u8 join_sco;
+-	/* This lifetime's data at mac80211's rate control choice. */
+-	bool join_data_minstrel;
+-	bool join_scan_ready, join_peer_used, join_peer_ready;
+-	bool join_auth_received, join_auth_ok, join_authenticated;
+-	bool join_assoc_received;
+-	u16 join_assoc_status, join_aid;
+-	unsigned int join_submitted;
+-	u8 join_ssid[32], join_ssid_bytes;
+-	bool join_short_preamble, join_short_slot, join_bss_configured;
+-	bool join_cleanup_requested, join_cleanup_done, join_deauth_done;
+-	unsigned int join_cleanup_stage;
+-	u16 join_last_sequence;
+-	struct sk_buff *join_internal;
+-	struct completion join_channel_done, join_sta_done, join_credit_done, join_frame_done;
+-	bool join_last_acked;
+-	u64 join_credit_deadline;
+-	bool join_credit_pending;
+-	u64 join_grant_deadline;
+-	u8 join_channel_token, join_sta_sequence;
+-	unsigned int join_requested_ms;
+-	bool join_channel_pending, join_channel_granted;
+-	bool join_sta_pending, join_sta_active;
+-	bool join_peer_refusal_logged, join_channel_refusal_logged;
+-	unsigned int join_absence_events, join_absence_outside;
+-	unsigned int join_absence_unexpected;
+-	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+-	unsigned int join_eapol_seen, join_eapol_tx, join_tx_status_logged;
+-	unsigned int join_eapol_trace; /* bounded metadata-only pre-key observation */
+-	unsigned int join_eapol_refused; /* refused pre-key frames, their own bound */
+-	unsigned int ccmp_rx_refused; /* data frames both receive checks refused */
+-	unsigned int join_data_llc_discarded;
+-	/* Phase C2: the pairwise and group key commands were submitted; the
+-	 * firmware's add-key-done event was recorded at most twice, once in the
+-	 * window after each submission (attributed by window, not by key).
+-	 */
+-	bool join_key_pairwise_submitted, join_key_group_submitted;
+-	bool join_key_done, join_key_done_second;
+-	u64 join_hold_until;
+-	/* RSN join: WPA2 declared to the firmware; key commands 0 none, 1
+-	 * submitted with credit returned, 2 removed. No key material is kept.
+-	 */
+-	bool join_rsn;
+-	unsigned int join_key_pairwise, join_key_group;
+-	u8 join_group_key_id;
+-	u8 join_eth[MT6797_JOIN_ETH_MAX_BYTES] __aligned(2);
+-	/* Phase C3: after the group key's credit the channel privilege is
+-	 * released (the vendor releases it after the join) and the lifetime
+-	 * enters one bounded data phase: at most MT6797_JOIN_DATA_BUDGET_MS, or
+-	 * until mac80211 or the supplicant disconnects, whichever comes first;
+-	 * then the reserved deauthentication and the teardown. No reconnect, no
+-	 * rekey, no second phase.
+-	 */
+-	bool join_channel_released, join_data_phase, join_data_ended;
+-	unsigned char native_diag_state;
+-	unsigned int native_diag_total, native_diag_native, native_diag_bytes;
+-	bool native_diag_engaged;
+-	bool native_diag_sample_done;	/* a sample ceiling was crossed */
+-	unsigned int native_diag_retire_reads, native_diag_retire_bytes;
+-	u64 native_diag_started, native_diag_retire_started;
+-	bool native_diag_retire_logged;
+-	struct mt6797_ccmp_rx_context ccmp_rx;
+-	struct mt6797_ccmp_rx_context ccmp_gtk_rx;
+-	bool ccmp_gtk_attempted;
+-	unsigned int ccmp_rx_delivered; /* data frames handed to mac80211 */
+-	u64 ccmp_last_checked_rx;
+-	unsigned int ccmp_timeout_ignored;
+-	struct completion ccmp_dtim_done;
+-	u8 ccmp_dtim_period;
+-	int ccmp_dtim_status;
+-	bool ccmp_dtim_valid, ccmp_pm_attempted, ccmp_pm_connected;
+-	bool ccmp_pm_abort_pending, ccmp_pm_abort_credited;
+-	bool ccmp_loss_reported;
+-	/* The supplicant removed the keys: wait for mac80211's own disconnect. */
+-	bool ccmp_loss_deferred;
+ 	struct delayed_work ccmp_loss_work;
+ 	/* Sends a held power-save profile once the data phase is settled. */
+ 	struct work_struct ps_work;
+-	unsigned int ccmp_deauth_timeouts, ccmp_deauth_late;
+-	u8 ccmp_deauth_retired_pid;
+-	unsigned int ccmp_cleanup_retained_pages, ccmp_cleanup_credit_floor;
+-	unsigned int ccmp_cleanup_op, ccmp_cleanup_sequence;
+-	bool ccmp_cleanup_credit_active, ccmp_cleanup_bounded_done;
+-	u64 ccmp_pm_credit_ns;
+-	u64 ccmp_channel_release_at;
+-	unsigned int ccmp_channel_release_sequence;
+-	bool ccmp_channel_release_pending;
+-	struct ieee80211_sta __rcu *ccmp_sta;
+-	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
+-	struct ieee80211_key_conf *ccmp_ptk, *ccmp_gtk;
+-	/* A group key given before the pairwise key, installed after it. */
+-	struct ieee80211_key_conf *ccmp_gtk_deferred;
+ 	/* Serializes scan/join RX, TX status and completed key withdrawal. */
+ 	struct mutex ccmp_receive_mutex;
+-	struct completion ccmp_key_done, ccmp_cleanup_done;
+-	bool ccmp_decap, ccmp_closed, ccmp_ptk_attempted, ccmp_tx_ready;
+-	unsigned int ccmp_queued;
+-	u64 join_data_deadline, join_data_started;
+-	unsigned int join_data_credits;
+-	/* Data transmit: mac80211's protected non-QoS data frames to the target,
+-	 * converted to Ethernet II and submitted on the TC1 pool one at a time;
+-	 * pages owed on that pool, counts, and the in-flight frame's class.
+-	 */
+-	unsigned int join_data_page_debt, join_data_tx_queued, join_data_tx_done;
+-	/* Ordinary data retired on credit arrival: the pages returned and not
+-	 * yet matched to a frame, the counts, the wait from submission to
+-	 * retirement, and the retired frames the worker has yet to report.
+-	 */
++	struct completion join_channel_done, join_sta_done, join_credit_done, join_frame_done;
++	struct completion ccmp_dtim_done, ccmp_key_done, ccmp_cleanup_done;
++	/* Ordinary data retired on credit arrival, for the worker to report. */
+ 	struct sk_buff_head credit_retired_queue;
+-	unsigned int credit_retire_pages, credit_retire_ordinal;
+-	/* Sampled status reports (0281): one ordinary data frame in N. */
+-	unsigned int tx_sample_counter;
+-	unsigned int tx_probe_gap, join_data_tx_probe_failed;
+-	struct ieee80211_tx_rate tx_rate_settled;
+-	u64 tx_report_ns;
+-	unsigned int join_data_tx_failed, join_data_tx_failures_in_row;
+-	unsigned int join_data_expired;
+-	u64 join_data_tx_ok_ns;
+-	bool join_inflight_data;
+-
+-	u64 scan_deadline;
+-	u64 scan_channels;
+-	unsigned int scan_list[MT6797_CHANNELS];
+-	unsigned int scan_total, scan_next, scan_sequence, scan_count, scan_dwell_ms;
+-	/* The first scan_probing channels of the list may send probe requests. */
+-	unsigned int scan_probing;
+-	struct cfg80211_ssid scan_ssids[MT6797_SCAN_SSIDS];
+-	unsigned int scan_n_ssids;
+-	unsigned int scan_packets;
+-	/* A scan while connected: the worker submits it and reads its events. */
+-	bool scan_online, scan_online_ready, scan_online_cancel;
+-	/* Signal threshold, from the access point's frames (1/16 dB average). */
+-	int cqm_thold, cqm_last, cqm_average;
+-	unsigned int cqm_hyst, cqm_samples, cqm_beacons;
+-	/* The firmware's monitor mask is still on from an earlier data phase. */
+-	bool monitor_left_on;
+-	bool scan_ready, started, scan_used, scan_active, bss_active;
+-	bool scan_beacon, scan_credit, scan_frame_seen;
+-	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
++	/* The WLAN interrupt: 0 when there is none. The handler masks it and
++	 * wakes the worker, which unmasks it after a pass that read WHISR.
++	 */
++	int irq;
++	/* The power-save profile offered (0: none) and whether mac80211 wants it. */
++	unsigned int ps_profile;
++	bool ps_wanted;
++	/* The signal threshold and hysteresis mac80211 set (1/16 dB). */
++	int cqm_thold;
++	unsigned int cqm_hyst;
++	bool started;
++
++	/* One firmware lifetime: everything a registration starts from zero. */
++	struct_group(lifetime,
++		struct mt6797_hif *hif;
++		bool join_ht_requested, join_ht_accepted;
++		/* The access point's HT capability and operation element bodies from
++		 * its association response, declared in the post-association records.
++		 */
++		u8 join_ht_peer_cap[26], join_ht_op[22];
++		bool join_ht_peer_cap_seen, join_ht_op_seen;
++		/* The domain and power the firmware last accepted. */
++		struct mt6797_regulatory_payloads reg_sent;
++		bool reg_sent_valid, reg_pending;
++		unsigned int sequence;
++		/* The first command sequence of lifetime 1, where a recycle restarts. */
++		unsigned int sequence_base;
++		/* Re-arm passes a recycle has waited for TC4 credits, at most 25. */
++		unsigned int join_recycle_waits;
++		bool configured, closing;
++		int first_error;
++		bool join_deauth_status_valid;
++		bool join_deauth_timed_out;
++		u8 join_deauth_status, join_lifetimes;
++		unsigned int join_pump_zero_runs;
++		u64 join_pump_active_ns;
++		atomic_t irq_masked;
++		/* 802.11 power save: whether the last send failed or is in progress,
++		 * and the profile last sent this lifetime.
++		 */
++		bool ps_failed, ps_busy;
++		int ps_sent;
++		bool irq_armed, irq_gave_up, join_pass_read, join_pass_found;
++		unsigned int irq_empty;
++		/* Interrupt-driven passes by the WHISR bits last read: TX done, RX,
++		 * the firmware's software interrupts, abnormal, none; and found.
++		 */
++		unsigned int irq_passes, irq_tx, irq_rx, irq_d2h, irq_abnormal, irq_none,
++			     irq_found;
++		struct mt6797_data_slots data_slots;
++		struct sk_buff *join_inflight;
++		u64 join_deadline, join_frame_deadline;
++		u8 join_ap[ETH_ALEN], join_pid, join_next_pid;
++		struct mt6797_join_pid_pool ccmp_pid_pool;
++		bool ccmp_reserved_pid_used;
++		/* Records framed for the other monitor state, dropped after data end. */
++		unsigned int join_teardown_framing_drops;
++		u8 join_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
++		unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
++		/* Authentication and association request frames queued in this
++		 * lifetime, each bounded at MT6797_JOIN_ATTEMPTS (0304).
++		 */
++		unsigned int join_auth_attempts, join_assoc_attempts;
++		unsigned int join_tx_status_skipped;
++		/* The firmware's receive block-ack sessions per TID, and their
++		 * sub-frames (0318, 0319).
++		 */
++		u8 rx_ba_active;
++		u16 rx_ba_window[8], rx_ba_ssn[8];
++		unsigned int rx_ba_starts, rx_ba_stops;
++		/* The receive reorder windows (0321), under the MAC mutex; pending
++		 * marks a TID whose session an ADDBA or DELBA event changed.
++		 */
++		struct mt6797_rx_reorder rx_reorder[MT6797_RX_REORDER_TIDS];
++		u8 rx_reorder_pending;
++		/* mac80211's queues stopped while the data queue is at its bound (0282). */
++		bool tx_queues_stopped;
++		unsigned int tx_queue_stops, tx_queue_wakes, tx_dropped_full, tx_queue_high_water;
++		/* WMM requested in our association and answered by the access point,
++		 * the frames carried each way by kind, and the receive check's refusals.
++		 */
++		bool join_wmm_requested, join_wmm_accepted;
++		unsigned int qos_ac_params, qos_tx, qos_tx_nonqos, qos_tx_tid_refused;
++		unsigned int qos_tx_tid[8]; /* admitted QoS data by TID (0291) */
++		unsigned int qos_rx, qos_rx_nonqos, qos_rx_refused, qos_rx_refused_qos;
++		unsigned int join_page_debt;
++		bool join_running, join_open, join_retired;
++		/* Reusable bounded two-lifetime milestone (proposal 0180): the mac80211
++		 * station teardown (sta_state -> NOTEXIST) and the worker's healthy
++		 * stage-3 cleanup rendezvous in either order; the already-serialized
++		 * join_work does the one reset after both. Lifetimes re-arm while the
++		 * wire identities do not wrap. These are not an authenticated
++		 * key-completion barrier (ADD_PKEY_DONE carries no generation).
++		 */
++		bool join_sta_removed, join_rearm_pending, join_closed;
++		/* mac80211 key removals seen in this epoch; the re-arm waits for both. */
++		unsigned int ccmp_key_disables;
++		/* Scans that mac80211 never followed with a join; boot-scoped. */
++		unsigned int join_idle_scans;
++		/* Copied stack state only: no BSS/STA/chanctx pointer is retained. */
++		u8 join_bssid[ETH_ALEN];
++		u32 join_basic_rates;
++		unsigned int join_desired_rates, join_peer_basic_rates;
++		u16 join_beacon_interval;
++		bool join_bss_valid, join_channel_valid;
++		/* The join channel, from the last valid operating channel. */
++		u8 join_chan_number;
++		u16 join_chan_freq;
++		enum nl80211_band join_chan_band;
++		/* Its secondary offset at HT40: 1 (above) or 3 (below), else 0 (0323). */
++		u8 join_sco;
++		/* This lifetime's data at mac80211's rate control choice. */
++		bool join_data_minstrel;
++		bool join_scan_ready, join_peer_used, join_peer_ready;
++		bool join_auth_received, join_auth_ok, join_authenticated;
++		bool join_assoc_received;
++		u16 join_assoc_status, join_aid;
++		unsigned int join_submitted;
++		u8 join_ssid[32], join_ssid_bytes;
++		bool join_short_preamble, join_short_slot, join_bss_configured;
++		bool join_cleanup_requested, join_cleanup_done, join_deauth_done;
++		unsigned int join_cleanup_stage;
++		u16 join_last_sequence;
++		struct sk_buff *join_internal;
++		bool join_last_acked;
++		u64 join_credit_deadline;
++		bool join_credit_pending;
++		u64 join_grant_deadline;
++		u8 join_channel_token, join_sta_sequence;
++		unsigned int join_requested_ms;
++		bool join_channel_pending, join_channel_granted;
++		bool join_sta_pending, join_sta_active;
++		bool join_peer_refusal_logged, join_channel_refusal_logged;
++		unsigned int join_absence_events, join_absence_outside;
++		unsigned int join_absence_unexpected;
++		/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
++		unsigned int join_eapol_seen, join_eapol_tx, join_tx_status_logged;
++		unsigned int join_eapol_trace; /* bounded metadata-only pre-key observation */
++		unsigned int join_eapol_refused; /* refused pre-key frames, their own bound */
++		unsigned int ccmp_rx_refused; /* data frames both receive checks refused */
++		unsigned int join_data_llc_discarded;
++		/* Phase C2: the pairwise and group key commands were submitted; the
++		 * firmware's add-key-done event was recorded at most twice, once in the
++		 * window after each submission (attributed by window, not by key).
++		 */
++		bool join_key_pairwise_submitted, join_key_group_submitted;
++		bool join_key_done, join_key_done_second;
++		u64 join_hold_until;
++		/* RSN join: WPA2 declared to the firmware; key commands 0 none, 1
++		 * submitted with credit returned, 2 removed. No key material is kept.
++		 */
++		bool join_rsn;
++		unsigned int join_key_pairwise, join_key_group;
++		u8 join_group_key_id;
++		u8 join_eth[MT6797_JOIN_ETH_MAX_BYTES] __aligned(2);
++		/* Phase C3: after the group key's credit the channel privilege is
++		 * released (the vendor releases it after the join) and the lifetime
++		 * enters one bounded data phase: at most MT6797_JOIN_DATA_BUDGET_MS, or
++		 * until mac80211 or the supplicant disconnects, whichever comes first;
++		 * then the reserved deauthentication and the teardown. No reconnect, no
++		 * rekey, no second phase.
++		 */
++		bool join_channel_released, join_data_phase, join_data_ended;
++		unsigned char native_diag_state;
++		unsigned int native_diag_total, native_diag_native, native_diag_bytes;
++		bool native_diag_engaged;
++		bool native_diag_sample_done;	/* a sample ceiling was crossed */
++		unsigned int native_diag_retire_reads, native_diag_retire_bytes;
++		u64 native_diag_started, native_diag_retire_started;
++		bool native_diag_retire_logged;
++		struct mt6797_ccmp_rx_context ccmp_rx;
++		struct mt6797_ccmp_rx_context ccmp_gtk_rx;
++		bool ccmp_gtk_attempted;
++		unsigned int ccmp_rx_delivered; /* data frames handed to mac80211 */
++		u64 ccmp_last_checked_rx;
++		unsigned int ccmp_timeout_ignored;
++		u8 ccmp_dtim_period;
++		int ccmp_dtim_status;
++		bool ccmp_dtim_valid, ccmp_pm_attempted, ccmp_pm_connected;
++		bool ccmp_pm_abort_pending, ccmp_pm_abort_credited;
++		bool ccmp_loss_reported;
++		/* The supplicant removed the keys: wait for mac80211's own disconnect. */
++		bool ccmp_loss_deferred;
++		unsigned int ccmp_deauth_timeouts, ccmp_deauth_late;
++		u8 ccmp_deauth_retired_pid;
++		unsigned int ccmp_cleanup_retained_pages, ccmp_cleanup_credit_floor;
++		unsigned int ccmp_cleanup_op, ccmp_cleanup_sequence;
++		bool ccmp_cleanup_credit_active, ccmp_cleanup_bounded_done;
++		u64 ccmp_pm_credit_ns;
++		u64 ccmp_channel_release_at;
++		unsigned int ccmp_channel_release_sequence;
++		bool ccmp_channel_release_pending;
++		struct ieee80211_sta __rcu *ccmp_sta;
++		/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
++		struct ieee80211_key_conf *ccmp_ptk, *ccmp_gtk;
++		/* A group key given before the pairwise key, installed after it. */
++		struct ieee80211_key_conf *ccmp_gtk_deferred;
++		bool ccmp_decap, ccmp_closed, ccmp_ptk_attempted, ccmp_tx_ready;
++		unsigned int ccmp_queued;
++		u64 join_data_deadline, join_data_started;
++		unsigned int join_data_credits;
++		/* Data transmit: mac80211's protected non-QoS data frames to the target,
++		 * converted to Ethernet II and submitted on the TC1 pool one at a time;
++		 * pages owed on that pool, counts, and the in-flight frame's class.
++		 */
++		unsigned int join_data_page_debt, join_data_tx_queued, join_data_tx_done;
++		/* Ordinary data retired on credit arrival: the pages returned and not
++		 * yet matched to a frame, the counts, the wait from submission to
++		 * retirement, and the retired frames the worker has yet to report.
++		 */
++		unsigned int credit_retire_pages, credit_retire_ordinal;
++		/* Sampled status reports (0281): one ordinary data frame in N. */
++		unsigned int tx_sample_counter;
++		unsigned int tx_probe_gap, join_data_tx_probe_failed;
++		struct ieee80211_tx_rate tx_rate_settled;
++		u64 tx_report_ns;
++		unsigned int join_data_tx_failed, join_data_tx_failures_in_row;
++		unsigned int join_data_expired;
++		u64 join_data_tx_ok_ns;
++		bool join_inflight_data;
++
++		u64 scan_deadline;
++		u64 scan_channels;
++		unsigned int scan_list[MT6797_CHANNELS];
++		unsigned int scan_total, scan_next, scan_sequence, scan_count, scan_dwell_ms;
++		/* The first scan_probing channels of the list may send probe requests. */
++		unsigned int scan_probing;
++		struct cfg80211_ssid scan_ssids[MT6797_SCAN_SSIDS];
++		unsigned int scan_n_ssids;
++		unsigned int scan_packets;
++		/* A scan while connected: the worker submits it and reads its events. */
++		bool scan_online, scan_online_ready, scan_online_cancel;
++		/* The access point's signal (1/16 dB average) against the threshold. */
++		int cqm_last, cqm_average;
++		unsigned int cqm_samples, cqm_beacons;
++		/* The firmware's monitor mask is still on from an earlier data phase. */
++		bool monitor_left_on;
++		bool scan_ready, scan_used, scan_active, bss_active;
++		bool scan_beacon, scan_credit, scan_frame_seen;
++		u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
++	);
+ };
+ 
+ /* One stream, MCS 0-7, 20 and 40 MHz (0323); no short GI, greenfield,
+-- 
+2.43.0
+
