@@ -9266,6 +9266,28 @@ cable out, battery 100 %. 21:31:24 to 21:42:18.
   status after resume, as the vendor does). If not, window B needs a
   quieter rerun.
 
+**The reviewer on the key (2026-11-23).**
+- The vendor does nothing for EINT around SODI or deep idle: no save,
+  restore or re-sync of the EINT controller. The sources it re-pends at
+  the GIC after a power-down are a fixed few (keypad controller, CONN
+  watchdog, low battery, modem watchdogs), not EINT. That fits an EINT
+  block outside MCUSYS that keeps its own latched status while CPU0 is
+  down, with a level summary line to the GIC.
+- With the expander's level interrupt held until read, a press anywhere
+  in the window should have counted at least once after a resume, so the
+  simplest reading is that no key was pressed. If one was: (a) the
+  expander's EINT line left masked or with changed sensitivity (read the
+  EINT mask and status words for it after the window: status set with the
+  mask set would prove it); (b) the GIC enable of the EINT summary not
+  restored (it would break every EINT user); (c) a missing EINT wake
+  source alone would not explain a zero count.
+- Checks with no owner timing: read the expander's interrupt status over
+  I2C after the window; and make the next key test self-checking, with
+  the keypad parent count and the EINT status in each period's line and
+  the script saying "no key seen" itself.
+- D6b's starts were all 1274 MHz or more; D6a covers 221 MHz. A pinned-low
+  window in the two-state environment would join both in one run.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
