@@ -9582,8 +9582,8 @@ between-period tap, a racing period, the re-blank, and a key wake.
 
 - **Candidate:** as D6f on a fresh boot, with this `d4.sh` and
   `D4_B_SECONDS=360`. The owner taps one key at B+60 s, B+180 s and
-  B+300 s, clock times fixed before launch, and stops at the first tap
-  the custodian later learns ended B. B ends about 410 s after launch,
+  B+300 s, clock times fixed before launch, whatever happened before;
+  a tap after B has ended does no harm. B ends about 410 s after launch,
   within the 8-minute Wi-Fi timer.
 - **Odds:** each tap lands in a period about 54% of the time, so all
   three miss about 10% of the time.
