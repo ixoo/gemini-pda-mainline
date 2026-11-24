@@ -10714,6 +10714,41 @@ says both.
 - **Admission:** run 1's configuration with one constant changed; the
   owner approves the run.
 
+### D7h: the timer-due tails shrink below 1 ms; one window pair (custodian, 2026-11-24)
+
+**Candidate.** Image 139, fresh boot `0d12a9a2`, module `5d2540dd` (from
+8b69afc46: 0854-0860, 0863, 0868; logged "exit latency 2000 us"),
+`d5.sh` d488d5e8 with run 1's options, unpinned, Wi-Fi up, cable out,
+battery 33% to 32%.
+
+**Observations.**
+- off1 83 mA; on1 67 mA, 1194 entries, 170.4 s of 181 s in SODI (94%).
+- The owner pressed a key at 18:04:41: the screen lit and `d5.sh`
+  stopped at the start of off2 ("the screen lit in window off2"). off1
+  and on1 are complete; off2 and on2 did not run.
+- Hashes and retention equal after off1 and on1; stopped 0, error 0,
+  back-offs 0, dram abort 0, taint 0.
+- At the end of on1: entered 1263, dram down 1073 (85%); "timer due"
+  680, every one under 1 ms; timer-only wakes 689.
+- Return after the PCM timer's end: 1629 µs on average, 1677 µs at most;
+  51 under 1.5 ms, 638 at 1.5-2 ms.
+- Logs kept privately.
+
+**Result.** **Pass** on on1 by D7h's rule: `late_max_us` 1677 is under
+2000, so no local event was served late, and the timer-due refusals
+moved from 1-4 ms to under 1 ms as predicted. 0868 stays.
+
+**Readings.**
+- The tail removed is about 3 ms per timer wake, 689 × 3 ms ≈ 2 s of a
+  181 s window, or about 1% of residency: 93% to 94%, as seen. The
+  current difference that buys is below the charge counter's 1 mA
+  resolution over one window; on1's 67 mA against run 1's 66 mA and
+  off1's 83 mA against 80 mA are within that noise. A second window pair
+  would not change the decision, so no repeat is proposed for it.
+- With the tails gone, no timer-due refusal sits between 1 and 20 ms in
+  D7g or D7h, so the 20 ms floor refuses nothing that a lower floor would
+  admit at this Wi-Fi load.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
