@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 13:20:29 -0500
+Subject: [PATCH] wifi: mt6797: spin briefly for owed work before waiting on
+ the interrupt
+
+0857 took the idle join worker from 32 to 5.5 runs a second, but transmit
+fell 22 %, from 2.68 to 2.09 MB/s: with work owed it waited for the TX-done
+interrupt or 20 ms where it used to spin for the credit. Allow up to 8
+immediate passes after progress while work is owed, then wait. Idle links,
+with nothing owed, keep 0857's 1 s interval.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c     | 10 ++++++----
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h |  4 ++++
+ 2 files changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 1cdce22..2cea32b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -3025,11 +3025,13 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 	}
+ 	if (mt6797_mac_join_irq_served(mac)) {
+ 		/* The interrupt wakes the worker for receive and for TX done, so
+-		 * only progress earns an immediate pass. Work still owed waits
+-		 * for the interrupt or 20 ms; otherwise only a frame held for
+-		 * reordering needs the short interval.
++		 * after progress only a short spin follows: work still owed waits
++		 * for the interrupt or 20 ms after a few passes, which keeps
++		 * transmit near its polled rate (it lost 22 % without the spin).
++		 * Otherwise only a frame held for reordering needs 20 ms.
+ 		 */
+-		if (!pump_progress)
++		if (!pump_progress && !(pending &&
++		    mac->join_pump_zero_runs <= MT6797_JOIN_PUMP_IRQ_SPIN))
+ 			delay_ms = pending || mt6797_mac_join_reorder_held(mac) ?
+ 				   MT6797_JOIN_PUMP_IDLE_MS : MT6797_JOIN_PUMP_IRQ_QUIET_MS;
+ 	} else if (delay_ms == MT6797_JOIN_PUMP_IDLE_MS && !pending &&
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index c1823a4..d1e39be 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -177,6 +177,10 @@ struct mt6797_join_rearm_state {
+  * the driver's own deadlines.
+  */
+ #define MT6797_JOIN_PUMP_IRQ_QUIET_MS 1000U
++/* Immediate passes allowed after progress while work is still owed, with the
++ * interrupt serving the link; MAX_ZERO's 32 when it does not.
++ */
++#define MT6797_JOIN_PUMP_IRQ_SPIN 8U
+ /* Passes woken by the interrupt that found nothing, in a row, after which
+  * the interrupt is given up and receive is polled again.
+  */
+-- 
+2.43.0
+
