@@ -77,10 +77,11 @@
 #   A  quiet: once the pings have stopped, 20 periods;
 #   B  key: up to 300 s of periods; the owner presses one key once when the
 #      custodian says so; the window ends at the first period a key ends
-#      or at the first period after which the keyboard's interrupt count
-#      (EINT, expander, keyboard lines in /proc/interrupts) has risen; each
-#      period's line carries that count, and the window says "no key seen"
-#      when neither happens.
+#      or at the first period after which the keyboard-path interrupt count
+#      (the expander and keypad lines in /proc/interrupts, not the shared
+#      EINT lines) has risen; each period's line carries that count, a key
+#      wake also says whether the count rose, and the window says "no key
+#      seen" when nothing happens.
 # Each period is logged with its wake reason and the SYS_CIRQ status. The
 # log is /var/tmp/d4.log, synced after every line.
 #
@@ -216,9 +217,15 @@ in_echos() {
 # One 2000 ms period. A refusal (a gate briefly running) is retried after
 # 1 s (past the synced refusal line), ten at most in a row. Sets R12 and
 # SLEPT for the caller.
-# The summed /proc/interrupts counts of the EINT, expander and keyboard lines.
+# The summed /proc/interrupts counts of the keyboard path: the expander's
+# EINT parent (I2C 3-0062) and the keypad lines behind it, so other EINT
+# users do not count.
+key_lines() {
+	grep -iE ' 3-0062$|aw9523|keypad|keyboard' /proc/interrupts
+}
+
 key_irqs() {
-	grep -iE 'eint|aw9523|keyboard' /proc/interrupts |
+	key_lines |
 		awk '{ for (k = 2; k <= NF && $k ~ /^[0-9]+$/; k++) n += $k } END { print n + 0 }'
 }
 
@@ -591,7 +598,9 @@ log "B: press one key once (up to 300 s)"
 key=0
 seen=0
 k0=$(key_irqs)
-log "B: keyboard interrupt count $k0"
+log "B: keyboard-path interrupt count $k0"
+key_lines | grep -q ' 3-0062$' || stop "no EINT line for the keyboard expander (3-0062)"
+key_lines | sed 's/^/    B before: /'
 start=$(date +%s)
 while [ $(( $(date +%s) - start )) -lt 300 ]; do
 	if ! blank; then
@@ -602,14 +611,21 @@ while [ $(( $(date +%s) - start )) -lt 300 ]; do
 	check_hash "a period of B"
 	if early && [ $(( (0x$R12 >> 6) & 1 | (0x$R12 >> 2) & 1 | (0x${STA3:-0} >> 2) & 1 )) -eq 1 ]; then
 		key=1
-		log "B: a key ended the period"
+		sleep 2
+		k=$(key_irqs)
+		if [ "$k" -gt "$k0" ]; then
+			seen=1
+			log "B: a key ended the period and reached Linux ($k0>$k)"
+		else
+			log "B: a key ended the period but the keyboard-path count did not rise ($k0>$k)"
+		fi
 		break
 	fi
 	k=$(key_irqs)
-	log "B: keyboard interrupt count $k"
+	log "B: keyboard-path interrupt count $k"
 	if [ "$k" -gt "$k0" ]; then
 		seen=1
-		log "B: a key reached Linux ($k0>$k) without ending a period"
+		log "B: a keyboard-path interrupt count rose ($k0>$k) without a key wake"
 		break
 	fi
 done
@@ -618,7 +634,8 @@ grep -iE 'eint|aw9523|keyboard' /proc/interrupts | sed 's/^/    after: /'
 [ "$key" = 1 ] || log "B: no key wake within the window"
 k=$(key_irqs)
 [ "$key" = 1 ] || [ "$seen" = 1 ] || [ "$k" -gt "$k0" ] ||
-	log "B: no key seen (keyboard interrupt count $k0>$k)"
+	log "B: no key seen (keyboard-path interrupt count $k0>$k)"
+key_lines | sed 's/^/    B after: /'
 check_dmesg
 
 # ---- restore ----

@@ -9249,8 +9249,8 @@ cable out, battery 100 %. 21:31:24 to 21:42:18.
 - **Kick to first WFI:** median 27.5 µs (27.1-98.5 µs).
 - **The key never reached Linux:** window B ran 300 s with no key wake,
   and `/proc/interrupts` before and after are identical: the EINT parent
-  of the keyboard expander stayed at 61 and every matrix-keypad line at
-  0. CONN2AP woke every period of B (about 148), so B was never quiet.
+  of the keyboard expander stayed at 61 and the matrix-keypad lines
+  unchanged (3 in all, from before the run). CONN2AP woke every period of B (about 148), so B was never quiet.
   Whether and when the owner pressed is being asked.
 - `im fsm` `02c48910>02448910` in 88 periods, spread through the run,
   never stuck. Logs kept privately.
@@ -9300,6 +9300,15 @@ its periods. The window also ends when that count rises without a key
 wake, and it logs "no key seen" when neither happens, so an untouched
 window can no longer read as a result. `D4_ONLY_B=1` skips windows C
 and A.
+
+After the reviewer read the change, the count covers only the keyboard
+path: the expander's EINT parent (`3-0062`, EINT 8) and the matrix-keypad
+lines behind it, so another EINT user cannot end the window as a key. The
+script stops if the parent line is missing. A key wake now waits 2 s and
+says whether the count rose, since that delivery is what the run is for.
+D6b's capture shows EINT 8 configured as an edge in Linux, not a level, so
+the reviewer's "should have counted late" relies on the EINT block latching
+the edge while CPU0 is down.
 
 - **Candidate:** image 138, module 4aa576a0, D6b's options plus
   `D4_ONLY_B=1`, no pin, cable out. The owner presses one key once, early
