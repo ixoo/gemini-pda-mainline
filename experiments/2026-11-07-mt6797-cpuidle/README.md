@@ -9780,7 +9780,12 @@ already in it).
 `d5.sh` (commit recording this) takes `D5_PARAMS` for insmod and
 `D5_PDN=1`, which refuses a module without 0854.
 
-- **Candidate:** image 138 on a fresh boot, a Buildbox module with 0854,
+- **Module:** Buildbox job at 0544cf1c5 (0854 as of 587b37888), profile
+  `mt6797-a53-station-dvfs` with `BUILD_MODULES=1`, validated by the
+  custodian: `mt6797-spm-sleep.ko` sha256 `d83a6fd69350ce09…`, vermagic
+  matching image 138, carrying `psci_cpu_suspend_enter` and the
+  `backoffs` line.
+- **Candidate:** image 138 on a fresh boot, that module,
   `d5.sh` with `D5_PDN=1 D5_PARAMS="sodi_keep_26m=1 sodi_no_event=1"`
   (D6's options; `sodi_cirq_level` is already on by default), cable out,
   Wi-Fi joined and up for the whole run. Four 180 s windows, SODI off, on,
