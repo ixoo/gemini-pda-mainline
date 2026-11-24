@@ -13,26 +13,33 @@ setup (D6b), and timer, Wi-Fi, display and key wakes (D6b-D6g).
 
 Use that entry in the idle state too:
 - clear flag 0 and power CPU0 down for every SODI idle entry, with the
-  same checks as the test periods (CPU0 the only online CPU, every other
-  core and cluster off);
+  same checks as the test periods (CPU0 the only online CPU, now counted
+  as such in the idle state's refusals, every other core and cluster
+  off);
 - leave the RCU idle calls to arm64 cpu_suspend() on that path, which
   makes them itself;
 - save and restore the timer compare values around the entry, since
   CPU0 comes back with its timer registers reset;
 - set flag 13 (no resource events) from sodi_no_event, as in the
-  power-down test periods, alongside sodi_keep_26m;
+  power-down test periods, alongside sodi_keep_26m; the idle state takes
+  both at load;
+- raise the state's exit latency to 5 ms and target residency to 20 ms,
+  deliberately conservative: the firmware saves and restores the GIC on
+  each side, and the costs are not yet measured;
+- back off for 1 s after eight periods in a row shorter than 20 ms, so a
+  wake source stuck on (CONN2AP with the Wi-Fi interface down) cannot
+  hold CPU0 in a loop of power-down cycles;
 - rate-limit the power-down refusal messages, which the idle loop can
   repeat.
 
 The state stays off until enabled in sysfs, and is only entered with
-CPU0 alone and the backlight blank. Its exit latency and target
-residency are unchanged and not yet measured for this entry.
+CPU0 alone and the backlight blank.
 ---
- drivers/soc/mediatek/mt6797-spm-sleep.c | 35 ++++++++++++++++++-------
- 1 file changed, 26 insertions(+), 9 deletions(-)
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 93 +++++++++++++++++++------
+ 1 file changed, 73 insertions(+), 20 deletions(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
-index fd71c2057..c5fa655d2 100644
+index fd71c2057..41b8229e5 100644
 --- a/drivers/soc/mediatek/mt6797-spm-sleep.c
 +++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
 @@ -6,8 +6,8 @@
@@ -46,6 +53,24 @@ index fd71c2057..c5fa655d2 100644
   *
   * The register sequence follows the project's analysis in
   * docs/hardware/mt6797-spm-sleep.md and the S1 write list in
+@@ -251,7 +251,7 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ 
+ static bool sodi_no_event;
+ module_param(sodi_no_event, bool, 0644);
+-MODULE_PARM_DESC(sodi_no_event, "SODI: set SODI_NO_EVENT, so no resource handler runs");
++MODULE_PARM_DESC(sodi_no_event, "SODI: set SODI_NO_EVENT, so no resource handler runs (the idle state takes it at load)");
+ 
+ /*
+  * SPM_FLAG_DIS_SRCCLKEN_LOW, set in the vendor's SODI flags: the program then
+@@ -261,7 +261,7 @@ MODULE_PARM_DESC(sodi_no_event, "SODI: set SODI_NO_EVENT, so no resource handler
+ 
+ static bool sodi_keep_26m;
+ module_param(sodi_keep_26m, bool, 0644);
+-MODULE_PARM_DESC(sodi_keep_26m, "SODI: set DIS_SRCCLKEN_LOW, so 26 MHz and infra stay forced awake");
++MODULE_PARM_DESC(sodi_keep_26m, "SODI: set DIS_SRCCLKEN_LOW, so 26 MHz and infra stay forced awake (the idle state takes it at load)");
+ 
+ /*
+  * A test period started with CPU0 at a low operating point hangs in the
 @@ -1211,14 +1211,14 @@ static int spm_run(const struct spm_scen *sc)
  
  		/* The observer's CPU8 included: the vendor has CPU0 alone */
@@ -75,7 +100,17 @@ index fd71c2057..c5fa655d2 100644
  		ct_cpuidle_enter();
  	/* The loop's dsb completes these before the first WFI */
  	if (late && !pdn) {
-@@ -1518,7 +1519,7 @@ static int spm_run(const struct spm_scen *sc)
+@@ -1472,7 +1473,8 @@ static int spm_run(const struct spm_scen *sc)
+ 		 * waiting for CPU0's standby with flag 0 clear, and CPU0's next
+ 		 * WFI would let it power CPU0 off with no firmware context. So
+ 		 * from here to spm_restore(), whose PCM reset stops the program,
+-		 * interrupts stay off and CPU0 takes no WFI.
++		 * interrupts stay off and CPU0 takes no WFI. sodi_idle_refuse()'s
++		 * WFI comes after this function returns.
+ 		 */
+ 		dsb(sy);
+ 		s.wake.pdn_ret = cpu_pm_enter();
+@@ -1518,7 +1520,7 @@ static int spm_run(const struct spm_scen *sc)
  		if (mp2)
  			writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
  	}
@@ -84,7 +119,76 @@ index fd71c2057..c5fa655d2 100644
  		ct_cpuidle_exit();
  	if (crumbs)
  		dev_info(&s.pdev->dev, "sodi crumb %u: back, returned=%d loops=%u\n",
-@@ -2167,6 +2168,7 @@ static int sodi_idle_enter(struct cpuidle_device *dev,
+@@ -1837,7 +1839,7 @@ static struct i2c_adapter *spm_i2c6(void)
+ enum sodi_no {
+ 	SODI_GO, NO_AP_DMA, NO_USB, NO_MSDC, NO_AUDIO,
+ 	NO_BROKEN, NO_CPUS, NO_LIT, NO_SUSPEND, NO_SHORT, NO_I2C, NO_SPM,
+-	NO_PENDING, NO_COUNT
++	NO_PENDING, NO_BACKOFF, NO_COUNT
+ };
+ 
+ static const char * const sodi_no_name[NO_COUNT] = {
+@@ -1847,6 +1849,7 @@ static const char * const sodi_no_name[NO_COUNT] = {
+ 	[NO_SUSPEND] = "suspend or test", [NO_SHORT] = "timer due",
+ 	[NO_I2C] = "I2C6 busy", [NO_SPM] = "PCM or modem busy",
+ 	[NO_PENDING] = "interrupt pending",
++	[NO_BACKOFF] = "short periods back-off",
+ };
+ 
+ static enum sodi_no sodi_busy(void)
+@@ -1878,6 +1881,23 @@ static u64 sodi_timer_left(void);
+ #define SODI_IDLE_EXIT_US	1000
+ #define SODI_IDLE_MIN_US	2000
+ 
++/*
++ * The idle state with CPU0 powered down: the firmware saves and restores the
++ * GIC on each side, so entry and exit cost far more than the WFI numbers
++ * above. Deliberately conservative until measured (D7a): enter only for 20 ms
++ * or more, and end the period 5 ms before the next local timer event.
++ */
++#define SODI_PDN_EXIT_US	5000
++#define SODI_PDN_MIN_US		20000
++
++/*
++ * A wake source stuck on (CONN2AP with the Wi-Fi interface down, D6e) ends
++ * every period at once. After this many periods in a row shorter than
++ * SODI_PDN_MIN_US, the state is refused for SODI_BACKOFF_MS.
++ */
++#define SODI_SHORT_RUN		8
++#define SODI_BACKOFF_MS		1000
++
+ #define SODI_HOLD_WAIT_MS	100
+ 
+ static int sodi_hold_get(struct freq_qos_request *req,
+@@ -2086,6 +2106,8 @@ static struct {
+ 	u64 tried, entered, refused[NO_COUNT];
+ 	u64 wake[ARRAY_SIZE(sodi_wake_bit)], wake_other;
+ 	u64 cnt_entry, cnt_sleep, cnt_exit, cnt_sleep_max;
++	u64 backoff_end, backoffs;
++	unsigned int short_run;
+ 	u32 cirq_hits[CIRQ_LINES];
+ 	int err;
+ 	bool broken;
+@@ -2145,6 +2167,18 @@ static void sodi_idle_count(u64 t0)
+ 	u32 r12 = s.wake.r12, hit = 0;
+ 
+ 	st.entered++;
++	if (sleep < mul_u64_u64_div_u64(SODI_PDN_MIN_US, arch_timer_get_cntfrq(),
++					USEC_PER_SEC)) {
++		if (++st.short_run >= SODI_SHORT_RUN) {
++			st.short_run = 0;
++			st.backoffs++;
++			st.backoff_end = __arch_counter_get_cntvct() +
++				mul_u64_u64_div_u64(SODI_BACKOFF_MS, arch_timer_get_cntfrq(),
++						    MSEC_PER_SEC);
++		}
++	} else {
++		st.short_run = 0;
++	}
+ 	st.cnt_entry += s.wake.cnt_kick - t0;
+ 	st.cnt_sleep += sleep;
+ 	st.cnt_sleep_max = max(st.cnt_sleep_max, sleep);
+@@ -2167,13 +2201,17 @@ static int sodi_idle_enter(struct cpuidle_device *dev,
  			   struct cpuidle_driver *drv, int index)
  {
  	u64 t0 = __arch_counter_get_cntvct(), left, us, cntv, cntp;
@@ -92,7 +196,35 @@ index fd71c2057..c5fa655d2 100644
  	enum sodi_no busy;
  	int ret;
  
-@@ -2199,10 +2201,15 @@ static int sodi_idle_enter(struct cpuidle_device *dev,
+ 	st.tried++;
+ 	if (st.broken)
+ 		return sodi_idle_refuse(NO_BROKEN);
+-	if (!spm_cpus_alone())
++	if (t0 < st.backoff_end)
++		return sodi_idle_refuse(NO_BACKOFF);
++	/* The power-down needs CPU0 alone: the observer's CPU8 counts too */
++	if (num_online_cpus() != 1)
+ 		return sodi_idle_refuse(NO_CPUS);
+ 	if (!backlight_is_blank(s.bl))
+ 		return sodi_idle_refuse(NO_LIT);
+@@ -2182,7 +2220,7 @@ static int sodi_idle_enter(struct cpuidle_device *dev,
+ 	left = sodi_timer_left();
+ 	us = left == U64_MAX ? U64_MAX :
+ 		mul_u64_u64_div_u64(left, USEC_PER_SEC, arch_timer_get_cntfrq());
+-	if (us < SODI_IDLE_MIN_US)
++	if (us < SODI_PDN_MIN_US)
+ 		return sodi_idle_refuse(NO_SHORT);
+ 	if (!i2c_trylock_bus(s.i2c6, I2C_LOCK_ROOT_ADAPTER))
+ 		return sodi_idle_refuse(NO_I2C);
+@@ -2192,17 +2230,22 @@ static int sodi_idle_enter(struct cpuidle_device *dev,
+ 		return sodi_idle_refuse(busy);
+ 	}
+ 
+-	us = min_t(u64, us - SODI_IDLE_EXIT_US,
++	us = min_t(u64, us - SODI_PDN_EXIT_US,
+ 		   (u64)clamp(READ_ONCE(sodi_idle_max_ms), 1U, 2000U) * 1000);
+ 	s.idle.ticks = max_t(u64, div_u64(us * 32768, USEC_PER_SEC), 1);
+ 	s.idle.wake_src = (READ_ONCE(sodi_wake_src) & SODI_WAKE_SRC) | BIT(0);
  
  	cntv = read_sysreg(cntv_ctl_el0);
  	cntp = read_sysreg(cntp_ctl_el0);
@@ -108,8 +240,14 @@ index fd71c2057..c5fa655d2 100644
  	write_sysreg(cntv, cntv_ctl_el0);
  	write_sysreg(cntp, cntp_ctl_el0);
  	isb();
-@@ -2239,7 +2246,7 @@ static struct cpuidle_driver sodi_idle_driver = {
- 			.target_residency = SODI_IDLE_MIN_US,
+@@ -2235,11 +2278,11 @@ static struct cpuidle_driver sodi_idle_driver = {
+ 		},
+ 		{
+ 			.enter = sodi_idle_enter,
+-			.exit_latency = SODI_IDLE_EXIT_US,
+-			.target_residency = SODI_IDLE_MIN_US,
++			.exit_latency = SODI_PDN_EXIT_US,
++			.target_residency = SODI_PDN_MIN_US,
  			.flags = CPUIDLE_FLAG_RCU_IDLE | CPUIDLE_FLAG_OFF,
  			.name = "SODI",
 -			.desc = "SPM SODI, CPU0 alone, dark",
@@ -117,7 +255,18 @@ index fd71c2057..c5fa655d2 100644
  		},
  	},
  	.state_count = 2,
-@@ -2304,6 +2311,16 @@ static void sodi_idle_register(void)
+@@ -2255,8 +2298,8 @@ static int sodi_idle_show(struct seq_file *m, void *v)
+ {
+ 	unsigned int i;
+ 
+-	seq_printf(m, "tried %llu\nentered %llu\nstopped %d\nerror %d\n",
+-		   st.tried, st.entered, st.broken, st.err);
++	seq_printf(m, "tried %llu\nentered %llu\nstopped %d\nerror %d\nbackoffs %llu\n",
++		   st.tried, st.entered, st.broken, st.err, st.backoffs);
+ 	for (i = 1; i < NO_COUNT; i++)
+ 		seq_printf(m, "refused %s: %llu\n", sodi_no_name[i], st.refused[i]);
+ 	for (i = 0; i < ARRAY_SIZE(sodi_wake_bit); i++)
+@@ -2304,6 +2347,16 @@ static void sodi_idle_register(void)
  	s.idle.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
  	if (sodi_keep_26m)
  		s.idle.flags |= SODI_FLAG_KEEP_26M;

@@ -9725,24 +9725,49 @@ module, following the reviewer's notes on D6b:
 - a failed power-down keeps the invariant in `spm_run()`: no WFI before
   `spm_restore()`, and the idle state then stops for good;
 - flag 13 (no resource events) follows `sodi_no_event` and flag 15
-  `sodi_keep_26m`, so the idle state can run with D6's options;
+  `sodi_keep_26m`, both taken at load, so the idle state can run with
+  D6's options;
 - no PSCI `idle-states` node for CPU0 is added to the DT.
 
+After the reviewer's read (below), 0854 also:
+- sets the state's exit latency to 5 ms and target residency to 20 ms,
+  deliberately conservative, since the firmware's GIC save and restore
+  make both far costlier than the old WFI numbers (1 ms and 2 ms); the
+  PCM timer now ends a period 5 ms before the next local event;
+- backs off for 1 s after eight periods in a row shorter than 20 ms,
+  counted under a new refusal reason and a `backoffs` line in
+  `sodi_idle`, so a wake source stuck on (CONN2AP with the Wi-Fi
+  interface down, D6e) cannot hold CPU0 in a loop of power-down cycles;
+- counts the observer's second CPU under "CPUs online" instead of "PCM or
+  modem busy".
+
 The state is still off until enabled in sysfs and still refuses with the
-screen lit or another CPU online. Its exit latency (1000 µs) and target
-residency (2000 µs) are unchanged and not yet measured for this entry; the
-module's `sodi_idle` debugfs file gives the mean entry and exit costs.
+screen lit or another CPU online. The module's `sodi_idle` debugfs file
+gives the mean entry and exit costs that will set the real numbers.
 
 Compile-checked in the VM with `W=1` and checkpatch. A Buildbox module
 build is needed; nothing built in changes, so image 138 stays (0851 is
 already in it).
 
-**Follow-up, not in 0854:** with the Wi-Fi interface down, CONN2AP is a
-standing wake (D6e), so every idle entry would return at once. The cpuidle
-governor's residency feedback may keep it in WFI, but this is unmeasured.
-If D7a or a later run shows it, the fix is to leave CONN2AP out of the wake
-set while the interface is down, or to back off after repeated immediate
-wakes.
+**The reviewer on 0854 (2026-11-24).**
+- RCU and the CPU PM notifiers are right: with `CPUIDLE_FLAG_RCU_IDLE`
+  and the module no longer entering the idle context on this path, RCU
+  watches through the checks, the kick and `cpu_pm_enter`/`exit`, and only
+  `cpu_suspend()`'s own calls bracket the firmware, as in the generic PSCI
+  idle driver. The notifier chain (GIC CPU interface, timer control,
+  debug, FP) already ran from process context in D6.
+- The WFI in `sodi_idle_refuse()` is safe: every return after the kick
+  goes through `spm_restore()`'s PCM reset. The invariant comment now
+  names it.
+- The two changes above (back-off, conservative constants) were asked
+  for before D7a.
+- With flag 13 the resource handlers never run, so this state keeps
+  26 MHz and DRAM awake and saves much less than SODI can. D7a's current
+  is that of this first step, not of the state's potential.
+- The timer controls come back from a warm reset with unknown values; the
+  compare values are restored before the controls with interrupts off, so
+  at worst one spurious timer interrupt. A missed return marks the state
+  stopped for good.
 
 ### Request D7a (proposed): the power-down idle state on its own
 
@@ -9752,7 +9777,9 @@ wakes.
 - **Candidate:** image 138 on a fresh boot, a Buildbox module with 0854,
   `d5.sh` with `D5_PDN=1 D5_PARAMS="sodi_keep_26m=1 sodi_no_event=1"`
   (D6's options; `sodi_cirq_level` is already on by default), cable out,
-  Wi-Fi joined and quiet. Four 180 s windows, SODI off, on, off, on.
+  Wi-Fi joined and up for the whole run. Four 180 s windows, SODI off, on,
+  off, on. Wi-Fi-down idle runs come after this one, now that the back-off
+  is in.
 - **Hypothesis:** with the screen dark and CPU0 alone, the governor
   enters the power-down SODI state by itself, every entry returns, memory
   stays intact, and the current falls against the off windows.
@@ -9761,7 +9788,8 @@ wakes.
 - **Records:** entries and refusals by reason, wake sources, the mean
   entry and exit costs from `sodi_idle`, and the current per window.
 - **Admission:** the entry D6 ran 600-odd periods with, now from the idle
-  loop; the owner approves the run after D6h.
+  loop; the owner approves the run after D6h, whose 221 MHz window covers
+  the low operating points the idle loop may enter at.
 
 | Result | Reading | Next |
 | --- | --- | --- |
