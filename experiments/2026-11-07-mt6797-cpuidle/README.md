@@ -9902,16 +9902,11 @@ SODI power-control table.**
 - **Flag 7 must stay clear:** with it, EV6 and EV7 store to the MCU
   configuration range, which is off while CPU0 is powered down. The
   module already clears it; 0855 says why in the code.
-- `SPM_SRC_MASK` `0x10aa007e` matches the vendor's SODI value. For
-  `SPM_SRC2_MASK` the reviewer computes the vendor's SODI value as
-  `0x00f7009f`, against our `0x08ff009f`: bits 19 (the GPU's request)
-  and 27 (the DRAM controller's special-command request) are set only
-  here. This contradicts the earlier note in this record that our masks
-  match the vendor's; the D3 table names MFG (the GPU) deliberately, and
-  bit 27's origin is not recorded. A set bit lets that requester hold
-  resources awake, so the difference is in the safe direction: it can
-  only keep EV15 from firing. If D7b shows the handlers never take DRAM
-  down, try the vendor's value before concluding anything else.
+- `SPM_SRC_MASK` `0x10aa007e` and `SPM_SRC2_MASK` `0x08ff009f` both
+  match the vendor's MT6797 SODI table, as noted earlier in this record.
+  (The reviewer first read a sibling chip's table in the same file and
+  withdrew that.) In `SPM_SRC2_MASK`, bit 19 is the GPU's request, which
+  the vendor sets for SODI on this chip, and bit 27 is display OD.
 - D5a-D5m ran these handlers with a powered, coherent cluster under them,
   the condition of the pause hazard, so nothing carries over from them
   either way. With CPU0 off, the wait has no CPU-side activity, which is
@@ -9943,7 +9938,9 @@ module build is needed.
   the count of periods that woke with DRAM down; short periods with no
   external wake bit (EV15 aborts); the wakes and any refusal.
 - **A pass needs DRAM down in some periods.** If none, the next step is
-  the vendor's `SPM_SRC2_MASK`, not D7c.
+  to look at the requesters, not D7c: `r13`'s request bits at the wake
+  (which source still holds APSRC or the DDR enable), and `sodi_keep_26m`,
+  which by design keeps part of the resource set forced on.
 - **Admission:** D6b's configuration with flag 13 clear; the earlier
   periods with resource events ran with CPU0 powered (D5a-D5m), where the
   low-OPP pause hazard was not yet known. The owner approves the run.
