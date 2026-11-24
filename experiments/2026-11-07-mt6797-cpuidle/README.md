@@ -10436,7 +10436,9 @@ retention check is enough, on two conditions:
 data from AES-CTR with a fixed key, refuse to start with swap active, and
 on a mismatch list up to 1000 differing bytes (offset, expected, found)
 against a regenerated copy in `/var/tmp/retain-diff.txt` before the
-power-off. Tested in the VM with a deliberate one-byte change.
+power-off. The comparison uses Python, since the card has no `cmp`; it
+needs `openssl` and `python3`, both present. Tested in the VM with two
+deliberate one-byte changes.
 
 - **Candidate:** image 138 on a fresh boot, module `4337adfd`, `d5.sh`
   (commit recording this) with `D5_PDN=1`,
@@ -10445,6 +10447,13 @@ power-off. Tested in the VM with a deliberate one-byte change.
   timer taking the interface down from 25 s after launch for 20 minutes,
   cable out, no touching. If the interface comes back up by itself, as in
   D6g and D7e, the result says so; the windows are then not quiet.
+- **On `rfkill` instead:** the custodian proposes blocking the radio with
+  `rfkill` so iwd cannot re-up the interface. That is a radio action, which
+  needs the owner's approval as such; and the station's Wi-Fi driver has
+  not been tested through an `rfkill` block and unblock, so the run could
+  end with Wi-Fi not coming back, which is the custodian's only path to
+  the station. If the owner approves it, the owner's terminal is the
+  fallback, as with the timer.
 - **Hypothesis:** in live idle the state takes DRAM into self-refresh
   when the display is stopped and CONN is quiet, every entry returns, data
   survives, and the current falls against the run's own off windows.

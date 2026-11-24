@@ -220,8 +220,9 @@ obs_affinity() {
 # many periods is checked, not only the freshly written buffer the cpu-mhz
 # hash uses (D7e). The data comes from AES-CTR over zeros with a fixed key,
 # so a changed file can be compared with a regenerated copy: on a change the
-# differing bytes (up to 1000) go to /var/tmp/retain-diff.txt before the
-# power-off. Swap is refused, since a swapped page would not test DRAM.
+# differing bytes (up to 1000: offset, then the expected and found byte in
+# hex) go to /var/tmp/retain-diff.txt before the power-off. Swap is
+# refused, since a swapped page would not test DRAM.
 RETAIN=""
 RETAIN_SUM=""
 retain_gen() {
@@ -233,7 +234,7 @@ retain_gen() {
 retain_start() {
 	[ -n "${D4_RETAIN_MB:-}" ] || return 0
 	command -v openssl >/dev/null || stop "no openssl for the retention data"
-	command -v cmp >/dev/null || stop "no cmp for the retention check"
+	command -v python3 >/dev/null || stop "no python3 for the retention check"
 	[ "$(wc -l </proc/swaps)" -le 1 ] || stop "swap is active: the retention file could leave DRAM"
 	avail=$(awk '/^MemAvailable:/ { print int($2 / 1024) }' /proc/meminfo)
 	[ "$avail" -gt $(( D4_RETAIN_MB + 256 )) ] ||
@@ -248,7 +249,22 @@ retain_start() {
 retain_check() {
 	[ -n "$RETAIN" ] || return 0
 	if [ "$(sha256sum <"$RETAIN" | cut -c1-64)" != "$RETAIN_SUM" ]; then
-		retain_gen | cmp -l - "$RETAIN" | head -n 1000 >/var/tmp/retain-diff.txt
+		retain_gen | python3 -c '
+import sys
+a, b, off, n = sys.stdin.buffer, open(sys.argv[1], "rb"), 0, 0
+while n < 1000:
+	x, y = a.read(1 << 20), b.read(1 << 20)
+	if not x and not y:
+		break
+	for i in range(max(len(x), len(y))):
+		p, q = x[i] if i < len(x) else -1, y[i] if i < len(y) else -1
+		if p != q:
+			print(off + i, "%02x" % p, "%02x" % q)
+			n += 1
+			if n == 1000:
+				break
+	off += len(x)
+' "$RETAIN" >/var/tmp/retain-diff.txt
 		log "STOP: the retention file changed after $1, $(wc -l </var/tmp/retain-diff.txt) differing bytes listed in /var/tmp/retain-diff.txt; powering off"
 		sync
 		systemctl poweroff
