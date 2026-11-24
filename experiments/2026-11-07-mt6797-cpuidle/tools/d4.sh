@@ -79,8 +79,10 @@
 #      custodian says so; the window ends at the first period a key ends
 #      or at the first period after which the keyboard-path interrupt count
 #      (the expander and keypad lines in /proc/interrupts, not the shared
-#      EINT lines) has risen; each period's line carries that count, a key
-#      wake also says whether the count rose, and the window says "no key
+#      EINT lines) has risen; each period's line carries that count, read
+#      just before the kick and after the period, so a rise with CPU0 awake
+#      between periods is told apart from one across a period; a key wake
+#      also says whether the count rose, and the window says "no key
 #      seen" when nothing happens.
 # Each period is logged with its wake reason and the SYS_CIRQ status. The
 # log is /var/tmp/d4.log, synced after every line.
@@ -237,6 +239,7 @@ period() {
 	# sync; synced right before the attempt, every attempt was refused.
 	log "    start, cpu0 $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq 2>/dev/null || echo -) kHz"
 	sleep 1
+	KPRE=$(key_irqs)
 	while :; do
 		n0=$(dmesg | wc -l)
 		echo 2000 >"$SODI" && break
@@ -622,10 +625,14 @@ while [ $(( $(date +%s) - start )) -lt 300 ]; do
 		break
 	fi
 	k=$(key_irqs)
-	log "B: keyboard-path interrupt count $k"
+	log "B: keyboard-path interrupt count $KPRE before the kick, $k after"
 	if [ "$k" -gt "$k0" ]; then
 		seen=1
-		log "B: a keyboard-path interrupt count rose ($k0>$k) without a key wake"
+		if [ "$KPRE" -gt "$k0" ]; then
+			log "B: the count rose between periods ($k0>$KPRE), with CPU0 awake: not a test of the key wake"
+		else
+			log "B: the count rose across the period ($KPRE>$k) without a key wake: a press in the period did not wake it"
+		fi
 		break
 	fi
 done
