@@ -1,0 +1,151 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 18:00:57 -0500
+Subject: [PATCH] wifi: mt6797: accept the configuration while a restart is
+ pending
+
+Taking a closed interface up now succeeds and asks for a restart, so
+mac80211 goes on to configure the open. The configuration was refused
+because the lifetime was closed, and ieee80211_hw_conf_init() warned
+(seen on the device at the first rfkill unblock with 0867).
+
+Until the new lifetime is there, accept the configuration without
+tuning anything. mac80211 configures a channel again only when it
+changes, so the resume takes the join channel from the current
+configuration itself; the check moves into a helper for that.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 98 ++++++++++++---------
+ 1 file changed, 58 insertions(+), 40 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index ad114b773..abe982b50 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1308,12 +1308,66 @@ static void mt6797_mac_remove_interface(struct ieee80211_hw *hw,
+ 	mutex_unlock(&mac->mutex);
+ }
+ 
++/* Called with the mutex held: the join channel from mac80211's current
++ * configuration, valid only when that configuration was accepted.
++ */
++static void mt6797_mac_note_channel(struct mt6797_mac *mac, int ret)
++{
++	struct ieee80211_hw *hw = mac->hw;
++	const struct cfg80211_chan_def *def = &hw->conf.chandef;
++	const struct ieee80211_channel *channel = def->chan;
++	int slot = channel ? mt6797_channel_slot(channel->hw_value) : -1;
++
++	mac->join_channel_valid = !ret && slot >= 0 &&
++		channel == &mac->channels[slot] &&
++		(((def->width == NL80211_CHAN_WIDTH_20_NOHT ||
++		   def->width == NL80211_CHAN_WIDTH_20) &&
++		  def->center_freq1 == channel->center_freq) ||
++		 /* HT40 with the secondary channel above or below (0323). */
++		 (def->width == NL80211_CHAN_WIDTH_40 &&
++		  channel->band == NL80211_BAND_5GHZ &&
++		  (def->center_freq1 == channel->center_freq + 10 ||
++		   def->center_freq1 == channel->center_freq - 10))) &&
++		!def->center_freq2 &&
++		!(channel->flags & (IEEE80211_CHAN_DISABLED |
++			IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_NO_20MHZ |
++			IEEE80211_CHAN_RADAR));
++	/* Diagnostic only: name the first rejected operating channel
++	 * so a refused join can be attributed offline.
++	 */
++	if (!mac->join_channel_valid && channel &&
++	    !mac->join_channel_refusal_logged) {
++		mac->join_channel_refusal_logged = true;
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot WLAN join channel refused: hw=%u center=%u width=%u freq1=%u freq2=%u flags=0x%x config=%d\n",
++			 channel->hw_value, channel->center_freq, def->width,
++			 def->center_freq1, def->center_freq2, channel->flags, ret);
++	}
++	mac->join_sco = 0;
++	if (mac->join_channel_valid) {
++		mac->join_chan_number = channel->hw_value;
++		mac->join_chan_freq = channel->center_freq;
++		mac->join_chan_band = channel->band;
++		if (def->width == NL80211_CHAN_WIDTH_40)
++			mac->join_sco = def->center_freq1 >
++					channel->center_freq ? 1 : 3;
++	}
++}
++
+ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed)
+ {
+ 	struct mt6797_mac *mac = hw->priv;
+ 	int ret = 0;
+ 
+ 	mutex_lock(&mac->mutex);
++	/* Until a requested restart brings the new lifetime there is nothing
++	 * to tune, and mac80211 warns when the open's configuration fails.
++	 * Joins wait for that lifetime, whose own calls come later.
++	 */
++	if (mac->restart_pending || READ_ONCE(mac->halted)) {
++		mutex_unlock(&mac->mutex);
++		return 0;
++	}
+ 	/* No operating channel or host TX is established by this scan-only
+ 	 * interface. Firmware owns tuning only during the admitted hw_scan.
+ 	 */
+@@ -1324,46 +1378,7 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 	    (hw->conf.flags & IEEE80211_CONF_MONITOR) ||
+ 	    ((hw->conf.flags & IEEE80211_CONF_PS) && !mac->ps_profile))
+ 		ret = -EOPNOTSUPP;
+-	{
+-		const struct cfg80211_chan_def *def = &hw->conf.chandef;
+-		const struct ieee80211_channel *channel = def->chan;
+-		int slot = channel ? mt6797_channel_slot(channel->hw_value) : -1;
+-
+-		mac->join_channel_valid = !ret && slot >= 0 &&
+-			channel == &mac->channels[slot] &&
+-			(((def->width == NL80211_CHAN_WIDTH_20_NOHT ||
+-			   def->width == NL80211_CHAN_WIDTH_20) &&
+-			  def->center_freq1 == channel->center_freq) ||
+-			 /* HT40 with the secondary channel above or below (0323). */
+-			 (def->width == NL80211_CHAN_WIDTH_40 &&
+-			  channel->band == NL80211_BAND_5GHZ &&
+-			  (def->center_freq1 == channel->center_freq + 10 ||
+-			   def->center_freq1 == channel->center_freq - 10))) &&
+-			!def->center_freq2 &&
+-			!(channel->flags & (IEEE80211_CHAN_DISABLED |
+-				IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_NO_20MHZ |
+-				IEEE80211_CHAN_RADAR));
+-		/* Diagnostic only: name the first rejected operating channel
+-		 * so a refused join can be attributed offline.
+-		 */
+-		if (!mac->join_channel_valid && channel &&
+-		    !mac->join_channel_refusal_logged) {
+-			mac->join_channel_refusal_logged = true;
+-			dev_info(wiphy_dev(hw->wiphy),
+-				 "one-shot WLAN join channel refused: hw=%u center=%u width=%u freq1=%u freq2=%u flags=0x%x config=%d\n",
+-				 channel->hw_value, channel->center_freq, def->width,
+-				 def->center_freq1, def->center_freq2, channel->flags, ret);
+-		}
+-		mac->join_sco = 0;
+-		if (mac->join_channel_valid) {
+-			mac->join_chan_number = channel->hw_value;
+-			mac->join_chan_freq = channel->center_freq;
+-			mac->join_chan_band = channel->band;
+-			if (def->width == NL80211_CHAN_WIDTH_40)
+-				mac->join_sco = def->center_freq1 >
+-						channel->center_freq ? 1 : 3;
+-		}
+-	}
++	mt6797_mac_note_channel(mac, ret);
+ 	mutex_unlock(&mac->mutex);
+ 	return ret;
+ }
+@@ -2549,6 +2564,9 @@ static int mt6797_mac_resume(struct device *dev, struct ieee80211_hw *hw,
+ 	reinit_completion(&mac->ccmp_dtim_done);
+ 	WRITE_ONCE(mac->halted, false);
+ 	ret = mt6797_mac_configure(mac, record, reattach);
++	/* mac80211 configures a channel again only when it changes. */
++	if (!ret)
++		mt6797_mac_note_channel(mac, 0);
+ 	mutex_unlock(&mac->mutex);
+ 	wiphy_unlock(hw->wiphy);
+ 	rtnl_unlock();
+-- 
+2.43.0
+

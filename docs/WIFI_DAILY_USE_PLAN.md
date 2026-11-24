@@ -327,6 +327,11 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   as the owner's configured flag is cleared too. The orphaned phy1 stayed registered after the rollback
   unloaded the mac module, and the station switched itself off about 5 minutes later; that the orphan caused
   it is an inference awaiting the journal. 0869 holds the phy outside the owner. Compiled only.
+  The journal then showed two more things. At the unblock, the open's configuration was refused because the
+  lifetime was closed, and `ieee80211_hw_conf_init()` warned; 0870 accepts it while a restart is pending and
+  has the resume take the join channel from mac80211's current configuration. After the rollback, a regulatory
+  update oopsed in the mac module's code through a dead device, and the station hung and powered off: consistent
+  with the orphaned phy, whose callbacks pointed into the unloaded module. Compiled only.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the

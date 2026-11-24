@@ -884,6 +884,7 @@ proposals/0865-wifi-mt6797-count-the-WHISR-sources-behind-interrupt.patch
 proposals/0866-wifi-mt6797-group-the-state-of-one-firmware-lifetime.patch
 proposals/0867-wifi-mt6797-keep-the-phy-across-a-WLAN-restart.patch
 proposals/0869-soc-mediatek-mt6797-consys-keep-the-halted-phy-acros.patch
+proposals/0870-wifi-mt6797-accept-the-configuration-while-a-restart.patch
 proposals/0695-power-supply-bq25890-offer-the-guard-s-thresholds-on-.patch
 proposals/0696-pmdomain-mediatek-describe-the-MT6797-VDEC-domain.patch
 proposals/0697-clk-mediatek-mt6797-power-VDECSYS-through-runtime-PM.patch
