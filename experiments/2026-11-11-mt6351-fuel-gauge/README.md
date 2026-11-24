@@ -1294,7 +1294,15 @@ loss later, with no shutdown save, never restores an old value. Built in gemini-
 - `EBUSY` and `ESTALE` are logged once, not retried;
 - saves on change events keep an unused counted line.
 
-Not on a device yet.
+**V34 passes on image 139** (gemini-base 69, boot `863fd625…`, card-32):
+- After a cable-out power-off at 38-40 %, dmesg at 13.05 s showed
+  `counted charge restored: 1350732 uAh`, and gemini-base logged `restored from 99 s ago`.
+- 1350732 against the usable 0.93 × 3849052 µAh is 37.7 %, consistent with the level before
+  the power-off.
+- 1 h 15 min later on battery, mostly with Wi-Fi off, it read 34 %: about 133 mAh, or 105 mA
+  on average.
+- The capacity right at boot was not logged.
+- V35 (cable in) and V36 (more than 30 min off) are still to do.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
