@@ -1010,3 +1010,4 @@ proposals/0850-soc-mediatek-mt6797-spm-sleep-add-a-SODI-variant-tak.patch
 proposals/0851-firmware-psci-export-psci_cpu_suspend_enter.patch
 proposals/0852-soc-mediatek-mt6797-spm-sleep-optionally-power-CPU0-.patch
 proposals/0853-power-supply-mt6351-fuel-gauge-skip-the-start-up-OCV.patch
+proposals/0854-soc-mediatek-mt6797-spm-sleep-power-CPU0-down-in-the.patch

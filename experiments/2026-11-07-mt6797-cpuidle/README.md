@@ -1779,7 +1779,7 @@ reload it each time, as S1 does.
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
 | D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; run 2 hung in period 3 and showed the SMI async DCM already on, so the vendor's write is a no-op; both landed in Gemian without latches; D5aa was skipped, since nothing can wake CPU0 in the window; D5ab hung in period 2 with ACINACTM set only around WFI, so the entry now matches the vendor's on every listed difference; D5ac's stage lines place the hang inside the period, after the kick; D5ad variant 1 hung in period 2 without the clock cut; an independent review found the vendor's SODI flags keep 26 MHz and infra forced awake (bit 15) and power CPU0 down; D5ae passed 60 of 60 periods with bit 15 on the timer-only setup, but D5af passed 60 of 60 without it, so today's module no longer hangs there; D5ah hung in period 13 with bit 15 on the two-state setup, stopping at the same `kick` crumb, so bit 15 is not the cause; `d5m.sh` unchanged on today's module passed run 1 and hung in run 2, so the no-driver, timer-only hang survives with the module's defaults; D5aj, `d5m.sh`'s timing with D5af's options, hung at the first kick, so the options and the self-refresh path are not needed; D5ak, with a 5 s settle after offlining, returned period 1 and hung in period 2, so the start is not the cause; D5al hung at period 1's kick with 2000 ms periods, so the length is not the cause either; D5am was withdrawn, since the logged infra gates of `d5m.sh` and D5af match and USB was already suspended; D5ao: on one boot `d4.sh` passed 80 periods and `d5m.sh` then hung at its first kick, so the script decides, not the boot; D5ap, `d5m.sh` with CPU0 pinned at its top OPP, passed 15 of 15 periods, so CPU0's operating point at the kick decides the no-driver hang; D5aq, `d4.sh` pinned at 221 MHz, hung at its first kick, so the operating point decides from both sides; D5as, `d5m.sh` at 221 MHz without the master pause (variant 2), passed 15 of 15, so the pause at a low OPP is the hazard; D5ar hung at 1118 MHz in period 2, so the edge is above the divider boundary; 0847 adds variants 6 (longer pause wait) and 7 (cluster ports not paused); D5au, the two-state setup pinned at 1547 MHz, passed 227 periods, so the original hang is the same low-OPP hazard; D5at variants 7 (cluster ports unpaused) and 6 (pause wait ten times longer) both hung at 221 MHz at the first kick; 0849 adds the pause-mask variants 8-10 for D5av; variant 8 (deep idle's masks) hung at the first kick; variant 10 (no master selected, request kept) passed 15 of 15 and variant 9 (all selected) hung, so a set bit pauses a master and one master in SODI's selection breaks at a low OPP; D5aw bisects it with 0850: groups H and I alone passed, group C (`0x0ff00000`) alone hung, and C bisects to bit 25 alone, and SODI's masks minus bit 25 passed 15 of 15 at 221 MHz; D5ay found no safe floor (1274 MHz hung at kick 1, 1339 MHz at kick 5); the owner stopped the legacy entry there for the PSCI power-down entry; **D6a, CPU0 powered down through PSCI, passed 15 of 15 periods pinned at 221 MHz**, where the legacy entry hangs at the first kick; **D6b, the same entry in the two-state setup unpinned with device wakes, ran 228 periods with no hang**; no key was pressed in window B, so the key wake is untested; D6c, the self-checking key window alone, ran 148 clean periods but again with no key pressed; D6d's key reached Linux between periods and its display woke the next period through OVL0, so the key wake is still untested; D6e, with Wi-Fi down, stopped because CONN2AP then wakes at once; D6f, with CONN2AP masked, ran 26 full periods, but the tap again fell between periods; **D6g: a key ended a period through EINT with CPU0 powered down and reached the keyboard driver (pass)**; D6h, the two-state setup pinned at 221 MHz, is proposed |
-| D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
+| D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | Test periods: D6a-D6g pass (timer, Wi-Fi, display and key wakes with CPU0 powered down); D6h, the two-state setup at 221 MHz, running; the idle state takes the same entry in 0854, first run D7a proposed |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
 words; `PWR_STATUS`/`_2ND` (`0x10006180`/`184`: the display domain is bit 3);
@@ -9698,6 +9698,76 @@ the two-state environment is where the idle state will live. D6a covered
 | --- | --- | --- |
 | Passes | The power-down entry removes the hazard where it was worst, in the idle state's environment | The idle-path build, once the CPU0-alone trigger is decided |
 | Hangs | Something low-OPP remains with CPU0 powered down | Crumbs and status; compare with D6a |
+
+### The owner's decision on the trigger (2026-11-24)
+
+What takes the other CPUs offline is the station's existing backlight
+policy, which takes CPUs 1-9 offline when the console blanks or the lid
+closes and brings them back on input
+([station record](../2026-10-30-mainline-dev-station/README.md)). SODI is
+allowed whenever CPU0 runs alone. No new policy, daemon or setting.
+
+### The idle state with the power-down entry (0854)
+
+0854 makes the SODI cpuidle state take the entry D6 proved, in the same
+module, following the reviewer's notes on D6b:
+- every SODI idle entry clears flag 0 and powers CPU0 down through PSCI,
+  with the test periods' checks (CPU0 the only online CPU, every other
+  core and cluster off in the power status). A refusal falls back to WFI,
+  and the refusal messages are rate-limited;
+- on that path arm64 `cpu_suspend()` makes the RCU idle calls itself, so
+  the module no longer wraps it; the state keeps `CPUIDLE_FLAG_RCU_IDLE`
+  and has no `CPUIDLE_FLAG_TIMER_STOP`, since there is no other CPU to
+  broadcast from;
+- the timer compare values are saved and restored around the entry as
+  well as the controls, since CPU0 comes back with its timer registers
+  reset; the PCM timer is still set from the next local event;
+- a failed power-down keeps the invariant in `spm_run()`: no WFI before
+  `spm_restore()`, and the idle state then stops for good;
+- flag 13 (no resource events) follows `sodi_no_event` and flag 15
+  `sodi_keep_26m`, so the idle state can run with D6's options;
+- no PSCI `idle-states` node for CPU0 is added to the DT.
+
+The state is still off until enabled in sysfs and still refuses with the
+screen lit or another CPU online. Its exit latency (1000 µs) and target
+residency (2000 µs) are unchanged and not yet measured for this entry; the
+module's `sodi_idle` debugfs file gives the mean entry and exit costs.
+
+Compile-checked in the VM with `W=1` and checkpatch. A Buildbox module
+build is needed; nothing built in changes, so image 138 stays (0851 is
+already in it).
+
+**Follow-up, not in 0854:** with the Wi-Fi interface down, CONN2AP is a
+standing wake (D6e), so every idle entry would return at once. The cpuidle
+governor's residency feedback may keep it in WFI, but this is unmeasured.
+If D7a or a later run shows it, the fix is to leave CONN2AP out of the wake
+set while the interface is down, or to back off after repeated immediate
+wakes.
+
+### Request D7a (proposed): the power-down idle state on its own
+
+`d5.sh` (commit recording this) takes `D5_PARAMS` for insmod and
+`D5_PDN=1`, which refuses a module without 0854.
+
+- **Candidate:** image 138 on a fresh boot, a Buildbox module with 0854,
+  `d5.sh` with `D5_PDN=1 D5_PARAMS="sodi_keep_26m=1 sodi_no_event=1"`
+  (D6's options; `sodi_cirq_level` is already on by default), cable out,
+  Wi-Fi joined and quiet. Four 180 s windows, SODI off, on, off, on.
+- **Hypothesis:** with the screen dark and CPU0 alone, the governor
+  enters the power-down SODI state by itself, every entry returns, memory
+  stays intact, and the current falls against the off windows.
+- **Pass:** both on windows complete with SODI entries, the module's
+  stopped counter 0, hashes equal, no warning or RCU stall.
+- **Records:** entries and refusals by reason, wake sources, the mean
+  entry and exit costs from `sodi_idle`, and the current per window.
+- **Admission:** the entry D6 ran 600-odd periods with, now from the idle
+  loop; the owner approves the run after D6h.
+
+| Result | Reading | Next |
+| --- | --- | --- |
+| Passes | The idle state works with the power-down entry | Measured latency into the state's numbers; a longer run on the backlight policy alone |
+| Hangs or stops | The idle loop differs from the test periods | Compare the RAM console with D6's crumbs |
+| Few entries | The governor or the refusals keep CPU0 in WFI | The refusal counts decide which |
 
 ### Request D5n (proposed): two states with no resource events
 

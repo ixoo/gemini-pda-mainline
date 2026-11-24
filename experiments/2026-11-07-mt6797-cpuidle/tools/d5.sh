@@ -15,6 +15,10 @@
 # is /var/tmp/d5.log, synced after every line. Nobody touches the device
 # and no SSH connection is made until the log says "done".
 #
+# D5_PARAMS="..." passes module parameters to insmod (D7a: the power-down
+# idle state with D6's options). D5_PDN=1 refuses a module without the
+# power-down idle state (0854).
+#
 # Hypothesis: with the screen dark and CPU0 alone, the menu governor enters
 # SODI by itself, memory stays intact, and the current falls against the off
 # windows by the share of time spent in SODI.
@@ -160,6 +164,9 @@ case $(modinfo -F vermagic "$KO") in
 *) stop "the module's vermagic does not match $(uname -r)" ;;
 esac
 grep -q 'sodi_idle_max_ms' "$KO" || stop "the module has no SODI idle state (0816)"
+if [ "${D5_PDN:-0}" = 1 ]; then
+	grep -q 'CPU0 alone, powered down' "$KO" || stop "the module's idle state does not power CPU0 down (0854)"
+fi
 [ -d "$CPUS/cpuidle" ] || stop "this kernel has no cpuidle core (CONFIG_CPU_IDLE)"
 [ "$(sha256sum "$FW" | cut -d' ' -f1)" = "$FW_SHA" ] || stop "$FW missing or its hash differs"
 [ "$(sha256sum "$FW_SUSPEND" | cut -d' ' -f1)" = "$FW_SUSPEND_SHA" ] ||
@@ -199,7 +206,9 @@ log "gadget power/control auto (was $USB_CONTROL), runtime $(cat "/sys/bus/platf
 if [ -d /sys/module/mt6797_spm_sleep ]; then
 	rmmod mt6797_spm_sleep || stop "the running SPM module did not unload"
 fi
-insmod "$KO" || stop "insmod failed"
+# shellcheck disable=SC2086 # D5_PARAMS is a list of parameters
+insmod "$KO" ${D5_PARAMS:-} || stop "insmod failed"
+log "module parameters: ${D5_PARAMS:-none}"
 new_dmesg | grep -E 'mt6797-spm-sleep|pcm_' | sed 's/^/    /'
 log "cpuidle driver $(cat "$CPUS/cpuidle/current_driver"), governor $(cat "$CPUS/cpuidle/current_governor_ro" 2>/dev/null || cat "$CPUS/cpuidle/current_governor")"
 [ "$(cat "$STATE/name" 2>/dev/null)" = SODI ] || stop "no SODI state at $STATE"
