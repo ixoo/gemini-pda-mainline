@@ -646,10 +646,10 @@ while [ $(( $(date +%s) - start )) -lt "$BSEC" ]; do
 		if [ "$k" -gt "$k0" ]; then
 			seen=1
 			outcome=pass
-			log "B: a key ended the period and reached Linux ($k0>$k)"
+			log "B: a key ended the period and reached Linux ($k0>$k; $KPRE before the kick)"
 		else
 			outcome=undelivered
-			log "B: a key ended the period but the keyboard-path count did not rise ($k0>$k)"
+			log "B: a key ended the period but the keyboard-path count did not rise ($k0>$k; $KPRE before the kick)"
 		fi
 		break
 	fi
