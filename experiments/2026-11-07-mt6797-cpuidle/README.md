@@ -10174,11 +10174,11 @@ the blank (`D4_MM`). In every D6-D7b run it read `3f9f8000` and
 `ffffff03`: the four readers and display OD gated, so D7b's 31 CONN-quiet
 periods had the display engines gated and still no EV15. D7c alone read
 `00110000` and `ffffff00`: only OVL1 and RDMA1 gated, OVL0, the 2L
-overlays, RDMA0 and DSI clocked, although the backlight read blank. So
-D7c ran with the display pipeline still clocked, and its result does not
-cover the gated case. D7d's runs record the same line; a run whose read is
-not `3f9f8000` is not comparable, and why D7c's blank left the engines
-clocked is a question for the display session.
+overlays, RDMA0 and DSI clocked, although the backlight read blank: a read
+taken between the compositor's backlight fade and its DPMS off (see
+below), so it does not show the state during D7c's periods. D7d's runs
+record the same line after the DPMS reads Off; a run whose read is not
+`3f9f8000` is not comparable.
 The earlier D7c, the idle state with flag 13 clear, is withdrawn; the
 quiet test-period run above takes its name if chosen.
 
