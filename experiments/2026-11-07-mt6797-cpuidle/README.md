@@ -10249,6 +10249,35 @@ needed, B (`0x00f9009f`, display OD too) say which request it was. Then
 the idle state can mask that request under the clock-gate check, and a
 D7a-style run measures the current.
 
+**Exit cost with self-refresh.** From the kernel log's crumbs, the time
+from the kick to CPU0 back beyond the 2000 ms timer was 1.22 ms on
+average in C′ (1.14-1.54 ms, 33 periods) and 1.21 ms in D7c (1.13-1.53
+ms, 81 periods, no self-refresh). Leaving self-refresh adds no visible
+time to a full period on this measure.
+
+**The reviewer on C′ and the idle state (2026-11-24).**
+- `r13` bit 10 follows the masked request: it is the merged display-side
+  request as the SPM sees it, so runs A and B read the holder directly.
+- Before the idle state masks display requests:
+  - its precondition must be "the display pipeline provably stopped",
+    read from registers, with the backlight blank only as a second gate;
+    a display block that starts by itself (a vsync- or TE-driven refresh)
+    is the case to exclude, with the write-DMA enable read and, if cheap,
+    a DSI host or display-interrupt enable check;
+  - the patch must state the assumption that every display start goes
+    through CPU0, so the program's exit undoes self-refresh before any
+    engine can fetch; D7d exercised that order 33 times;
+  - the exit latency and the 5 ms return poll need their margin checked
+    against the longest time from CPU0's warm entry to the return flag;
+  - mask only what A and B show is needed, and keep GCE honoured.
+- Before live idle, a soak in test periods: several hundred periods, some
+  at the maximum length, with the memory hash.
+- The idle statistics should count periods with a nonzero `pc=` (an EV15
+  abort for lack of the DRAM-side acknowledgement) separately from short
+  periods.
+- `PASR_DPD_0` will be read before the restore, which also gives how many
+  times the DRAM side cycled within one period.
+
 **The display-state check (display session, 2026-11-24).** MMSYS
 `CG_CON0` (`0x14000100`) reads a set bit for a gated clock. The DRAM
 readers the station drives are OVL0 (bit 15), OVL0_2L (17), OVL1_2L (18)
