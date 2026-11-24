@@ -1779,7 +1779,7 @@ reload it each time, as S1 does.
 | D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key and an inbound Wi-Fi packet, with the vendor's SODI wake set and SYS_CIRQ (audio waits for AFE SRAM playback) | D3 plus CIRQ | Running; prepared |
 | D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | New (`CONFIG_CPU_IDLE`); periods hang under the two-state cpuidle driver, not the OPP (D5a-D5l); D5m hung with no driver, also with no resource events; D5o: the module decides, not the boot; D5p: no PCM-watchdog wake; the fetch and the clock select are cleared (D5q, D5r); the CPU8 observer hung with no line kept (D5s); D5t passed every window, and the SYS_CIRQ acknowledgement ended the early aborts; D5t run 2 hung in period 2 and lost its evidence to Gemian; run 3 hung in period 29 and also landed in Gemian; run 4's RAM console, read in Gemian, has no observer line; D5u: CPU8 never ticks in a period, so the observer is retired; D5v hung in window C's first period with CPU0 alone and no A72 up, and lost the marker to Gemian; D5w hung in period 11 without the side key held, and its gate read shows the vendor's infra clock condition met; D5w run 2 hung in period 1 and also landed in Gemian; run 3 hung in period 28; D5x showed the held side key selects boot2 after a watchdog reset, and gave a no-SODI latch reference equal to D5l's hang values; D5y hung in period 14 with the vendor's display terms met, so the open display gates are not the cause; D5z hung in period 7 with MP2 left alone; run 2 hung in period 3 and showed the SMI async DCM already on, so the vendor's write is a no-op; both landed in Gemian without latches; D5aa was skipped, since nothing can wake CPU0 in the window; D5ab hung in period 2 with ACINACTM set only around WFI, so the entry now matches the vendor's on every listed difference; D5ac's stage lines place the hang inside the period, after the kick; D5ad variant 1 hung in period 2 without the clock cut; an independent review found the vendor's SODI flags keep 26 MHz and infra forced awake (bit 15) and power CPU0 down; D5ae passed 60 of 60 periods with bit 15 on the timer-only setup, but D5af passed 60 of 60 without it, so today's module no longer hangs there; D5ah hung in period 13 with bit 15 on the two-state setup, stopping at the same `kick` crumb, so bit 15 is not the cause; `d5m.sh` unchanged on today's module passed run 1 and hung in run 2, so the no-driver, timer-only hang survives with the module's defaults; D5aj, `d5m.sh`'s timing with D5af's options, hung at the first kick, so the options and the self-refresh path are not needed; D5ak, with a 5 s settle after offlining, returned period 1 and hung in period 2, so the start is not the cause; D5al hung at period 1's kick with 2000 ms periods, so the length is not the cause either; D5am was withdrawn, since the logged infra gates of `d5m.sh` and D5af match and USB was already suspended; D5ao: on one boot `d4.sh` passed 80 periods and `d5m.sh` then hung at its first kick, so the script decides, not the boot; D5ap, `d5m.sh` with CPU0 pinned at its top OPP, passed 15 of 15 periods, so CPU0's operating point at the kick decides the no-driver hang; D5aq, `d4.sh` pinned at 221 MHz, hung at its first kick, so the operating point decides from both sides; D5as, `d5m.sh` at 221 MHz without the master pause (variant 2), passed 15 of 15, so the pause at a low OPP is the hazard; D5ar hung at 1118 MHz in period 2, so the edge is above the divider boundary; 0847 adds variants 6 (longer pause wait) and 7 (cluster ports not paused); D5au, the two-state setup pinned at 1547 MHz, passed 227 periods, so the original hang is the same low-OPP hazard; D5at variants 7 (cluster ports unpaused) and 6 (pause wait ten times longer) both hung at 221 MHz at the first kick; 0849 adds the pause-mask variants 8-10 for D5av; variant 8 (deep idle's masks) hung at the first kick; variant 10 (no master selected, request kept) passed 15 of 15 and variant 9 (all selected) hung, so a set bit pauses a master and one master in SODI's selection breaks at a low OPP; D5aw bisects it with 0850: groups H and I alone passed, group C (`0x0ff00000`) alone hung, and C bisects to bit 25 alone, and SODI's masks minus bit 25 passed 15 of 15 at 221 MHz; D5ay found no safe floor (1274 MHz hung at kick 1, 1339 MHz at kick 5); the owner stopped the legacy entry there for the PSCI power-down entry; **D6a, CPU0 powered down through PSCI, passed 15 of 15 periods pinned at 221 MHz**, where the legacy entry hangs at the first kick; **D6b, the same entry in the two-state setup unpinned with device wakes, ran 228 periods with no hang**; no key was pressed in window B, so the key wake is untested; D6c, the self-checking key window alone, ran 148 clean periods but again with no key pressed; D6d's key reached Linux between periods and its display woke the next period through OVL0, so the key wake is still untested; D6e, with Wi-Fi down, stopped because CONN2AP then wakes at once; D6f, with CONN2AP masked, ran 26 full periods, but the tap again fell between periods; **D6g: a key ended a period through EINT with CPU0 powered down and reached the keyboard driver (pass)**; **D6h passed 139 periods in the two-state setup pinned at 221 MHz**, where the legacy entry hung at the first kick; the idle state takes the power-down entry in 0854; **D7a passed with 90% residency** but saved only 4-7 mA with 26 MHz and DRAM kept awake; D7b, with the resource handlers enabled, ran 223 power-down periods safely; `SPM_SW_DEBUG` shows no handler ran, since the display side holds DRAM with the screen blanked; D7c, with CONN quiet, shows the DRAM path still never starts, so the holder is on the display side; next is the display-side question; D7d masks the display requesters in turn; run C was refused with the GCE clock on; **run C′ took DRAM into self-refresh in all 33 periods** with the display and GPU requests masked; run A shows the display pair (bits 17 and 18) alone holds it; 0859 lets the idle state mask it under the gate check; D7e: DRAM into self-refresh 864 times over 647 power-down periods, memory path intact (retention not yet covered); D7f, the idle state with it, proposed |
-| D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | Test periods: D6a-D6g pass (timer, Wi-Fi, display and key wakes with CPU0 powered down); D6h passed 139 periods in the two-state setup at 221 MHz; the idle state takes the same entry in 0854, first run D7a proposed |
+| D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | Test periods: D6a-D6g pass (timer, Wi-Fi, display and key wakes with CPU0 powered down); D6h passed 139 periods in the two-state setup at 221 MHz; the idle state takes the same entry in 0854: D7a 90% residency; with the display pair masked (0859) DRAM self-refresh in 86% of entries and 12-14 mA saved, memory intact (D7e, D7f) |
 
 **D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
 words; `PWR_STATUS`/`_2ND` (`0x10006180`/`184`: the display domain is bit 3);
@@ -10490,6 +10490,62 @@ record the same line after the DPMS reads Off; a run whose read is not
 `3f9f8000` is not comparable.
 The earlier D7c, the idle state with flag 13 clear, is withdrawn; the
 quiet test-period run above takes its name if chosen.
+
+### D7f: the idle state with DRAM self-refresh, 12-14 mA saved, memory intact (custodian, 2026-11-24)
+
+**Candidate.** Image 138, fresh boot `74e1f5e8`, module `4337adfd` (0854-0860),
+`d5.sh` 4c53f7fb with `D5_PDN=1`,
+`D5_PARAMS="sodi_keep_26m=1 sodi_no_event=0 sodi_idle_disp_mask=1 sodi_wake_src=0x0f57c5c5"`
+and `D5_RETAIN_MB=1024`, four 181 s windows off/on/off/on, the Wi-Fi timer,
+cable out, battery 42% to 41%, no touching.
+
+**Observations.**
+- **Wi-Fi was not quiet:** the timer took the interface down and it was up
+  again 2 s later, as in D6g and D7e. Every SYS_CIRQ wake (1157) was the
+  WLAN line, SPI 283; CONN2AP itself was masked.
+- Blank and DPMS Off at 15:03:31; CPUs 1-7 offline; hash reference and a
+  1024 MiB retention file in tmpfs written once before the first window.
+
+| Window | mA | Entries | SODI time | Interrupts |
+| --- | --- | --- | --- | --- |
+| off1 | 81 | 0 | 0 | 5789 |
+| on1 | 67 | 1329 | 165.0 s (91%) | 6562 |
+| off2 | 79 | 0 | 0 | 6115 |
+| on2 | 67 | 1561 | 161.2 s (89%) | 7115 |
+
+- "hash equal" and "retention equal" after every window; no difference
+  file.
+- Totals at the end: tried 5394, entered 3065, stopped 0, error 0;
+  "dram down" 2642 (86% of entries: 1292 by the end of on1, 1350 of 1624
+  entries after it), "dram abort" 0, "display masked" 3065; back-offs 2,
+  both in on2.
+- Refused 2329: timer due 1893, AP DMA 161, MSDC 145, I2C6 53, interrupt
+  pending 49, short-period back-off 28, an infra clock 0, the rest 0.
+- Wakes: timer 1908, SYS_CIRQ 1157, keypad, EINT, CONN2AP and other 0.
+- Mean sleep 112 ms per entry, longest 506 ms; mean entry 226 µs and exit
+  90 µs around the program.
+- SODI state off at the end, CPUs 0-7 back, taint 0; no warning in the
+  kernel log. Logs kept privately.
+
+**Result.** **Pass** on every criterion of the request: in live idle the
+state took DRAM into self-refresh in 86% of 3065 entries with no abort,
+every entry returned, and 1 GiB of random data written once was unchanged
+after each window. The on windows drew 67 mA against 79-81 mA off, 12-14 mA
+(about 16%) less. D7a, with resource events blocked and the display
+unmasked, saved 4-7 mA; the two runs differ in Wi-Fi state, so the
+difference between them is indicative only.
+
+**Limit.** The run was not quiet, which the reviewer set as the condition
+for retention: Wi-Fi woke CPU0 every 112 ms on average, so no DRAM-down
+lasted more than about 0.5 s. Retention is shown for that case, the one
+the station meets with Wi-Fi up, not for periods near the 2 s cap.
+
+**Readings.**
+- "Timer due" is still 81% of the refusals, from the interim 20 ms
+  residency floor. The costs now measured are far below it: return flag
+  194 µs at most (D7e), entry 226 µs and exit 90 µs on average here.
+- The two back-offs show eight periods in a row under 20 ms do happen with
+  Wi-Fi traffic, not only with a stuck wake.
 
 ### Request D5n (proposed): two states with no resource events
 
