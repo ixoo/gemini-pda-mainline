@@ -105,6 +105,14 @@ radius = 3
 "Mod5+XF86MonBrightnessUp" = { action = "spawn noctalia msg brightness-up", allow_when_locked = true }
 "Mod5+Print" = { action = "spawn noctalia msg screenshot-region", repeat = false }
 
+# Closing the lid powers the panel's pipeline off, not just its backlight (2026-11-24). The
+# gemini-lid module only darkens the backlight, and on the charger logind doesn't suspend, so
+# Umbriel kept scanning out behind a dark panel until Noctalia's 10 min screen-off. Umbriel
+# runs these on each lid change and once at startup.
+[events]
+lid_close = "umbriel msg dpms-off"
+lid_open = "umbriel msg dpms-on"
+
 [layout.scrolling]
 default_extent_fraction = 1.0
 

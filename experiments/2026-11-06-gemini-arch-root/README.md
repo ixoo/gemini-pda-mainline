@@ -2670,3 +2670,22 @@ passes on the rule.
 
 That covers the rule applying at boot. A wall charger after a power-down, and system suspend
 while powered down, are still untested.
+
+#### Lid close powers the panel's pipeline off (gemini-base 67, 2026-11-24)
+
+The display session first reported the display pipeline scanning out behind a dark panel on
+the card root. That report mixed in the station's console blank, which the card doesn't have:
+`backlight-policy` ends at `switch_root`, and the command line has `consoleblank=0`. The one card
+case that matches is closing the lid on the charger. `gemini-lid` darkens only the backlight,
+logind ignores the lid on external power, and Umbriel keeps OVL, RDMA and DSI scanning out until
+Noctalia's 10 min screen-off. The station's measurements put a scanning, blanked display at
+about 200 mA, against about 75 mA with it off.
+
+Umbriel runs a command on each lid change, and once at startup for the current state. The
+packaged `/etc/xdg/umbriel/config.toml` now sets `[events]` `lid_close = "umbriel msg dpms-off"`
+and `lid_open = "umbriel msg dpms-on"`. A user's own `~/.config/umbriel/config.toml` replaces this
+file and would need the same lines. On battery, logind still suspends on lid close, and the open
+command powers the output back on after resume.
+
+Built in an Arch chroot over card-32's image: `gemini-base-67` (`db6e7b2e…`). Not on the device;
+whether Umbriel sees the lid switch alongside `gemini-lid` is part of the test.
