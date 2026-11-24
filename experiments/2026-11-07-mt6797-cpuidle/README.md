@@ -10134,6 +10134,18 @@ module build is needed.
   WDMA1 (bits 21 and 22) are not; the display session is asked to confirm
   that no other MMSYS block can access DRAM while those are idle before
   run C.
+- **The display session's answer:** the four-reader check, with bit 27
+  for display OD, is enough. The MMSYS blocks left clocked in `3f9f8000`
+  (the SMI common and larbs, the MDP engines, the display's write DMAs,
+  DSC and split) stay as the loader left them; a clocked DMA engine moves
+  data only once software programs and starts it, and nothing on the
+  station can: no MDP, VPU, CMDQ/GCE, SMI or IOMMU driver is built, and
+  the display driver uses only the overlays, RDMA0, the picture-quality
+  blocks, UFOE and DSI. The larbs only relay their masters' requests; the
+  camera and video-decode domains are off. An optional read once per boot
+  before the masked runs: the write DMAs' enable registers at
+  `0x14011008` and `0x14012008` should read 0. Run C's GPU term is the
+  module's own per-period check of the GPU domain off.
 
 **Why D7c's gate read showed clocked engines (display session,
 2026-11-24, corrected).** The card root has no backlight policy; D7c's
