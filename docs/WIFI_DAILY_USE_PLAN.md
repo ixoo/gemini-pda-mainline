@@ -332,6 +332,11 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   has the resume take the join channel from mac80211's current configuration. After the rollback, a regulatory
   update oopsed in the mac module's code through a dead device, and the station hung and powered off: consistent
   with the orphaned phy, whose callbacks pointed into the unloaded module. Compiled only.
+  The rollback's `WLAN stop: power-off status=-95` is a separate, older teardown case: unloading the mac module
+  while associated, the deauthentication's completion went missing and was retired late without credit, so its
+  page stayed retained, and with a retained cleanup page only removal and abort commands are encoded. The stop
+  refused as designed and CONN was powered off anyway. The fixed pair is package `f3d8d336` (mac `f8f0274e`,
+  CONSYS `d9f7a1d9`); its device test awaits the owner.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
