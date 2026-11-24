@@ -10589,7 +10589,8 @@ the request below.
   microseconds at most.
 
 `d5.sh` (commit recording this) takes `D5_PIN_KHZ`, which pins policy0
-for the windows and restores it after.
+for the windows and restores it after. It also logs wlan0's rx and tx
+packet and drop deltas and its operstate per window, for the Wi-Fi work.
 
 - **Candidate:** a module with 0854-0860 and 0863 on image 138 or 139,
   D7f's `d5.sh` options. Two runs on fresh boots, cable out, no touching:

@@ -11,7 +11,8 @@
 # runs four windows of D5_WINDOW seconds (default 180) with the SODI state
 # off, on, off, on (cpu0/cpuidle/state1/disable). Each window logs the
 # battery's charge counter, the state's usage and time, the module's
-# counters (/sys/kernel/debug/sodi_idle) and the interrupt counts. The log
+# counters (/sys/kernel/debug/sodi_idle), the interrupt counts and wlan0's
+# packet and drop deltas with its operstate. The log
 # is /var/tmp/d5.log, synced after every line. Nobody touches the device
 # and no SSH connection is made until the log says "done".
 #
@@ -183,6 +184,16 @@ stopped() {
 }
 
 # One window with the SODI state off (1) or on (0).
+# wlan0's packet and drop counters, "rx_packets tx_packets rx_dropped tx_dropped"
+wlan_stats() {
+	d=/sys/class/net/wlan0/statistics
+	if [ -r "$d/rx_packets" ]; then
+		echo "$(cat "$d/rx_packets") $(cat "$d/tx_packets") $(cat "$d/rx_dropped") $(cat "$d/tx_dropped")"
+	else
+		echo "- - - -"
+	fi
+}
+
 window() {
 	name=$1
 	echo "$2" >"$STATE/disable" || stop "state1/disable not written"
@@ -192,6 +203,7 @@ window() {
 	u0=$(cat "$STATE/usage")
 	r0=$(cat "$STATE/time")
 	i0=$(awk '/^ *[0-9]+:/ { s += $2 } END { print s }' /proc/interrupts)
+	w0=$(wlan_stats)
 	log "$name start, SODI usage $u0"
 	t=0
 	while [ "$t" -lt "$WINDOW" ]; do
@@ -216,6 +228,11 @@ window() {
 	log "$name: $dt s, $(( (c0 - c1) * 36 / dt / 10 )) mA by the charge counter," \
 		"SODI entries $((u1 - u0)), SODI time $(( (r1 - r0) / 1000 )) ms," \
 		"interrupts $((i1 - i0)), battery $(cat "$GAUGE/capacity") %"
+	w1=$(wlan_stats)
+	log "    wlan0 $name: $(echo "$w0 $w1" | awk '{
+		if ($1 == "-" || $5 == "-") print "not readable"
+		else printf "rx %d tx %d rx dropped %d tx dropped %d", $5 - $1, $6 - $2, $7 - $3, $8 - $4
+	}'), operstate $(cat /sys/class/net/wlan0/operstate 2>/dev/null)"
 	if [ "$2" = 0 ]; then
 		sed 's/^/    /' "$STATS"
 		grep -E '^ *[0-9]+:' /proc/interrupts | awk '$2 > 0' | sed 's/^/    irq /'
