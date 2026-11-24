@@ -1,8 +1,15 @@
 # SPDX-License-Identifier: MIT
 # iwd joins; networkd configures the address.
 [Match]
-# By type, not name: iwd recreates the netdev, which then comes up as wlan1, wlan3...
+# By type, not name: before gemini-base 65 iwd recreated the netdev as wlan1, wlan3...
 Type=wlan
+
+[Link]
+# iwd raises the link itself; networkd only configures it once it is up (2026-11-24). The
+# mt6797 driver closes its instance for good on a down after an up, and iwd toggles the link
+# during its setup, so a networkd up before iwd's setup (after an rfkill unblock or a module
+# reload) left Wi-Fi dead until a WLAN restart.
+ActivationPolicy=manual
 
 [Network]
 DHCP=ipv4

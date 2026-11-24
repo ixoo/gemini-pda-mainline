@@ -2732,3 +2732,21 @@ Tested against a fake sysfs in 14 cases, covering the earlier migration and race
 the new line's save, keep, window, clock, refusal and old-image paths. Built in an Arch chroot
 over card-32's image: `gemini-base-68` (`ffe73fd8…`). Not on the device; it needs an image
 with 0858.
+
+#### networkd leaves raising the Wi-Fi link to iwd (gemini-base 69, 2026-11-24)
+
+From the Wi-Fi driver session: in the mt6797 driver, a down after an up closes the driver
+instance for good, and a later up gets `EOPNOTSUPP`. After an rfkill unblock or a module reload,
+networkd raised the new `wlan0` at once, and iwd (with `DefaultInterface=*`) then took it down
+and up during its setup. That closed the fresh instance, and Wi-Fi stayed dead. The custodian saw
+this on card-32 after an rfkill unblock: UP from networkd, DOWN a second later. At boot it was
+harmless only because networkd's early up failed before the firmware was ready.
+
+`50-gemini-wlan.network` now has `[Link] ActivationPolicy=manual`: networkd never raises or
+lowers the Wi-Fi link, iwd raises it, and networkd configures DHCP once it is up. Nothing else in
+gemini-base raises `wlan*`. With the driver's 0862, a restart request inside its 30 s spacing is
+kept rather than dropped. Without this change, each restart could be closed again by the same
+toggle.
+
+Built in an Arch chroot over card-32's image (systemd 262.1): `gemini-base-69` (`81469585…`). Not
+on the device; DHCP starting when iwd raises the link is part of the test.
