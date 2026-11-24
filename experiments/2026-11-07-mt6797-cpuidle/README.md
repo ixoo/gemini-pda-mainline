@@ -10124,6 +10124,26 @@ module build is needed.
 | A counts | The display's requests hold DRAM while blanked | The idle state masks them while the display engines are gated (the display session supplies the display-state check) |
 | B or C counts | Display OD, or the GPU or GCE, holds it | The same, for that requester |
 | None counts | The multimedia domain itself holds it | The display power-domain work |
+
+**The display-state check (display session, 2026-11-24).** MMSYS
+`CG_CON0` (`0x14000100`) reads a set bit for a gated clock. The DRAM
+readers the station drives are OVL0 (bit 15), OVL0_2L (17), OVL1_2L (18)
+and RDMA0 (19); display OD is bit 27. The rule for masking the display
+requests in the idle state would be `(CG_CON0 & 0x000e8000) ==
+0x000e8000` (`0x080e8000` if display OD matters). The register is safe to
+read while blanked, and the check holds for the whole period, since
+re-enabling the display needs a running CPU.
+
+**What the logs already show.** `d4.sh` logs `CG_CON0` and `CG_CON1` after
+the blank (`D4_MM`). In every D6-D7b run it read `3f9f8000` and
+`ffffff03`: the four readers and display OD gated, so D7b's 31 CONN-quiet
+periods had the display engines gated and still no EV15. D7c alone read
+`00110000` and `ffffff00`: only OVL1 and RDMA1 gated, OVL0, the 2L
+overlays, RDMA0 and DSI clocked, although the backlight read blank. So
+D7c ran with the display pipeline still clocked, and its result does not
+cover the gated case. D7d's runs record the same line; a run whose read is
+not `3f9f8000` is not comparable, and why D7c's blank left the engines
+clocked is a question for the display session.
 The earlier D7c, the idle state with flag 13 clear, is withdrawn; the
 quiet test-period run above takes its name if chosen.
 
