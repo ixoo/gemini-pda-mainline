@@ -10127,6 +10127,13 @@ module build is needed.
   the run.
 - **Comparable runs only:** the "sodi mm: cg0" line after the blank must
   read `3f9f8000`, as in D6-D7b; otherwise the run is repeated.
+- **The reviewer on the revised 0856:** no finding; C first, then A and
+  B. The check covers the display engines that read memory (the three
+  overlays and RDMA0, from the display session's gate map). In the
+  blanked reads `3f9f8000`, OVL1 and RDMA1 are gated too, but WDMA0 and
+  WDMA1 (bits 21 and 22) are not; the display session is asked to confirm
+  that no other MMSYS block can access DRAM while those are idle before
+  run C.
 
 **Why D7c's gate read showed clocked engines (display session,
 2026-11-24, corrected).** The card root has no backlight policy; D7c's
