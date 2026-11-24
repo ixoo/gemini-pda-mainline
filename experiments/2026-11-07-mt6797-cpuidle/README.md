@@ -9926,7 +9926,11 @@ to `sodi_idle`, and comments flag 7. `r13`, the debug word and `r0` were
 already logged. Compile-checked in the VM with `W=1` and checkpatch; a
 module build is needed.
 
-- **Candidate:** image 138 on a fresh boot, a module with 0855, `d4.sh`
+- **Module:** Buildbox job at 55eda2118, profile
+  `mt6797-a53-station-dvfs` with `BUILD_MODULES=1`, validated by the
+  custodian: `mt6797-spm-sleep.ko` sha256 `81ddd6a120cbb231…`, vermagic
+  matching image 138, carrying the `r6` and "dram down" lines.
+- **Candidate:** image 138 on a fresh boot, that module, `d4.sh`
   815ccde5 with D6b's options without `D4_NO_EVENT=1` (so flag 13 clear
   and the resource handlers run, as the vendor's SODI), `D4_KEEP_26M=1`
   kept, `D4_CPU_PDN=1`, no pin, windows C and A with pings, no tap needed,
