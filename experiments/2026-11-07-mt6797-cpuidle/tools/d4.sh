@@ -64,6 +64,9 @@
 # D4_PIN_KHZ=N pins CPU0's cpufreq policy at N kHz (min = max) for the
 # windows and restores it after (stage D5l).
 # D4_ONLY_B=1 skips windows C and A and runs only the key window (D6c).
+# D4_B_SECONDS=N sets window B's length (default 300 s). A tap that lands
+# between periods no longer ends B: it waits for the blank and goes on, so
+# the owner can tap again at the next agreed time (D6g).
 # D4_TIMER_CAP=1 sets sodi_timer_cap, so each period ends before CPU0's next
 # local timer event (0821, stage D5f).
 # No period starts while the screen is lit: SODI with the display scanning
@@ -597,7 +600,8 @@ check_dmesg
 fi
 
 # ---- B: a key ----
-log "B: press one key once (up to 300 s)"
+BSEC=${D4_B_SECONDS:-300}
+log "B: press one key once (up to $BSEC s)"
 key=0
 seen=0
 k0=$(key_irqs)
@@ -605,10 +609,24 @@ log "B: keyboard-path interrupt count $k0"
 key_lines | grep -q ' 5-005b$' || stop "no EINT line for the keyboard expander (5-005b)"
 key_lines | sed 's/^/    B before: /'
 start=$(date +%s)
-while [ $(( $(date +%s) - start )) -lt 300 ]; do
+while [ $(( $(date +%s) - start )) -lt "$BSEC" ]; do
 	if ! blank; then
-		log "B: the screen lit with no key wake seen"
-		break
+		if [ "$seen" = 0 ]; then
+			log "B: the screen lit with no key wake seen"
+			break
+		fi
+		# A tap between periods lit the screen: wait for the blank, then
+		# go on for the next tap.
+		t=0
+		until blank; do
+			t=$((t + 1))
+			[ "$t" -gt 120 ] && break
+			sleep 1
+		done
+		blank || { log "B: no blank within 120 s after a tap"; break; }
+		k0=$(key_irqs)
+		log "B: blanked again, keyboard-path count $k0; waiting for the next tap"
+		continue
 	fi
 	period
 	check_hash "a period of B"
@@ -630,6 +648,8 @@ while [ $(( $(date +%s) - start )) -lt 300 ]; do
 		seen=1
 		if [ "$KPRE" -gt "$k0" ]; then
 			log "B: the count rose between periods ($k0>$KPRE), with CPU0 awake: not a test of the key wake"
+			k0=$k
+			continue
 		elif early; then
 			log "B: the count rose across a period that another source ended early ($KPRE>$k): inconclusive, repeat"
 		else
