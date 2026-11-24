@@ -626,6 +626,21 @@ bit 17), held by the PWM, and the DIS domain.
 - **Decision (cpuidle session):** no measured saving of deep idle over SODI exists, and
   SODI allows both holders, so the DIS-domain work waits for the SODI measurement.
 
+## The blanked display's DRAM request
+
+With the display blanked (DPMS Off), the SPM's SODI program still never let DRAM
+self-refresh: its multimedia-state input (`r13` bit 10) stayed set. The display requests
+(`DISP_REQ`, `DISP1_REQ`) stay raised with the pipeline stopped. Our reading, not traced:
+RDMA's request follows its FIFO thresholds, an idle RDMA's FIFO is empty, and mainline
+never programs RDMA's SODI threshold register.
+
+D7d in the [cpuidle record](../2026-11-07-mt6797-cpuidle/README.md) confirmed it. On
+boot `0dc78e92`, masking only those two requests, and only while `mm_disp_ovl0`,
+`mm_disp_ovl0_2l`, `mm_disp_ovl1_2l` and `mm_disp_rdma0` read gated in MMSYS `CG_CON0`
+(`0x14000100` bits 15 and 17-19), cleared bit 10. DRAM self-refresh then ran in all 33
+periods. The idle state takes this as a CG-gated mask in the SPM module. With the screen
+on, the request still holds DRAM, as the vendor's screen-on SODI expects.
+
 ## What stands before upstream
 
 An independent review of the display and lid patches found these, not changed here
