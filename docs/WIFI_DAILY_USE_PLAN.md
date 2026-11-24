@@ -336,7 +336,13 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   while associated, the deauthentication's completion went missing and was retired late without credit, so its
   page stayed retained, and with a retained cleanup page only removal and abort commands are encoded. The stop
   refused as designed and CONN was powered off anyway. The fixed pair is package `f3d8d336` (mac `f8f0274e`,
-  CONSYS `d9f7a1d9`); its device test awaits the owner.
+  CONSYS `d9f7a1d9`).
+- That pair passed on card-32 (image 139, boot `0d12a9a2`, custodian, swapped onto the running station): two
+  rfkill block and unblock cycles three minutes apart each gave one restart, "lifetime halted; phy kept", then
+  "lifetime resumed on the kept phy: status=0" about 2 s after the unblock; the phy, its rfkill ID and `wlan0`'s
+  ifindex stayed the same, one wlan interface, the soft block stayed off at +10 s and +120 s, no warning, and
+  IPv4 returned 14 s after the unblock with 5 of 5 pings. Not exercised: unloading the pair, a fault while
+  associated (the halt's disconnect path) and iwd's Powered toggle.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
