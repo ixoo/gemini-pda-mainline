@@ -10573,11 +10573,41 @@ the station meets with Wi-Fi up, not for periods near the 2 s cap.
   the network service stopped or the radio blocked; taking the link down
   is not enough.
 
-**Next (proposed).** D7g measures rather than changes the constants: a
-module with the four refusal-distance counters, a test window pinned at
-221 MHz for the exit path, then the D7f windows for comparison. A quiet
-retention window rides along only if the owner approves stopping the
-network service or `rfkill`.
+**Next (proposed).** D7g measures rather than changes the constants; see
+the request below.
+
+### Request D7g (proposed): what the timer-due refusals are and how late the state returns
+
+0863 (after 0860) adds debugfs counters, with no register access change:
+- at each "timer due" refusal, how soon the next local timer was due:
+  under 1, 4, 10 and 20 ms;
+- for each period ended by the PCM timer alone, the time from the
+  programmed end (the kick plus the 32 kHz ticks) to CPU0 back in the
+  idle path: under 1, 1.5, 2 and 3 ms, or more, with the sum (`late_us`)
+  and the maximum (`late_max_us`). This is the path the exit latency must
+  cover; the kick and the 32 kHz timer's start differ by a few
+  microseconds at most.
+
+`d5.sh` (commit recording this) takes `D5_PIN_KHZ`, which pins policy0
+for the windows and restores it after.
+
+- **Candidate:** a module with 0854-0860 and 0863 on image 138 or 139,
+  D7f's `d5.sh` options. Two runs on fresh boots, cable out, no touching:
+  1. D7f's four 180 s windows, unpinned: the refusal distances, the late
+     path at the OPPs idle actually uses, and the current against D7f.
+  2. `D5_PIN_KHZ=221000` and `D5_WINDOW=120`: the late path at the
+     lowest OPP.
+- **Hypothesis:** the late path is 1-2 ms and longest at 221 MHz; the
+  timer-due refusals sit mostly within 4 ms (the retained tick).
+- **Pass:** both runs complete as D7f did (stopped 0, hashes and
+  retention equal, dram abort 0), with timer-only wakes above 0 in the
+  on windows.
+- **Decision:** exit latency becomes run 2's `late_max_us` plus margin.
+  If most timer-due refusals are under 4 ms, the lever is why the tick
+  stays armed on an idle CPU0, not the residency; if many sit at 4-20 ms,
+  a residency of 8-10 ms is worth a current comparison.
+- **Admission:** D7f's configuration plus counters and a cpufreq pin,
+  both run before (D6h pinned 221 MHz); the owner approves the runs.
 
 ### Request D5n (proposed): two states with no resource events
 

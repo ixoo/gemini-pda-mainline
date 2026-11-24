@@ -20,6 +20,8 @@
 # D5_PARAMS="..." passes module parameters to insmod (D7a: the power-down
 # idle state with D6's options). D5_PDN=1 refuses a module without the
 # power-down idle state (0854).
+# D5_PIN_KHZ=N pins cpufreq policy0 at N kHz for the windows (D7g: the
+# return path at the lowest OPP, read from the module's "late" counters).
 #
 # Hypothesis: with the screen dark and CPU0 alone, the menu governor enters
 # SODI by itself, memory stays intact, and the current falls against the off
@@ -46,6 +48,9 @@ USB=11271000.usb
 CPUS=/sys/devices/system/cpu
 TAKEN=""
 USB_CONTROL=""
+POLICY=/sys/devices/system/cpu/cpufreq/policy0
+PIN_MIN=""
+PIN_MAX=""
 
 exec >>"$LOG" 2>&1
 
@@ -61,6 +66,11 @@ new_dmesg() {
 restore() {
 	[ -n "$RETAIN" ] && rm -f "$RETAIN"
 	[ -w "$STATE/disable" ] && echo 1 >"$STATE/disable" && log "SODI state off"
+	if [ -n "$PIN_MIN" ]; then
+		echo "$PIN_MIN" >"$POLICY/scaling_min_freq"
+		echo "$PIN_MAX" >"$POLICY/scaling_max_freq"
+		log "cpufreq policy0 back to $(cat "$POLICY/scaling_min_freq")-$(cat "$POLICY/scaling_max_freq") kHz"
+	fi
 	if [ -n "$TAKEN" ]; then
 		for cpu in $TAKEN; do
 			echo 1 >"$CPUS/cpu$cpu/online" || log "cpu$cpu did not come back"
@@ -296,6 +306,23 @@ for cpu in 9 8 7 6 5 4 3 2 1; do
 done
 log "online: $(cat "$CPUS/online")"
 sleep 5
+if [ -n "${D5_PIN_KHZ:-}" ]; then
+	grep -qw "$D5_PIN_KHZ" "$POLICY/scaling_available_frequencies" ||
+		stop "$D5_PIN_KHZ kHz is not an OPP of policy0"
+	PIN_MIN=$(cat "$POLICY/scaling_min_freq")
+	PIN_MAX=$(cat "$POLICY/scaling_max_freq")
+	if [ "$D5_PIN_KHZ" -lt "$PIN_MIN" ]; then
+		echo "$D5_PIN_KHZ" >"$POLICY/scaling_min_freq"
+		echo "$D5_PIN_KHZ" >"$POLICY/scaling_max_freq"
+	else
+		echo "$D5_PIN_KHZ" >"$POLICY/scaling_max_freq"
+		echo "$D5_PIN_KHZ" >"$POLICY/scaling_min_freq"
+	fi
+	sleep 1
+	[ "$(cat "$POLICY/scaling_cur_freq")" = "$D5_PIN_KHZ" ] ||
+		stop "policy0 did not pin at $D5_PIN_KHZ kHz"
+	log "cpufreq policy0 pinned at $D5_PIN_KHZ kHz (was $PIN_MIN-$PIN_MAX)"
+fi
 REF=$(hash)
 log "hash reference $REF"
 retain_start

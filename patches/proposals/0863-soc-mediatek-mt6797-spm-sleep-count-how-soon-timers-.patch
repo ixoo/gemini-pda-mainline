@@ -1,0 +1,120 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 24 Nov 2026 15:28:51 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: count how soon timers are
+ due and how late SODI returns
+
+The SODI idle state's exit latency (5 ms) and target residency (20 ms)
+are interim values. Most refusals in live idle are "timer due", and
+lowering the residency only helps if the next event is not mostly the
+retained tick a few milliseconds away. The exit latency must cover the
+whole path from the wake to CPU0 back in Linux, which the module's own
+entry and exit costs leave out.
+
+Count, in debugfs, how soon the next local timer was due at each "timer
+due" refusal (under 1, 4, 10 and 20 ms), and, for each period ended by
+the PCM timer alone, how long after the programmed end CPU0 was back in
+the idle path (under 1, 1.5, 2 and 3 ms, or more), with the sum and the
+maximum. No register access changes.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 50 ++++++++++++++++++++++++-
+ 1 file changed, 49 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 8d3d2b863..dfad504f9 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -2255,11 +2255,22 @@ static const char * const sodi_wake_name[] = {
+ 	"timer", "keypad", "conn2ap", "eint", "cirq",
+ };
+ 
++/*
++ * Upper bounds, in microseconds, of the buckets counting how soon the next
++ * local timer was due at a "timer due" refusal, and how late CPU0 was back
++ * after a period ended by the PCM timer alone. These measure the costs
++ * SODI_PDN_EXIT_US and SODI_PDN_MIN_US should be set from.
++ */
++static const u32 sodi_due_us[] = { 1000, 4000, 10000, SODI_PDN_MIN_US };
++static const u32 sodi_late_us[] = { 1000, 1500, 2000, 3000, U32_MAX };
++
+ static struct {
+ 	u64 tried, entered, refused[NO_COUNT];
+ 	u64 wake[ARRAY_SIZE(sodi_wake_bit)], wake_other;
+ 	u64 cnt_entry, cnt_sleep, cnt_exit, cnt_sleep_max;
+ 	u64 backoff_end, backoffs, dram_down, dram_abort, disp_masked;
++	u64 due[ARRAY_SIZE(sodi_due_us)], late[ARRAY_SIZE(sodi_late_us)];
++	u64 cnt_late, cnt_late_max, timer_only;
+ 	unsigned int short_run;
+ 	u32 cirq_hits[CIRQ_LINES];
+ 	int err;
+@@ -2313,6 +2324,24 @@ static u64 sodi_timer_left(void)
+ 	return left;
+ }
+ 
++/* Bucket the time from the PCM timer's end to CPU0 back in Linux */
++static void sodi_idle_late(void)
++{
++	u64 end = s.wake.cnt_kick +
++		mul_u64_u64_div_u64(s.idle.ticks, arch_timer_get_cntfrq(), 32768);
++	u64 now = __arch_counter_get_cntvct();
++	u64 late = now > end ? now - end : 0;
++	u64 us = mul_u64_u64_div_u64(late, USEC_PER_SEC, arch_timer_get_cntfrq());
++	unsigned int i = 0;
++
++	while (us >= sodi_late_us[i])
++		i++;
++	st.late[i]++;
++	st.timer_only++;
++	st.cnt_late += late;
++	st.cnt_late_max = max(st.cnt_late_max, late);
++}
++
+ static void sodi_idle_count(u64 t0)
+ {
+ 	u64 sleep = s.wake.cnt_return - s.wake.cnt_kick;
+@@ -2352,6 +2381,8 @@ static void sodi_idle_count(u64 t0)
+ 	}
+ 	if (r12 & ~hit)
+ 		st.wake_other++;
++	if (r12 == BIT(sodi_wake_bit[0]))
++		sodi_idle_late();
+ 	for (w = 0; w < CIRQ_WORDS; w++)
+ 		for (i = 0; i < 32 && 32 * w + i < CIRQ_LINES; i++)
+ 			if (s.cirq_sta[w] & BIT(i))
+@@ -2381,8 +2412,14 @@ static int sodi_idle_enter(struct cpuidle_device *dev,
+ 	left = sodi_timer_left();
+ 	us = left == U64_MAX ? U64_MAX :
+ 		mul_u64_u64_div_u64(left, USEC_PER_SEC, arch_timer_get_cntfrq());
+-	if (us < SODI_PDN_MIN_US)
++	if (us < SODI_PDN_MIN_US) {
++		unsigned int i = 0;
++
++		while (us >= sodi_due_us[i])
++			i++;
++		st.due[i]++;
+ 		return sodi_idle_refuse(NO_SHORT);
++	}
+ 	if (!i2c_trylock_bus(s.i2c6, I2C_LOCK_ROOT_ADAPTER))
+ 		return sodi_idle_refuse(NO_I2C);
+ 	busy = sodi_busy();
+@@ -2471,6 +2508,17 @@ static int sodi_idle_show(struct seq_file *m, void *v)
+ 	for (i = 0; i < ARRAY_SIZE(sodi_wake_bit); i++)
+ 		seq_printf(m, "wake %s: %llu\n", sodi_wake_name[i], st.wake[i]);
+ 	seq_printf(m, "wake other: %llu\n", st.wake_other);
++	for (i = 0; i < ARRAY_SIZE(sodi_due_us); i++)
++		seq_printf(m, "timer due under %u us: %llu\n", sodi_due_us[i],
++			   st.due[i]);
++	seq_printf(m, "timer-only wakes %llu\nlate_us %llu\nlate_max_us %llu\n",
++		   st.timer_only, sodi_idle_us(st.cnt_late),
++		   sodi_idle_us(st.cnt_late_max));
++	for (i = 0; i + 1 < ARRAY_SIZE(sodi_late_us); i++)
++		seq_printf(m, "late under %u us: %llu\n", sodi_late_us[i],
++			   st.late[i]);
++	seq_printf(m, "late %u us or more: %llu\n",
++		   sodi_late_us[ARRAY_SIZE(sodi_late_us) - 2], st.late[i]);
+ 	seq_printf(m, "entry_us %llu\nsleep_us %llu\nexit_us %llu\nsleep_max_us %llu\n",
+ 		   sodi_idle_us(st.cnt_entry), sodi_idle_us(st.cnt_sleep),
+ 		   sodi_idle_us(st.cnt_exit), sodi_idle_us(st.cnt_sleep_max));
+-- 
+2.43.0
+
