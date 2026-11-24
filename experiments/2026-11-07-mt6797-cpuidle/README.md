@@ -10541,11 +10541,43 @@ lasted more than about 0.5 s. Retention is shown for that case, the one
 the station meets with Wi-Fi up, not for periods near the 2 s cap.
 
 **Readings.**
-- "Timer due" is still 81% of the refusals, from the interim 20 ms
-  residency floor. The costs now measured are far below it: return flag
-  194 µs at most (D7e), entry 226 µs and exit 90 µs on average here.
+- "Timer due" is still 81% of the refusals, under the interim 20 ms
+  residency floor. The module-side costs (entry 226 µs, exit 90 µs on
+  average) leave out the path between the kick and the return.
 - The two back-offs show eight periods in a row under 20 ms do happen with
   Wi-Fi traffic, not only with a stuck wake.
+
+**The reviewer on D7f (2026-11-24).**
+- The exit latency must cover a wake to CPU0 running again. From the kick
+  to CPU0 back, beyond the 2000 ms timer, took 1.22 ms on average and
+  1.54 ms at most in C′ and D7c, plus about 87 µs from the return to the
+  exit (D7a). That is above 1 ms before any margin, so a 1 ms exit
+  latency, first proposed here, is too low. Those runs were not at the
+  lowest OPP, where the firmware and kernel share scales with the clock
+  (kick to WFI 97.9 µs at 221 MHz against about 29 µs at 1339 MHz). The
+  same constant sets how early the PCM timer ends a period before the
+  next local event, so too low a value makes those events late.
+- Measure first: the exit path pinned at 221 MHz in one short test
+  window, then exit latency at that maximum plus margin (likely 2-3 ms),
+  and residency no lower than 8-10 ms until a current reading shows
+  shorter entries pay.
+- Find out what the "timer due" refusals are: counters of the time to the
+  next event at refusal (under 1 ms, 1-4, 4-10, 10-20 ms). If most are
+  within 4 ms, that is the retained scheduler tick, and the lever is why
+  the tick stays armed on an idle CPU0, not the state's constants.
+- With Wi-Fi up, the WLAN interrupt about every 112 ms (roughly a beacon
+  interval) caps the state's saving. Sleeping across beacons (listen
+  interval, DTIM skipping) is a Wi-Fi driver question and likely the
+  bigger lever.
+- Retention near the 2 s cap needs one quiet window of a few minutes with
+  the network service stopped or the radio blocked; taking the link down
+  is not enough.
+
+**Next (proposed).** D7g measures rather than changes the constants: a
+module with the four refusal-distance counters, a test window pinned at
+221 MHz for the exit path, then the D7f windows for comparison. A quiet
+retention window rides along only if the owner approves stopping the
+network service or `rfkill`.
 
 ### Request D5n (proposed): two states with no resource events
 
