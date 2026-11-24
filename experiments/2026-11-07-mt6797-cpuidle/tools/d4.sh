@@ -59,6 +59,8 @@
 # D4_CPU_PDN=1 sets sodi_cpu_pdn: test periods power CPU0 down through PSCI
 # CPU_SUSPEND, as the vendor does (0852, D6); the cpuidle driver's own SODI
 # entries keep CPU0 powered. It refuses the observer.
+# D4_RETAIN_MB=N writes N MiB of random data to tmpfs after the hash
+# reference and checks it after the windows (D7e).
 # D4_SRC2_MASK=0x... sets sodi_src2_mask: test periods use that narrower
 # SPM_SRC2_MASK, refused by the module unless the backlight is blank (0856,
 # D7d).
@@ -149,6 +151,7 @@ new_dmesg() {
 }
 
 restore() {
+	[ -n "$RETAIN" ] && rm -f "$RETAIN"
 	if [ -n "$PIN_MIN" ]; then
 		echo "$PIN_MIN" >"$POLICY/scaling_min_freq"
 		echo "$PIN_MAX" >"$POLICY/scaling_max_freq"
@@ -210,6 +213,33 @@ obs_affinity() {
 	for p in /proc/[0-9]*; do
 		taskset -a -p "$1" "${p#/proc/}" >/dev/null 2>&1
 	done
+}
+
+# Retention (D4_RETAIN_MB): a tmpfs file of random data written once and
+# hashed again later, so data left untouched across many periods is checked,
+# not only the freshly written buffer the cpu-mhz hash uses (D7e).
+RETAIN=""
+RETAIN_SUM=""
+retain_start() {
+	[ -n "${D4_RETAIN_MB:-}" ] || return 0
+	avail=$(awk '/^MemAvailable:/ { print int($2 / 1024) }' /proc/meminfo)
+	[ "$avail" -gt $(( D4_RETAIN_MB + 256 )) ] ||
+		stop "D4_RETAIN_MB=$D4_RETAIN_MB needs more than ${avail} MiB available"
+	RETAIN=$(mktemp /dev/shm/retain.XXXXXX) || stop "no tmpfs file for the retention check"
+	head -c $(( D4_RETAIN_MB * 1048576 )) /dev/urandom >"$RETAIN" || stop "retention file not written"
+	RETAIN_SUM=$(sha256sum <"$RETAIN" | cut -c1-64)
+	log "retention: ${D4_RETAIN_MB} MiB in tmpfs, sha256 $(echo "$RETAIN_SUM" | cut -c1-16)"
+}
+
+retain_check() {
+	[ -n "$RETAIN" ] || return 0
+	if [ "$(sha256sum <"$RETAIN" | cut -c1-64)" != "$RETAIN_SUM" ]; then
+		log "STOP: the retention file changed after $1; powering off"
+		sync
+		systemctl poweroff
+		exit 1
+	fi
+	log "    retention equal after $1"
 }
 
 check_dmesg() {
@@ -560,6 +590,7 @@ if [ -n "${D4_PIN_KHZ:-}" ]; then
 fi
 REF=$(hash)
 log "hash reference $REF"
+retain_start
 grep -iE 'eint|aw9523|keyboard' /proc/interrupts | sed 's/^/    before: /'
 
 if [ "${D4_ONLY_B:-0}" = 1 ]; then
@@ -702,6 +733,8 @@ k=$(key_irqs)
 	log "B: no key seen (keyboard-path interrupt count $k0>$k)"
 key_lines | sed 's/^/    B after: /'
 check_dmesg
+
+retain_check "the windows"
 
 # ---- restore ----
 log "refusals in all: $REFUSED"

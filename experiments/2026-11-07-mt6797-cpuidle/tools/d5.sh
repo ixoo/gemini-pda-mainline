@@ -15,6 +15,8 @@
 # is /var/tmp/d5.log, synced after every line. Nobody touches the device
 # and no SSH connection is made until the log says "done".
 #
+# D5_RETAIN_MB=N writes N MiB of random data to tmpfs after the hash
+# reference and checks it after every window (D7e).
 # D5_PARAMS="..." passes module parameters to insmod (D7a: the power-down
 # idle state with D6's options). D5_PDN=1 refuses a module without the
 # power-down idle state (0854).
@@ -57,6 +59,7 @@ new_dmesg() {
 }
 
 restore() {
+	[ -n "$RETAIN" ] && rm -f "$RETAIN"
 	[ -w "$STATE/disable" ] && echo 1 >"$STATE/disable" && log "SODI state off"
 	if [ -n "$TAKEN" ]; then
 		for cpu in $TAKEN; do
@@ -95,6 +98,33 @@ check_hash() {
 		exit 1
 	fi
 	log "    hash equal"
+}
+
+# Retention (D5_RETAIN_MB): a tmpfs file of random data written once and
+# hashed again later, so data left untouched across many periods is checked,
+# not only the freshly written buffer the cpu-mhz hash uses (D7e).
+RETAIN=""
+RETAIN_SUM=""
+retain_start() {
+	[ -n "${D5_RETAIN_MB:-}" ] || return 0
+	avail=$(awk '/^MemAvailable:/ { print int($2 / 1024) }' /proc/meminfo)
+	[ "$avail" -gt $(( D5_RETAIN_MB + 256 )) ] ||
+		stop "D5_RETAIN_MB=$D5_RETAIN_MB needs more than ${avail} MiB available"
+	RETAIN=$(mktemp /dev/shm/retain.XXXXXX) || stop "no tmpfs file for the retention check"
+	head -c $(( D5_RETAIN_MB * 1048576 )) /dev/urandom >"$RETAIN" || stop "retention file not written"
+	RETAIN_SUM=$(sha256sum <"$RETAIN" | cut -c1-64)
+	log "retention: ${D5_RETAIN_MB} MiB in tmpfs, sha256 $(echo "$RETAIN_SUM" | cut -c1-16)"
+}
+
+retain_check() {
+	[ -n "$RETAIN" ] || return 0
+	if [ "$(sha256sum <"$RETAIN" | cut -c1-64)" != "$RETAIN_SUM" ]; then
+		log "STOP: the retention file changed after $1; powering off"
+		sync
+		systemctl poweroff
+		exit 1
+	fi
+	log "    retention equal after $1"
 }
 
 check_dmesg() {
@@ -150,6 +180,7 @@ window() {
 		grep -E '^ *[0-9]+:' /proc/interrupts | awk '$2 > 0' | sed 's/^/    irq /'
 	fi
 	check_hash "window $name"
+	retain_check "window $name"
 	check_dmesg
 }
 
@@ -236,6 +267,7 @@ log "online: $(cat "$CPUS/online")"
 sleep 5
 REF=$(hash)
 log "hash reference $REF"
+retain_start
 
 # ---- windows ----
 window off1 1
