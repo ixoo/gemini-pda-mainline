@@ -321,6 +321,12 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   new lifetime with its state group cleared under the wiphy lock. An `up` of a closed interface now succeeds
   at once; scans are refused until the new lifetime is ready. The mac and CONSYS modules go together, since
   the ops structure gains the halt. Compiled only.
+- 0867's first test (boot `2de14aa4`, custodian) failed in cycle 1: the restart registered phy2 and `wlan1` beside
+  the halted phy1, and `wlan0` got no address. CONSYS's remove clears its whole owner, the kept phy pointer
+  with it, so the attach after the reprobe registered a new phy; it also loads the configuration record again,
+  as the owner's configured flag is cleared too. The orphaned phy1 stayed registered after the rollback
+  unloaded the mac module, and the station switched itself off about 5 minutes later; that the orphan caused
+  it is an inference awaiting the journal. 0869 holds the phy outside the owner. Compiled only.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the

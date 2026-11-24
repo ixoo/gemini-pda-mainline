@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 17:55:59 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: keep the halted phy across the
+ reprobe
+
+The restart halts the mac layer and reprobes CONSYS, whose remove clears
+the whole owner, the phy pointer with it. The attach after the reprobe
+then found no phy to resume and registered a new one: on the device
+phy2 and wlan1 came up beside the halted phy1, which stayed registered
+with no owner and was not unregistered when the mac module was unloaded.
+
+Hold the registered phy in its own variable outside the owner, so the
+attach resumes it and a mac module unload always unregisters it.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 24 ++++++++++++++----------
+ 1 file changed, 14 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 9e6bc8af3..d3673eec9 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -125,8 +125,6 @@ struct mt6797_stp {
+ 
+ struct mt6797_consys {
+ #if IS_ENABLED(CONFIG_MT6797_MAC80211)
+-	/* Built-in owner retains powered HIF and wiphy for the whole boot. */
+-	struct ieee80211_hw *wlan_hw;
+ 	/* The started firmware, kept for the one mac80211 attach. */
+ 	struct device *wlan_dev;
+ 	struct mt6797_normal_capability wlan_capability;
+@@ -1010,6 +1008,12 @@ static int mt6797_consys_drain_boot_events(struct device *dev,
+ }
+ 
+ #if IS_ENABLED(CONFIG_MT6797_MAC80211)
++/* The registered phy. It lives outside the owner, which a remove clears: a
++ * restart reprobes CONSYS and keeps the halted phy across it, and a phy the
++ * owner forgot would stay registered after the mac module left.
++ */
++static struct ieee80211_hw *mt6797_consys_wlan_hw;
++
+ static int mt6797_consys_wlan_attach_locked(const struct mt6797_mac_ops *ops)
+ {
+ 	struct mt6797_consys *owner = &mt6797_consys;
+@@ -1031,7 +1035,7 @@ static int mt6797_consys_wlan_attach_locked(const struct mt6797_mac_ops *ops)
+ 	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
+ 	if (!ret) {
+ 		ret = ops->reg(dev, owner->fw_hif, &owner->wlan_capability,
+-			       record, reattach, &owner->wlan_hw);
++			       record, reattach, &mt6797_consys_wlan_hw);
+ 		dev_info(dev, "one-shot WLAN regulatory configuration: status=%d%s\n",
+ 			 ret, reattach ? " (kept from the first attach)" : "");
+ 	}
+@@ -1048,7 +1052,7 @@ static int mt6797_consys_wlan_attach_locked(const struct mt6797_mac_ops *ops)
+ 		if (ret)
+ 			goto out;
+ 	}
+-	ops->scan_ready(owner->wlan_hw);
++	ops->scan_ready(mt6797_consys_wlan_hw);
+ 	owner->wlan_configured = true;
+ out:
+ 	return ret;
+@@ -1082,9 +1086,9 @@ static void mt6797_consys_wlan_detach_now(const struct mt6797_mac_ops *ops)
+ 	if (owner->wlan_pending == ops)
+ 		owner->wlan_pending = NULL;
+ 	/* A halted phy is kept without being attached. */
+-	if (owner->wlan_hw) {
+-		ops->unreg(owner->wlan_hw);
+-		owner->wlan_hw = NULL;
++	if (mt6797_consys_wlan_hw) {
++		ops->unreg(mt6797_consys_wlan_hw);
++		mt6797_consys_wlan_hw = NULL;
+ 		owner->wlan_attached = false;
+ 		dev_info(owner->wlan_dev, "one-shot WLAN mac detached; firmware kept\n");
+ 	}
+@@ -1099,8 +1103,8 @@ static void mt6797_consys_wlan_halt_now(const struct mt6797_mac_ops *ops)
+ 	struct mt6797_consys *owner = &mt6797_consys;
+ 
+ 	mutex_lock(&mt6797_consys_wlan_lock);
+-	if (owner->wlan_attached && owner->wlan_hw) {
+-		ops->halt(owner->wlan_hw);
++	if (owner->wlan_attached && mt6797_consys_wlan_hw) {
++		ops->halt(mt6797_consys_wlan_hw);
+ 		owner->wlan_attached = false;
+ 	}
+ 	mutex_unlock(&mt6797_consys_wlan_lock);
+@@ -1130,7 +1134,7 @@ static void mt6797_consys_wlan_restart_work(struct work_struct *work)
+ 	int ret;
+ 
+ 	mutex_lock(&mt6797_consys_wlan_lock);
+-	ops = owner->wlan_attached && owner->wlan_hw ? owner->wlan_ops : NULL;
++	ops = owner->wlan_attached && mt6797_consys_wlan_hw ? owner->wlan_ops : NULL;
+ 	dev = get_device(owner->dev);
+ 	mutex_unlock(&mt6797_consys_wlan_lock);
+ 	if (!ops || !dev) {
+-- 
+2.43.0
+
