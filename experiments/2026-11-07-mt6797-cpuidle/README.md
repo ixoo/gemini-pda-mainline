@@ -10362,6 +10362,11 @@ faults are rare.
   coverage the custodian states in the result.
 - **Admission:** run A's configuration for longer; the owner approves the
   run.
+- **Module and approval:** the owner approved D7e. Buildbox job at
+  7c49a5c7d (0859 and 0860), validated by the custodian:
+  `mt6797-spm-sleep.ko` sha256 `4337adfde41365d3…`, vermagic matching
+  image 138. The Wi-Fi timer takes the interface down from 25 s after
+  launch for 1800 s.
 
 After D7e, D7f would be D7a's off/on windows with `sodi_no_event=0` and
 `sodi_idle_disp_mask=1` at load, with Wi-Fi up: CONN's own requests stay
