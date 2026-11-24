@@ -10098,20 +10098,35 @@ but the display's read DMA raises its SODI request from a FIFO threshold
 that mainline never programs, so a stopped read DMA likely keeps
 requesting, which would fit `r13` bit 10 staying set.
 
-0856 adds `sodi_src2_mask` for test periods only: it may only clear bits
-of the SODI mask, a period with it set is refused unless the backlight is
-blank, and the mask used is logged with each period. The idle state keeps
+0856 adds `sodi_src2_mask` for test periods only: it may only clear the
+display, display 1, display OD, GPU and GCE bits; a period with it set is
+refused unless the backlight is blank and, checked with interrupts off
+just before the kick, every requester it leaves out is stopped (the
+display's DRAM readers and display OD gated in MMSYS `CG_CON0` or the
+display domain off, the GPU domain off in the power status, the GCE
+clock gated); the refusal names the one still on; and the mask used is
+logged with each period. The idle state keeps
 the vendor's mask. `d4.sh` (commit recording this) passes it as
 `D4_SRC2_MASK`. Compile-checked in the VM with `W=1` and checkpatch; a
 module build is needed.
 
 - **Candidate:** image 138 on a fresh boot per run, a module with 0856,
   D7c's options (Wi-Fi down by the timer, CONN2AP masked, flag 13 clear,
-  `D4_ONLY_B=1`) plus `D4_B_SECONDS=120` and one mask per run, stopping
-  at the first that counts:
+  `D4_ONLY_B=1`) plus `D4_B_SECONDS=120` and one mask per run. C first,
+  as the reviewer advised: it is the suspend scenario's own mask, the one
+  configuration where this module has taken the DRAM side down (S1). If C
+  stays at 0 the holder is not in this mask and A and B are skipped; if C
+  counts, A and B say which requester it was:
+  - C `0x00f1001f`: display, display 1, display OD, GPU and GCE masked;
   - A `0x08f9009f`: display and display 1 masked;
-  - B `0x00f9009f`: display OD too;
-  - C `0x00f1001f`: GCE and GPU too (the suspend scenario's mask).
+  - B `0x00f9009f`: display OD too.
+- **What is new:** the first time SODI's DRAM-down handler completes under
+  this module; the suspend program's path is different code. A fault there
+  is a hang or corrupted memory, not a clean error: the per-period memory
+  hash and the synced line before each kick stay, and a hash mismatch ends
+  the run.
+- **Comparable runs only:** the "sodi mm: cg0" line after the blank must
+  read `3f9f8000`, as in D6-D7b; otherwise the run is repeated.
 - **Records:** per period `pasr_dpd_0`, the debug word (bits 8 and 9),
   `pc=`, `r13` and the mask used.
 - **Hypothesis:** a stopped display read DMA holds the APSRC request, so
@@ -10121,9 +10136,10 @@ module build is needed.
 
 | Result | Reading | Next |
 | --- | --- | --- |
-| A counts | The display's requests hold DRAM while blanked | The idle state masks them while the display engines are gated (the display session supplies the display-state check) |
-| B or C counts | Display OD, or the GPU or GCE, holds it | The same, for that requester |
-| None counts | The multimedia domain itself holds it | The display power-domain work |
+| C stays 0 | No requester in this mask holds DRAM, or EV15 cannot complete with CPU0 off | `pc=` decides: nonzero means EV15 started and the DRAM-side acknowledgement never came |
+| C counts, then A counts | The display's requests hold DRAM while blanked | The idle state masks them while the display engines are gated, with the same check |
+| C counts, A not, B counts | Display OD holds it | The same, for display OD |
+| C counts, A and B not | The GPU or GCE holds it | The same, for those |
 
 **The display-state check (display session, 2026-11-24).** MMSYS
 `CG_CON0` (`0x14000100`) reads a set bit for a gated clock. The DRAM

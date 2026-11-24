@@ -11,19 +11,25 @@ asserted (stage D7c). SODI's SPM_SRC2_MASK honours the display, display
 vendor's deep idle ignores the display and GCE ones.
 
 Add sodi_src2_mask for test periods only, so each group can be left out
-in turn (D7d). It may only clear bits of the SODI mask, and a period
-with it set is refused unless the backlight is blank, since a scanning
-display must keep its DRAM requests. Log the mask used with each period.
-The idle state keeps the vendor's mask.
+in turn (D7d). It may only clear the display, display 1, display OD, GPU
+and GCE bits of the SODI mask. A period with it set is refused unless
+the backlight is blank and, checked with interrupts off just before the
+kick, every requester it leaves out is stopped: the display's DRAM
+readers (OVL0, OVL0_2L, OVL1_2L, RDMA0) and display OD gated in MMSYS
+or the display domain off, the GPU domain off, the GCE clock gated. The
+backlight alone is not enough: the display pipeline comes up before it
+(D6d). With CPU0 the only CPU and powered down, nothing can start an
+engine during the period. Log the mask used with each period. The idle
+state keeps the vendor's mask.
 ---
- drivers/soc/mediatek/mt6797-spm-sleep.c | 36 ++++++++++++++++++++++---
- 1 file changed, 33 insertions(+), 3 deletions(-)
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 84 +++++++++++++++++++++++--
+ 1 file changed, 80 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
-index 8f78ade71..e61334a48 100644
+index 8f78ade71..ef6ce743a 100644
 --- a/drivers/soc/mediatek/mt6797-spm-sleep.c
 +++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
-@@ -281,6 +281,22 @@ module_param(sodi_cpu_pdn, bool, 0644);
+@@ -281,6 +281,29 @@ module_param(sodi_cpu_pdn, bool, 0644);
  MODULE_PARM_DESC(sodi_cpu_pdn, "SODI: power CPU0 down through PSCI CPU_SUSPEND in test periods, as the vendor does");
  #define SODI_PSCI_CLUSTER_PDN	0x01010000
  
@@ -35,10 +41,17 @@ index 8f78ade71..e61334a48 100644
 +
 +/*
 + * Test periods only (D7d): a narrower SPM_SRC2_MASK, so fewer requesters
-+ * can hold DRAM awake. 0 keeps SODI_SRC2_MASK. It may only clear bits of
-+ * SODI_SRC2_MASK, and a period with it set is refused unless the backlight
-+ * is blank, since a scanning display must keep its DRAM requests.
++ * can hold DRAM awake. 0 keeps SODI_SRC2_MASK. It may only clear the
++ * display, display 1, display OD, GPU and GCE bits. A period with it set is
++ * refused unless the backlight is blank and, at entry, every requester it
++ * leaves out is stopped: its engine clocks gated or its domain off. With
++ * CPU0 the only CPU and powered down, nothing can start one in the period.
 + */
++#define SRC2_DISP		(BIT(17) | BIT(18))
++#define SRC2_DISP_OD		BIT(27)
++#define SRC2_MFG		BIT(19)
++#define SRC2_GCE		BIT(7)
++#define SRC2_MAY_CLEAR		(SRC2_DISP | SRC2_DISP_OD | SRC2_MFG | SRC2_GCE)
 +static unsigned int sodi_src2_mask;
 +module_param(sodi_src2_mask, uint, 0644);
 +MODULE_PARM_DESC(sodi_src2_mask, "SODI test: SPM_SRC2_MASK with fewer requesters, blank screen only (0: the vendor's)");
@@ -46,7 +59,7 @@ index 8f78ade71..e61334a48 100644
  static unsigned int sodi_min_khz;
  module_param(sodi_min_khz, uint, 0644);
  MODULE_PARM_DESC(sodi_min_khz, "SODI: hold CPU0 at this kHz or more across each test period, refusing it otherwise (0: off)");
-@@ -553,6 +569,7 @@ struct spm_wake {
+@@ -553,6 +576,7 @@ struct spm_wake {
  	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
  	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
  	u32 r6;			/* resources still down at the wake (bit 31: DRAM) */
@@ -54,7 +67,18 @@ index 8f78ade71..e61334a48 100644
  	u32 wfi_loops;
  	u32 obs_seq, obs_ticks, obs_gap_us;	/* the observer's view of the period */
  	u32 fsm;		/* PCM_FSM_STA after the wait */
-@@ -1562,6 +1579,7 @@ static int spm_run(const struct spm_scen *sc)
+@@ -703,6 +727,10 @@ static inline void spm_wr(u32 off, u32 val)
+ #define MMSYS_CG_SET1		0x114
+ #define MMSYS_SODI_CG0		0x00004000
+ #define MMSYS_SODI_CG1		0x000000d0
++/* CG_CON0 gates of the display's DRAM readers: OVL0, OVL0_2L, OVL1_2L, RDMA0 */
++#define MMSYS_CG0_DISP_READ	0x000e8000
++#define MMSYS_CG0_DISP_OD	BIT(27)
++#define PWR_MFG			BIT(12)
+ 
+ static int sodi_mm_cg_set(const char *val, const struct kernel_param *kp)
+ {
+@@ -1562,6 +1590,7 @@ static int spm_run(const struct spm_scen *sc)
  	s.wake.timer_out = spm_rd(SPM_BSI_D1_SR);
  	s.wake.r13 = spm_rd(PCM_REG13_DATA);
  	s.wake.r6 = spm_rd(PCM_REG6_DATA);
@@ -62,7 +86,7 @@ index 8f78ade71..e61334a48 100644
  	s.wake.r0 = spm_rd(PCM_REG0_DATA);
  	s.wake.r7 = spm_rd(PCM_REG7_DATA);
  	s.wake.idle_sta = spm_rd(SUBSYS_IDLE_STA);
-@@ -1794,8 +1812,8 @@ static void spm_log_wake(const char *what)
+@@ -1794,8 +1823,8 @@ static void spm_log_wake(const char *what)
  		 s.wake.timer_out, s.wake.r13, s.wake.idle_sta,
  		 s.wake.debug_flag, s.wake.event_reg, s.wake.isr,
  		 s.wake.assert_pc);
@@ -73,15 +97,54 @@ index 8f78ade71..e61334a48 100644
  	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns, cpu pdn %d ret %d, cpu power %08x %08x, buck iso %08x>%08x\n",
  		 what, mul_u64_u64_div_u64(s.wake.cnt_wfi - s.wake.cnt_pcm_kick, NSEC_PER_SEC,
  					   arch_timer_get_cntfrq()),
-@@ -1966,6 +1984,18 @@ static int sodi_once(u64 ms)
+@@ -1949,8 +1978,37 @@ static void sodi_hold_put(struct freq_qos_request *req, struct cpufreq_policy *p
+ 	cpufreq_cpu_put(pol);
+ }
+ 
++/* For a narrowed SRC2 mask: the requester left out that could still fetch */
++static const char *sodi_src2_busy(u32 mask)
++{
++	u32 off = SODI_SRC2_MASK & ~mask, need = 0;
++	u32 st = spm_rd(SPM_PWR_STATUS), st2 = spm_rd(SPM_PWR_STATUS_2ND);
++
++	if (off & SRC2_DISP)
++		need |= MMSYS_CG0_DISP_READ;
++	if (off & SRC2_DISP_OD)
++		need |= MMSYS_CG0_DISP_OD;
++	if (need) {
++		/* MMSYS reads only with the display domain fully on */
++		if (st & st2 & PWR_DIS) {
++			if (!s.mmsys)
++				return "the display (no MMSYS mapping)";
++			if ((readl(s.mmsys + MMSYS_CG_CON0) & need) != need)
++				return "a display engine clock";
++		} else if ((st | st2) & PWR_DIS) {
++			return "the display domain, changing";
++		}
++	}
++	if ((off & SRC2_MFG) && ((st | st2) & PWR_MFG))
++		return "the GPU domain";
++	if ((off & SRC2_GCE) && !(readl(s.infra + INFRA_CG0_STA) & CG0_GCE))
++		return "the GCE clock";
++	return NULL;
++}
++
+ static int sodi_once(u64 ms)
+ {
++	const char *src2_busy = NULL;
+ 	struct freq_qos_request hold_req = {};
+ 	struct cpufreq_policy *hold;
+ 	struct i2c_adapter *i2c6;
+@@ -1966,6 +2024,19 @@ static int sodi_once(u64 ms)
  	}
  	/* A refused period must not print the previous period's wake lines */
  	s.entered = false;
 +	s.sodi.src2_mask = READ_ONCE(sodi_src2_mask);
 +	if (!s.sodi.src2_mask) {
 +		s.sodi.src2_mask = SODI_SRC2_MASK;
-+	} else if (s.sodi.src2_mask & ~SODI_SRC2_MASK) {
-+		dev_info(&s.pdev->dev, "sodi: src2 mask %08x sets bits outside %08x, refused\n",
++	} else if ((s.sodi.src2_mask & ~SODI_SRC2_MASK) ||
++		   (~s.sodi.src2_mask & SODI_SRC2_MASK & ~SRC2_MAY_CLEAR)) {
++		dev_info(&s.pdev->dev, "sodi: src2 mask %08x is not %08x less display, GPU or GCE bits, refused\n",
 +			 s.sodi.src2_mask, SODI_SRC2_MASK);
 +		return -EINVAL;
 +	} else if (!s.bl || !backlight_is_blank(s.bl)) {
@@ -92,7 +155,24 @@ index 8f78ade71..e61334a48 100644
  	i2c6 = spm_i2c6();
  	if (!i2c6) {
  		dev_info(&s.pdev->dev, "sodi: no I2C6 adapter, refused\n");
-@@ -2656,7 +2686,7 @@ static int __init spm_sleep_init(void)
+@@ -2030,10 +2101,15 @@ static int sodi_once(u64 ms)
+ 			s.sodi.ticks = div_u64((left_us - SODI_IDLE_EXIT_US) * 32768,
+ 					       USEC_PER_SEC);
+ 	}
+-	ret = busy ? -EBUSY : spm_run(&s.sodi);
++	if (!busy && s.sodi.src2_mask != SODI_SRC2_MASK)
++		src2_busy = sodi_src2_busy(s.sodi.src2_mask);
++	ret = busy || src2_busy ? -EBUSY : spm_run(&s.sodi);
+ 	if (busy)
+ 		dev_info(&s.pdev->dev, "sodi: %s running, refused\n",
+ 			 sodi_no_name[busy]);
++	else if (src2_busy)
++		dev_info(&s.pdev->dev, "sodi: src2 mask %08x with %s on, refused\n",
++			 s.sodi.src2_mask, src2_busy);
+ 	else if (ret == -EAGAIN)
+ 		dev_info(&s.pdev->dev, "sodi: an interrupt was pending, refused\n");
+ 	else if (ret && !s.entered)
+@@ -2656,7 +2732,7 @@ static int __init spm_sleep_init(void)
  
  	/* SODI (D3) is optional: suspend works without it */
  	s.sodi.src_req = 0;
