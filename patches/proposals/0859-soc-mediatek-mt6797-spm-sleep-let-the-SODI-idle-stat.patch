@@ -1,0 +1,252 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 24 Nov 2026 13:10:47 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: let the SODI idle state
+ ignore a stopped display's DRAM requests
+
+With the screen blanked, the display and display 1 requests keep the
+merged APSRC request up, so SODI's DRAM handlers never take DRAM into
+self-refresh. In test periods with those two requests masked while the
+display's engines were gated, DRAM went into self-refresh in every
+period, with CPU0 powered down and memory intact (stage D7d, runs C'
+and A).
+
+Add sodi_idle_disp_mask, off by default. With it, each SODI idle entry
+masks the display and display 1 requests when the display pipeline is
+provably stopped, checked with interrupts off just before the kick: the
+display domain off, or its DRAM readers (OVL0, OVL0_2L, OVL1_2L, RDMA0)
+gated in MMSYS and its write DMAs gated or not enabled. Otherwise the
+entry honours them, as the vendor's SODI does. This relies on every
+display start going through CPU0: a wake runs the program's exit, which
+takes DRAM out of self-refresh before CPU0 is powered on. The test
+periods' check uses the same function.
+
+Also:
+- read SPM_PASR_DPD_0 before spm_restore(), which writes back the value
+  saved at entry, so the logged field is the program's DRAM-down count;
+- log the time from CPU0's return from the firmware to the program's
+  return flag, the margin of the 5 ms poll;
+- count the idle state's DRAM-downs from SW_DEBUG bit 9 instead of r6,
+  which always shows the start word at the return, count EV15 aborts
+  (a nonzero PCM_REG_DATA_INI) separately, and count masked entries.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 106 +++++++++++++++++++-----
+ 1 file changed, 87 insertions(+), 19 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index ef6ce743a..59eb240e7 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -74,6 +74,10 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define INFRA_AO_PHYS		0x10001000
+ #define TOPCKGEN_PHYS		0x10000000
+ #define MMSYS_PHYS		0x14000000
++/* The display's write DMAs; +0x008 is the engine enable */
++#define DISP_WDMA0_PHYS		0x14011000
++#define DISP_WDMA1_PHYS		0x14012000
++#define DISP_WDMA_EN		0x008
+ #define M4U_PHYS		0x10205000
+ #define CHIPID_PHYS		0x08000000
+ #define GICD_PHYS		0x19000000
+@@ -577,6 +581,8 @@ struct spm_wake {
+ 	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
+ 	u32 r6;			/* resources still down at the wake (bit 31: DRAM) */
+ 	u32 src2_mask;		/* SPM_SRC2_MASK in the period */
++	u32 pasr;		/* SPM_PASR_DPD_0: DRAM-downs in the period (low half) */
++	u64 cnt_psci_back;	/* CPU0 back from the firmware */
+ 	u32 wfi_loops;
+ 	u32 obs_seq, obs_ticks, obs_gap_us;	/* the observer's view of the period */
+ 	u32 fsm;		/* PCM_FSM_STA after the wait */
+@@ -617,6 +623,7 @@ static struct {
+ 	void __iomem *cirq;
+ 	void __iomem *afe;
+ 	void __iomem *mmsys;
++	void __iomem *wdma[2];
+ 	void __iomem *m4u;
+ 	struct device *afe_dev;
+ 	u32 cirq_edge[CIRQ_WORDS];
+@@ -1513,6 +1520,7 @@ static int spm_run(const struct spm_scen *sc)
+ 				psci_cpu_suspend_enter(SODI_PSCI_CLUSTER_PDN) : -EOPNOTSUPP;
+ 			cpu_pm_exit();
+ 		}
++		s.wake.cnt_psci_back = __arch_counter_get_cntvct();
+ 		/*
+ 		 * The program raises its interrupt last, after powering CPU0 back
+ 		 * on and releasing the pause: give it up to 5 ms, without a WFI.
+@@ -1591,6 +1599,8 @@ static int spm_run(const struct spm_scen *sc)
+ 	s.wake.r13 = spm_rd(PCM_REG13_DATA);
+ 	s.wake.r6 = spm_rd(PCM_REG6_DATA);
+ 	s.wake.src2_mask = spm_rd(SPM_SRC2_MASK);
++	/* Before spm_restore(), which writes back the value saved at entry */
++	s.wake.pasr = spm_rd(SPM_PASR_DPD_0);
+ 	s.wake.r0 = spm_rd(PCM_REG0_DATA);
+ 	s.wake.r7 = spm_rd(PCM_REG7_DATA);
+ 	s.wake.idle_sta = spm_rd(SUBSYS_IDLE_STA);
+@@ -1824,7 +1834,11 @@ static void spm_log_wake(const char *what)
+ 		 s.wake.debug_flag, s.wake.event_reg, s.wake.isr,
+ 		 s.wake.assert_pc);
+ 	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x r6=%08x src2_mask=%08x\n",
+-		 what, s.dummy1, spm_rd(SPM_PASR_DPD_0), s.wake.r6, s.wake.src2_mask);
++		 what, s.dummy1, s.wake.pasr, s.wake.r6, s.wake.src2_mask);
++	if (s.wake.returned && s.wake.cnt_psci_back)
++		dev_info(&s.pdev->dev, "%s: CPU0 back to the return flag %llu ns\n", what,
++			 mul_u64_u64_div_u64(s.wake.cnt_return - s.wake.cnt_psci_back,
++					     NSEC_PER_SEC, arch_timer_get_cntfrq()));
+ 	dev_info(&s.pdev->dev, "%s: kick to first WFI %llu ns, cpu pdn %d ret %d, cpu power %08x %08x, buck iso %08x>%08x\n",
+ 		 what, mul_u64_u64_div_u64(s.wake.cnt_wfi - s.wake.cnt_pcm_kick, NSEC_PER_SEC,
+ 					   arch_timer_get_cntfrq()),
+@@ -1909,6 +1923,16 @@ MODULE_PARM_DESC(sodi_timer_cap, "SODI test: end the period before the next loca
+ 
+ static u64 sodi_timer_left(void);
+ 
++/*
++ * The idle state: mask the display and display 1 DRAM requests while the
++ * display pipeline is provably stopped, so DRAM can go into self-refresh
++ * with the screen dark (D7d run A). Off by default; it needs
++ * sodi_no_event=0 for the program's DRAM handlers to run at all.
++ */
++static bool sodi_idle_disp_mask;
++module_param(sodi_idle_disp_mask, bool, 0644);
++MODULE_PARM_DESC(sodi_idle_disp_mask, "SODI idle: ignore the display's DRAM requests while its engines are provably stopped");
++
+ #define SODI_IDLE_EXIT_US	1000
+ #define SODI_IDLE_MIN_US	2000
+ 
+@@ -1978,26 +2002,54 @@ static void sodi_hold_put(struct freq_qos_request *req, struct cpufreq_policy *p
+ 	cpufreq_cpu_put(pol);
+ }
+ 
++/*
++ * Whether the display pipeline is provably stopped: its domain off, or its
++ * DRAM readers (and display OD if asked) gated in MMSYS and its write DMAs
++ * either gated or not enabled. Interrupts are off and CPU0 is the only CPU,
++ * so nothing in Linux can start an engine after this. Masking the display's
++ * DRAM requests relies on every display start going through CPU0: a wake
++ * then runs the program's exit, which takes DRAM out of self-refresh before
++ * CPU0 is powered on (D7d).
++ */
++static const char *sodi_disp_busy(bool od)
++{
++	u32 st = spm_rd(SPM_PWR_STATUS), st2 = spm_rd(SPM_PWR_STATUS_2ND);
++	u32 need = MMSYS_CG0_DISP_READ | (od ? MMSYS_CG0_DISP_OD : 0), cg0;
++	int i;
++
++	if (!((st | st2) & PWR_DIS))
++		return NULL;
++	/* MMSYS reads only with the display domain fully on */
++	if (!(st & st2 & PWR_DIS))
++		return "the display domain, changing";
++	if (!s.mmsys)
++		return "the display (no MMSYS mapping)";
++	cg0 = readl(s.mmsys + MMSYS_CG_CON0);
++	if ((cg0 & need) != need)
++		return "a display engine clock";
++	/* A gated write DMA cannot run; a clocked one is read only then */
++	for (i = 0; i < 2; i++) {
++		if (cg0 & BIT(21 + i))
++			continue;
++		if (!s.wdma[i])
++			return "a display write DMA (no mapping)";
++		if (readl(s.wdma[i] + DISP_WDMA_EN) & BIT(0))
++			return "a display write DMA";
++	}
++	return NULL;
++}
++
+ /* For a narrowed SRC2 mask: the requester left out that could still fetch */
+ static const char *sodi_src2_busy(u32 mask)
+ {
+-	u32 off = SODI_SRC2_MASK & ~mask, need = 0;
++	const char *why;
++	u32 off = SODI_SRC2_MASK & ~mask;
+ 	u32 st = spm_rd(SPM_PWR_STATUS), st2 = spm_rd(SPM_PWR_STATUS_2ND);
+ 
+-	if (off & SRC2_DISP)
+-		need |= MMSYS_CG0_DISP_READ;
+-	if (off & SRC2_DISP_OD)
+-		need |= MMSYS_CG0_DISP_OD;
+-	if (need) {
+-		/* MMSYS reads only with the display domain fully on */
+-		if (st & st2 & PWR_DIS) {
+-			if (!s.mmsys)
+-				return "the display (no MMSYS mapping)";
+-			if ((readl(s.mmsys + MMSYS_CG_CON0) & need) != need)
+-				return "a display engine clock";
+-		} else if ((st | st2) & PWR_DIS) {
+-			return "the display domain, changing";
+-		}
++	if (off & (SRC2_DISP | SRC2_DISP_OD)) {
++		why = sodi_disp_busy(off & SRC2_DISP_OD);
++		if (why)
++			return why;
+ 	}
+ 	if ((off & SRC2_MFG) && ((st | st2) & PWR_MFG))
+ 		return "the GPU domain";
+@@ -2188,7 +2240,7 @@ static struct {
+ 	u64 tried, entered, refused[NO_COUNT];
+ 	u64 wake[ARRAY_SIZE(sodi_wake_bit)], wake_other;
+ 	u64 cnt_entry, cnt_sleep, cnt_exit, cnt_sleep_max;
+-	u64 backoff_end, backoffs, dram_down;
++	u64 backoff_end, backoffs, dram_down, dram_abort, disp_masked;
+ 	unsigned int short_run;
+ 	u32 cirq_hits[CIRQ_LINES];
+ 	int err;
+@@ -2249,8 +2301,14 @@ static void sodi_idle_count(u64 t0)
+ 	u32 r12 = s.wake.r12, hit = 0;
+ 
+ 	st.entered++;
+-	if (s.wake.r6 & BIT(31))
++	/* SW_DEBUG bit 9: EV15 took DRAM into self-refresh in the period */
++	if (s.wake.debug_flag & BIT(9))
+ 		st.dram_down++;
++	/* EV15 started but the DRAM-side acknowledgment never came */
++	if (s.wake.assert_pc)
++		st.dram_abort++;
++	if (s.idle.src2_mask != SODI_SRC2_MASK)
++		st.disp_masked++;
+ 	if (sleep < mul_u64_u64_div_u64(SODI_PDN_MIN_US, arch_timer_get_cntfrq(),
+ 					USEC_PER_SEC)) {
+ 		if (++st.short_run >= SODI_SHORT_RUN) {
+@@ -2327,6 +2385,9 @@ static int sodi_idle_enter(struct cpuidle_device *dev,
+ 	write_sysreg(cntv | ARCH_TIMER_CTRL_IT_MASK, cntv_ctl_el0);
+ 	write_sysreg(cntp | ARCH_TIMER_CTRL_IT_MASK, cntp_ctl_el0);
+ 	isb();
++	s.idle.src2_mask = SODI_SRC2_MASK;
++	if (READ_ONCE(sodi_idle_disp_mask) && !sodi_disp_busy(false))
++		s.idle.src2_mask &= ~SRC2_DISP;
+ 	ret = spm_run(&s.idle);
+ 	write_sysreg(cntv_cval, cntv_cval_el0);
+ 	write_sysreg(cntp_cval, cntp_cval_el0);
+@@ -2384,7 +2445,8 @@ static int sodi_idle_show(struct seq_file *m, void *v)
+ 
+ 	seq_printf(m, "tried %llu\nentered %llu\nstopped %d\nerror %d\nbackoffs %llu\n",
+ 		   st.tried, st.entered, st.broken, st.err, st.backoffs);
+-	seq_printf(m, "dram down at the wake %llu\n", st.dram_down);
++	seq_printf(m, "dram down %llu\ndram abort %llu\ndisplay masked %llu\n",
++		   st.dram_down, st.dram_abort, st.disp_masked);
+ 	for (i = 1; i < NO_COUNT; i++)
+ 		seq_printf(m, "refused %s: %llu\n", sodi_no_name[i], st.refused[i]);
+ 	for (i = 0; i < ARRAY_SIZE(sodi_wake_bit); i++)
+@@ -2638,6 +2700,10 @@ static void spm_unmap(void)
+ 		iounmap(s.afe);
+ 	if (s.mmsys)
+ 		iounmap(s.mmsys);
++	if (s.wdma[0])
++		iounmap(s.wdma[0]);
++	if (s.wdma[1])
++		iounmap(s.wdma[1]);
+ 	if (s.m4u)
+ 		iounmap(s.m4u);
+ 	if (s.afe_dev)
+@@ -2738,6 +2804,8 @@ static int __init spm_sleep_init(void)
+ 	s.cirq = ioremap(CIRQ_PHYS, 0x400);
+ 	s.afe = ioremap(AFE_PHYS, 0x1000);
+ 	s.mmsys = ioremap(MMSYS_PHYS, 0x1000);
++	s.wdma[0] = ioremap(DISP_WDMA0_PHYS, 0x10);
++	s.wdma[1] = ioremap(DISP_WDMA1_PHYS, 0x10);
+ 	s.m4u = ioremap(M4U_PHYS, 0x1000);
+ 	np = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-audio");
+ 	afe_pdev = np ? of_find_device_by_node(np) : NULL;
+-- 
+2.43.0
+

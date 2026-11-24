@@ -1427,3 +1427,4 @@ proposals/0854-soc-mediatek-mt6797-spm-sleep-power-CPU0-down-in-the.patch
 proposals/0855-soc-mediatek-mt6797-spm-sleep-log-r6-at-the-SODI-wak.patch
 proposals/0856-soc-mediatek-mt6797-spm-sleep-allow-a-narrower-SRC2-.patch
 proposals/0858-power-supply-mt6351-fuel-gauge-let-userspace-keep-th.patch
+proposals/0859-soc-mediatek-mt6797-spm-sleep-let-the-SODI-idle-stat.patch
