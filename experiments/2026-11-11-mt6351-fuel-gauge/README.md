@@ -1259,6 +1259,36 @@ Compiled at W=1 and checkpatch clean; not on a device.
 seen, and catching it would need the vendor's saved-SoC approach (a value kept in the RTC
 across power losses). That is a larger change, held until it is seen.
 
+## A cable-out case: 55 → 19 % after a short power-off (image 138, 2026-11-24)
+
+- **Boot `bece4c8b…` (12:32):** `start-up OCV 3862792 uV: 51 % of the OCV table`, shown as 55.
+- **Then:** about 10 min of D7 load, a clean power-off at about 12:43, and boot `8520d962…`
+  at 12:45: `start-up OCV 3736395 uV: 18 % of the OCV table`, shown as 19. It stayed at 18
+  through the boot.
+- **The earlier boots** that day went from 60 to 54 % by normal use, so the real level was
+  about 50 %.
+- **Why:** the table is flat between 3.74 and 3.87 V, about 4 mV per point. 0.13 V of
+  polarisation left from the load, after only 2 minutes off, cost 33 points. The start-up
+  sample is rested only after a longer off period.
+
+**Owner decision (through the custodian):** keep the charge level across a short power-off,
+saved by gemini-base at shutdown. The custodian's condition: not after a charge while off.
+
+**Built:** [0858](../../patches/proposals/0858-power-supply-mt6351-fuel-gauge-let-userspace-keep-th.patch).
+- `counted_charge_uah` under the battery's device: the counted charge on the table scale,
+  with `design_full_uah` as basis.
+- A write takes it as the charge now. It returns:
+  - `EBUSY` with a charger present (PMIC `RGS_CHRDET`);
+  - `ESTALE` when the start-up OCV showed more than a tenth of Q above the value written,
+    meaning a charge while off;
+  - `ERANGE` above Q.
+- A lower start-up OCV, the polarisation case, is accepted.
+- Compiled at W=1 and checkpatch clean; not on a device.
+
+**gemini-base (Arch root):** save the value with its basis and wall time at a clean shutdown.
+At bind, restore it once and only within about 30 min, then discard it. So an abrupt power
+loss later, with no shutdown save, never restores an old value.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.

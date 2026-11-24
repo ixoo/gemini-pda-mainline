@@ -1,0 +1,135 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 24 Nov 2026 13:01:25 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: let userspace keep the
+ counted charge
+
+After a short power-off the start-up OCV has not relaxed from the load
+before it. This cell's OCV table is flat between 3.74 and 3.87 V, about
+4 mV a point: a power-on two minutes after ten minutes of load sampled
+3.736 V and read 18 % of the table, where the boot before had sampled
+3.863 V and read 51 %, for a cell that had lost a few points.
+
+Expose the counted charge, on the table's scale like learned_full_uah, as
+counted_charge_uah, so that userspace can save it at a clean shutdown and
+write it back after a short power-off. A write takes it as the charge
+now. It is refused with a charger present, and when the start-up OCV
+shows clearly more charge, by more than a tenth of the full charge, than
+the value written: the system was charged while off, and the saved value
+is stale.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 70 ++++++++++++++++++++++++
+ 1 file changed, 70 insertions(+)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 331d175..6d32749 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -250,6 +250,9 @@ struct mt6351_fg {
+ 	/* When the last OCV reading was taken, and whether it was at rest. */
+ 	ktime_t anchor_time;
+ 	bool anchor_trusted;
++	/* The charge the start-up OCV gave, on the table's scale. */
++	s64 pwron_uah;
++	bool pwron_valid;
+ 	/* The full charge, learned or restored, and the last learning reading. */
+ 	s64 full_uah;
+ 	bool rest_learned;
+@@ -604,6 +607,8 @@ static void mt6351_fg_set_full(struct mt6351_fg *fg, s64 uah)
+ 	uah = min_t(s64, uah, fg->info->charge_full_design_uah);
+ 	if (fg->anchored && fg->full_uah > 0)
+ 		fg->anchor_uah = div64_s64(fg->anchor_uah * uah, fg->full_uah);
++	if (fg->pwron_valid && fg->full_uah > 0)
++		fg->pwron_uah = div64_s64(fg->pwron_uah * uah, fg->full_uah);
+ 	fg->full_uah = uah;
+ }
+ 
+@@ -1026,6 +1031,8 @@ static void mt6351_fg_pwron_anchor(struct mt6351_fg *fg)
+ 
+ 	guard(mutex)(&fg->lock);
+ 	fg->anchor_uah = div_s64(fg->full_uah * clamp(pct, 0, 100), 100);
++	fg->pwron_uah = fg->anchor_uah;
++	fg->pwron_valid = true;
+ 	fg->anchor_car = fg->car;
+ 	fg->anchor_time = ktime_get_boottime();
+ 	/*
+@@ -1219,6 +1226,68 @@ static ssize_t learned_full_uah_store(struct device *dev,
+ }
+ static DEVICE_ATTR_RW(learned_full_uah);
+ 
++/*
++ * The counted charge on the OCV table's scale, for userspace to keep across
++ * a short power-off, when the start-up OCV has not had time to relax. A
++ * write takes it as the charge now. It is refused with a charger present,
++ * and when the start-up OCV shows clearly more charge than the value written:
++ * a charge while the system was off has made the saved value stale.
++ */
++#define MT6351_FG_RESTORE_STALE_PCT	10
++
++static ssize_t counted_charge_uah_show(struct device *dev,
++				       struct device_attribute *attr, char *buf)
++{
++	struct mt6351_fg *fg = dev_get_drvdata(dev);
++	s64 uah;
++
++	guard(mutex)(&fg->lock);
++	if (!fg->anchored)
++		return -ENODATA;
++	uah = fg->anchor_uah + div_s64(mt6351_fg_car_nah(fg, fg->car - fg->anchor_car), 1000);
++	return sysfs_emit(buf, "%lld\n", clamp_t(s64, uah, 0, fg->full_uah));
++}
++
++static ssize_t counted_charge_uah_store(struct device *dev,
++					struct device_attribute *attr,
++					const char *buf, size_t count)
++{
++	struct mt6351_fg *fg = dev_get_drvdata(dev);
++	unsigned int chr;
++	u32 uah;
++	int ret;
++
++	ret = kstrtou32(buf, 0, &uah);
++	if (ret)
++		return ret;
++	if (!READ_ONCE(fg->info))
++		return -ENODATA;
++	ret = regmap_read(fg->regmap, MT6351_CHR_CON0, &chr);
++	if (ret)
++		return ret;
++	if (chr & MT6351_RGS_CHRDET)
++		return -EBUSY;
++
++	scoped_guard(mutex, &fg->lock) {
++		if (uah > fg->full_uah)
++			return -ERANGE;
++		if (fg->pwron_valid &&
++		    fg->pwron_uah - (s64)uah >
++		    div_s64(fg->full_uah * MT6351_FG_RESTORE_STALE_PCT, 100))
++			return -ESTALE;
++		fg->anchor_uah = uah;
++		fg->anchor_car = fg->car;
++		fg->anchor_time = ktime_get_boottime();
++		fg->anchor_trusted = true;
++		fg->anchored = true;
++	}
++	dev_info(fg->dev, "counted charge restored: %u uAh\n", uah);
++	power_supply_changed(fg->psy);
++
++	return count;
++}
++static DEVICE_ATTR_RW(counted_charge_uah);
++
+ static ssize_t design_full_uah_show(struct device *dev,
+ 				    struct device_attribute *attr, char *buf)
+ {
+@@ -1231,6 +1300,7 @@ static ssize_t design_full_uah_show(struct device *dev,
+ static DEVICE_ATTR_RO(design_full_uah);
+ 
+ static struct attribute *mt6351_fg_attrs[] = {
++	&dev_attr_counted_charge_uah.attr,
+ 	&dev_attr_learned_full_uah.attr,
+ 	&dev_attr_design_full_uah.attr,
+ 	&dev_attr_learned_resistance_uohm.attr,
+-- 
+2.54.0 (Apple Git-157)
+
