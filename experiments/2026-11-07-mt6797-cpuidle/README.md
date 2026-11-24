@@ -10007,8 +10007,11 @@ session. D7c waits for that reading.
   bit 10 (the multimedia state: the display's DRAM traffic) was set in
   every D7b period, and the CONN bits 4 and 15 in 192 of 223.
 
-**Reading of D7b.** With the screen blanked, the display side still holds
-DRAM in every period, so SODI's DRAM path never starts, Wi-Fi or not.
+**Reading of D7b.** SODI's DRAM path never started. CONN's APSRC request
+held it in 192 periods; in the other 31, `r13` (read at the wake, after
+CONN2AP ended the period) still showed the multimedia state, so the
+display side is the best suspect, not yet shown: the GPU, GCE and display
+OD requests are honoured in the same mask and do not appear in `r13`.
 That fits SODI's purpose: the vendor's screen-on idle, where the display
 keeps fetching and DRAM stays up. D7a's small saving is therefore close to
 what SODI gives on this station with the screen dark, unless the display
@@ -10033,18 +10036,22 @@ one more mark:
   separate the two holders. In D6f `r13` read `00066400`, with bit 10
   still set, so the display side is the first suspect.
 
-**Decision for the owner.** Three ways on:
+**Decision for the owner.** Stop or go on; if going on, the quiet run
+comes first, since it decides whether the display is the blocker at all:
 - Keep the power-down SODI idle state as it ran in D7a (flags 13 and 15
   set), which is safe and gives a few mA, and stop the SODI work there.
-- Or a cheap check first, D7c: D6f's quiet setup (Wi-Fi down, CONN2AP
+- Or go on, starting with D7c: D6f's quiet setup (Wi-Fi down, CONN2AP
   masked, `D4_ONLY_B=1` or windows A only) with flag 13 clear, reading
   `pasr_dpd_0`, the debug word and `pc=` per period, no new code. If
   `pasr_dpd_0` counts, the handlers work with CPU0 off and the idle state
-  can take them; if it stays 0, the display side holds APSRC.
-- Or look first at why the multimedia state stays set with the screen
-  blanked (the display pipeline's power and clocks after the blank, with
-  the display work), and then at the vendor's screen-off idle program,
-  which has its own stage.
+  can take them; if it stays 0, CONN is excluded and the next step is
+  why the multimedia state stays set with the screen blanked (the display
+  pipeline's power and clocks after the blank, with the display work),
+  and then the vendor's screen-off idle program, which has its own stage.
+
+If the owner stops, the result stands as: the power-down SODI idle state
+works and is safe, saves about 5 mA as configured, and the remaining
+saving is behind the APSRC release.
 The earlier D7c, the idle state with flag 13 clear, is withdrawn; the
 quiet test-period run above takes its name if chosen.
 
