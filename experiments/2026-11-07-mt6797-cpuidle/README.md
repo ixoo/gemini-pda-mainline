@@ -10749,6 +10749,37 @@ moved from 1-4 ms to under 1 ms as predicted. 0868 stays.
   D7g or D7h, so the 20 ms floor refuses nothing that a lower floor would
   admit at this Wi-Fi load.
 
+### D7h repeat: four windows with the 2 ms exit latency (custodian, 2026-11-24)
+
+Run at the owner's request after D7h stopped on a key press.
+
+**Candidate.** Image 139, fresh boot `73ccbf16`, module `5d2540dd` (as
+D7h), `d5.sh` d488d5e8 with run 1's options, unpinned, Wi-Fi up, cable
+out, battery 31%.
+
+**Observations.**
+
+| Window | mA | Entries | SODI time | wlan0 rx / dropped / tx |
+| --- | --- | --- | --- | --- |
+| off1 | 81 | 0 | 0 | 599 / 213 / 0 |
+| on1 | 65 | 1163 | 170.3 s of 182 (94%) | 610 / 214 / 4 |
+| off2 | 80 | 0 | 0 | 598 / 212 / 0 |
+| on2 | 67 | 1224 | 169.6 s of 181 (94%) | 647 / 216 / 3 |
+
+- Hashes and retention equal after every window; stopped 0, error 0,
+  back-offs 0, dram abort 0, taint 0 at the start and the end.
+- At the end: entered 2531, dram down 2114 (84%); "timer due" 1360,
+  every one under 1 ms; timer-only wakes 1374.
+- Return after the PCM timer's end: about 1629 µs on average, 1674 µs at
+  most; 91 under 1.5 ms, 1283 at 1.5-2 ms, none at 2 ms or more.
+- Logs kept privately.
+
+**Result.** **Pass** over a full run: 0868 holds (`late_max_us` 1674
+under 2000), the timer-due tails stay under 1 ms, and the on windows
+draw 65-67 mA against 80-81 mA off, D7g run 1's saving within the
+gauge's resolution. With D7g and D7h, the exit latency is set from 3748
+timer-only wakes whose return never exceeded 1682 µs.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
