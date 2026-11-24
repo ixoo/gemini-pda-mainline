@@ -10610,6 +10610,52 @@ packet and drop deltas and its operstate per window, for the Wi-Fi work.
 - **Admission:** D7f's configuration plus counters and a cpufreq pin,
   both run before (D6h pinned 221 MHz); the owner approves the runs.
 
+### D7g run 1: the timer-due refusals follow the state's own early return (custodian, 2026-11-24)
+
+**Candidate.** Image 139, fresh boot `863fd625`, module `c0cfc8c3` (with
+0863), `d5.sh` d488d5e8 with D7f's options, unpinned, Wi-Fi up (operstate
+up in every window), cable out, battery 34% to 33%.
+
+**Observations.**
+
+| Window | mA | Entries | SODI time | Interrupts | wlan0 rx / dropped / tx |
+| --- | --- | --- | --- | --- | --- |
+| off1 | 80 | 0 | 0 | 5492 | 625 / 217 / 4 |
+| on1 | 66 | 1169 | 168.1 s (93%) | 5876 | 593 / 214 / 0 |
+| off2 | 80 | 0 | 0 | 5368 | 592 / 216 / 0 |
+| on2 | 66 | 1249 | 167.7 s (93%) | 6309 | 618 / 215 / 0 |
+
+- Hashes and retention (1024 MiB) equal after every window; stopped 0,
+  error 0, back-offs 0, dram abort 0, taint 0 at the end.
+- At the end: tried 4432, entered 2546, dram down 2172 (85%).
+- "Timer due" 1456 refusals, every one with the next timer 1-4 ms away;
+  none under 1 ms, none at 4-20 ms.
+- Wakes: timer 1474, SYS_CIRQ 1072 (all SPI 283, the WLAN line), the rest
+  0. Timer-only wakes 1474.
+- From the PCM timer's programmed end to CPU0 back in the idle path:
+  1637 µs on average, 1682 µs at most; 91 under 1.5 ms, 1383 at 1.5-2 ms,
+  none under 1 ms or at 2 ms and over.
+- Mean entry 225 µs, exit 89 µs; longest sleep 506 ms.
+- Logs kept privately.
+
+**Result.** **Pass** for run 1; 14 mA saved (66 against 80 mA), 93%
+residency.
+
+**Readings.**
+- The timer-due refusals are not the retained tick but the state's own
+  early return: the period ends 5000 µs (the exit latency) before the
+  next local event and CPU0 is back about 1640 µs after that, so the
+  next idle entry finds the event 3.3-3.4 ms away, under the 20 ms
+  floor, and takes WFI. Timer-only wakes (1474) and timer-due refusals
+  (1456) match nearly one for one, and all the refusals sit in the 1-4 ms
+  bucket that this predicts. An exit latency closer to the measured
+  return shortens that WFI tail; no residency change would admit it.
+- The return path is narrow (1.5-1.7 ms) at the OPPs idle used here; run
+  2 gives it at 221 MHz, which sets the exit latency.
+- wlan0 dropped about 35% of received packets in every window, with the
+  state on or off, so the drops are not the idle state's. Passed to the
+  Wi-Fi work.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
