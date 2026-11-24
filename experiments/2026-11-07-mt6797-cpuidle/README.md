@@ -10777,7 +10777,7 @@ out, battery 31%.
 **Result.** **Pass** over a full run: 0868 holds (`late_max_us` 1674
 under 2000), the timer-due tails stay under 1 ms, and the on windows
 draw 65-67 mA against 80-81 mA off, D7g run 1's saving within the
-gauge's resolution. With D7g and D7h, the exit latency is set from 3748
+gauge's resolution. With D7g and D7h, the exit latency is set from 4467
 timer-only wakes whose return never exceeded 1682 µs.
 
 ### Request D5n (proposed): two states with no resource events
