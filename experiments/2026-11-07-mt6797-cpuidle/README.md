@@ -9515,6 +9515,31 @@ Wi-Fi is down. The key is still untested.
 
 The results table and rule are D6e's.
 
+**The reviewer on D6f (2026-11-24).**
+- A masked CONN2AP cannot matter to the program. The wake mask only
+  selects which `r12` bits end the wait; what connsys needs goes through
+  `r13` (its clock, APSRC and DDR requests) under the SPM's source-request
+  masks. With flag 13 set, as in every run so far, the resource handlers do
+  not run at all. Every timer-only run (`sodi_wake_src=0` with Wi-Fi
+  joined: D5af, D5ao, D5ap, D5as, the D5aw bisection) already ran with
+  CONN2AP asserted and masked. The SRC masks matter once the idle path
+  drops flag 13.
+- **For the idle path:** an interface that is down leaves CONN2AP
+  asserted and unserviced, a standing wake. Every entry would return at
+  once for as long as Wi-Fi is down, so the idle driver needs the wake
+  masked while the interface is down, or the source quiesced, and a
+  back-off after repeated immediate wakes, like the test script's
+  five-in-a-row stop.
+- D6e's five immediate wakes are five more clean passes of the
+  pending-wake path through the power-down, the path the reviewer flagged
+  in D6b.
+- In D6f, note whether `r13`'s CONN bits still toggle with the interface
+  down. In the kernel log, D6d's periods (Wi-Fi up) had `r13`
+  `0006e410` in 90 of 97, with bits 4 and 15 set; D6e's five (interface
+  down) all had `00046400`, with bits 4, 15 and 17 clear. So connsys
+  looks asleep rather than merely unserviced, while CONN2AP stays
+  asserted.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
