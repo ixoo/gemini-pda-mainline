@@ -218,10 +218,10 @@ in_echos() {
 # 1 s (past the synced refusal line), ten at most in a row. Sets R12 and
 # SLEPT for the caller.
 # The summed /proc/interrupts counts of the keyboard path: the expander's
-# EINT parent (I2C 3-0062) and the keypad lines behind it, so other EINT
+# EINT parent (I2C 5-005b, EINT 10) and the keypad lines behind it, so other EINT
 # users do not count.
 key_lines() {
-	grep -iE ' 3-0062$|aw9523|keypad|keyboard' /proc/interrupts
+	grep -iE ' 5-005b$|aw9523|keypad|keyboard' /proc/interrupts
 }
 
 key_irqs() {
@@ -599,7 +599,7 @@ key=0
 seen=0
 k0=$(key_irqs)
 log "B: keyboard-path interrupt count $k0"
-key_lines | grep -q ' 3-0062$' || stop "no EINT line for the keyboard expander (3-0062)"
+key_lines | grep -q ' 5-005b$' || stop "no EINT line for the keyboard expander (5-005b)"
 key_lines | sed 's/^/    B before: /'
 start=$(date +%s)
 while [ $(( $(date +%s) - start )) -lt 300 ]; do

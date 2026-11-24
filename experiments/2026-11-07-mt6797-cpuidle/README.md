@@ -9248,9 +9248,11 @@ cable out, battery 100 %. 21:31:24 to 21:42:18.
   1274000 ×1 (read about 1 s before each kick).
 - **Kick to first WFI:** median 27.5 µs (27.1-98.5 µs).
 - **The key never reached Linux:** window B ran 300 s with no key wake,
-  and `/proc/interrupts` before and after are identical: the EINT parent
-  of the keyboard expander stayed at 61 and the matrix-keypad lines
-  unchanged (3 in all, from before the run). CONN2AP woke every period of B (about 148), so B was never quiet.
+  and `/proc/interrupts` before and after are identical: the expander's
+  EINT parent stayed at 37 and the matrix-keypad lines unchanged (3 in
+  all, from before the run). The first version of this line gave the
+  touchscreen's EINT line (61) as the expander's. CONN2AP woke every
+  period of B (about 148), so B was never quiet.
   Whether and when the owner pressed is being asked.
 - `im fsm` `02c48910>02448910` in 88 periods, spread through the run,
   never stuck. Logs kept privately.
@@ -9302,13 +9304,22 @@ window can no longer read as a result. `D4_ONLY_B=1` skips windows C
 and A.
 
 After the reviewer read the change, the count covers only the keyboard
-path: the expander's EINT parent (`3-0062`, EINT 8) and the matrix-keypad
+path: the expander's EINT parent and the matrix-keypad
 lines behind it, so another EINT user cannot end the window as a key. The
 script stops if the parent line is missing. A key wake now waits 2 s and
 says whether the count rose, since that delivery is what the run is for.
-D6b's capture shows EINT 8 configured as an edge in Linux, not a level, so
-the reviewer's "should have counted late" relies on the EINT block latching
-the edge while CPU0 is down.
+
+**Correction (custodian, 2026-11-24).** a432740f checks the wrong parent
+line: `3-0062` (EINT 8, edge) is the touchscreen. The expander's
+EINT parent is `5-005b` (EINT 10, level), as sysfs on boot `f85d13d4`
+shows. A control press after D6c, with the SODI state disabled, moved
+EINT 10 from 0 to 8 and one matrix-keypad line from 0 to 1, and left
+EINT 8 at 0, so the keyboard reaches Linux through EINT 10, the expander
+and the matrix keypad. The D6b line above that "stayed at 61" was the
+touchscreen's (now corrected there). In D6c the
+keypad lines were still counted, so its "no key seen" stands. The
+expander's parent is a level, as the reviewer assumed. The script now
+counts and checks `5-005b` (commit recording this).
 
 - **Candidate:** image 138, module 4aa576a0, D6b's options plus
   `D4_ONLY_B=1`, no pin, cable out. The owner presses one key once, early
@@ -9351,7 +9362,8 @@ another try needs a fresh boot.
 
 ### Request D6d (proposed): D6c with a press time fixed before launch
 
-- **Candidate:** as D6c, on a fresh boot.
+- **Candidate:** as D6c, on a fresh boot, with `d4.sh` counting the
+  expander's real parent line `5-005b` (see the correction above).
 - **Change:** no live signal. Before launch the custodian gives the owner
   a clock time to press one key once, about 60 s after window B starts
   (B starts about 80 s after launch), so the press lands inside the
