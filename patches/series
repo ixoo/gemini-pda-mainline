@@ -1439,3 +1439,4 @@ proposals/0859-soc-mediatek-mt6797-spm-sleep-let-the-SODI-idle-stat.patch
 proposals/0860-soc-mediatek-mt6797-spm-sleep-refuse-SODI-while-a-ma.patch
 proposals/0863-soc-mediatek-mt6797-spm-sleep-count-how-soon-timers-.patch
 proposals/0868-soc-mediatek-mt6797-spm-sleep-end-SODI-idle-periods-.patch
+proposals/0871-soc-mediatek-mt6797-spm-sleep-take-the-SODI-idle-sta.patch

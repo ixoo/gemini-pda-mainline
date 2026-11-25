@@ -10780,6 +10780,77 @@ draw 65-67 mA against 80-81 mA off, D7g run 1's saving within the
 gauge's resolution. With D7g and D7h, the exit latency is set from 4467
 timer-only wakes whose return never exceeded 1682 µs.
 
+### Daily use: the path, its risks and a soak (proposed, 2026-11-24)
+
+The owner wants every energy saving in for a trip ("I want all the
+energy savings in", relayed by the custodian). Code and packaging are
+approved by those words; device tests need the owner's approval.
+
+**The path.**
+1. **0871 (after 0868):** D7f-D7h's options become the module defaults
+   (`sodi_keep_26m` on, `sodi_idle_disp_mask` on, CONN2AP out of the
+   wake set; `sodi_no_event` was already off), so loading needs no
+   options. A system suspend refuses the state from
+   `PM_SUSPEND_PREPARE` to `PM_POST_SUSPEND` ("suspend or test"): s2idle
+   would otherwise take the deepest enabled state, this one, with CPU0
+   alone, a combination never tested. The state still registers
+   disabled.
+2. **Boot (gemini-base, arch-root):** load `mt6797-spm-sleep` from
+   `modules-load.conf`, and a unit that writes 0 to
+   `cpu0/cpuidle/state1/disable` after the module is up and 1 when
+   stopped. Disabling that unit is the off switch.
+3. **CPU0 alone while dark (gemini-base):** on the card root nothing takes
+   CPUs 1-7 offline at the blank today; `d5.sh` did it for the runs. The
+   station's `backlight-policy` is not on the card. A small root helper,
+   run from the compositor's screen-off and screen-on hooks, takes CPUs
+   1-7 offline after DPMS Off and brings back the ones it took on
+   screen-on, with no polling.
+
+**Risks for unattended use.**
+- **Endurance is the main one.** The power-down entry has run about
+  12,000 idle entries and a few hundred test periods without a hang, in
+  runs of 15 minutes at most; a blanked day is about 25,000 entries an
+  hour. Rare faults are not excluded. A hang stops CPU0 for good in the
+  program; the hardware watchdog should then reset the device, and a
+  reset lands in Gemian unless boot2 is selected by hand, which the
+  owner can do.
+- **Wakes in SODI.** Keys through EINT were shown in test periods (D6g),
+  not in the idle state. The power key and a charger plug are PMIC
+  interrupts on EINT 176, never shown to end a period. Any interrupt
+  not in the wake set still waits at most 2 s, the PCM timer's cap, and
+  is then served: the cost is latency, not a lost event, except for
+  edges SYS_CIRQ does not latch, which no run has shown.
+- **USB gadget and MSDC.** Both refuse the state while busy (AP DMA,
+  MSDC, USB counters), which is correct and was common in every run;
+  with a cable in, the gadget keeps it refused. MSDC is the card root,
+  so card I/O already ran across thousands of entries.
+- **The module holds itself** (the cpuidle driver's owner reference), so
+  it cannot be removed. If the state misbehaves, disabling it in sysfs
+  (or the unit) leaves only the WFI state; if the module itself
+  misbehaves, the fix is removing it from `modules-load.conf` and a
+  restart, which needs a shell on the device.
+- **Suspend.** Loading the module registers the `mem` suspend ops, which
+  makes `deep` the kernel's default; `sleep.conf`'s
+  `MemorySleepMode=s2idle` must still select s2idle at each lid-close
+  suspend. A test checks it.
+- **The A72 flag stays off;** CPUs 8-9 stay offline, which the state
+  requires anyway.
+
+**Soak (proposed, for the owner).** On a fresh boot of the packaged
+image, cable out, Wi-Fi up, normal desktop:
+- A. 30 blank/unblank cycles by the idle timeout, each with a key press
+  after 2-5 minutes dark: every wake lights the screen and CPUs 1-7 come
+  back; `sodi_idle` shows entries in each dark spell.
+- B. One power-key press and one charger plug while dark: both are served
+  within 2 s.
+- C. One lid-close suspend on battery and a wake: s2idle is used
+  (`/sys/power/mem_sleep` at suspend), "suspend or test" refusals rise,
+  and the device resumes.
+- D. Overnight dark, 8 hours or more: no reset, `stopped` 0, `error` 0,
+  current from the charge counter against an evening without the state.
+Pass is no hang, no lost wake and no warning. Without D, the state is
+not proven for four days unattended.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)

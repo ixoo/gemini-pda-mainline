@@ -1,0 +1,135 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 24 Nov 2026 19:01:55 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: take the SODI idle state's
+ tested options by default
+
+The SODI idle state has run with the same options in D7f-D7h: 26 MHz
+kept on (the exit latency was measured with it), the display's DRAM
+requests masked while its engines are provably stopped, and CONN2AP out
+of the wake set. Make those the defaults, so loading the module at boot
+needs no options. SODI_NO_EVENT was already off by default. Test periods
+that read sodi_keep_26m and sodi_wake_src now get the same defaults.
+
+s2idle enters the deepest enabled cpuidle state, which would be this one
+when CPU0 runs alone; that combination has not been tested. Refuse the
+state from PM_SUSPEND_PREPARE to PM_POST_SUSPEND, counted under "suspend
+or test", so a system suspend keeps to WFI as before.
+
+The state is still registered disabled; userspace enables it.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 39 +++++++++++++++++++++----
+ 1 file changed, 33 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 814b7ef0e..00ee7d2db 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -204,6 +204,7 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+  */
+ #define SODI_WAKE_SRC		0x0f57c5f5
+ #define WAKE_APXGPT		BIT(4)
++#define WAKE_CONN2AP		BIT(5)
+ /* The PCM watchdog, in wake mode, ends the period instead of resetting */
+ #define WAKE_PCM_WDT		BIT(13)
+ /* The PCM watchdog's margin past the PCM timer: 2 s at 32,768 Hz */
+@@ -263,7 +264,8 @@ MODULE_PARM_DESC(sodi_no_event, "SODI: set SODI_NO_EVENT, so no resource handler
+  */
+ #define SODI_FLAG_KEEP_26M	BIT(15)
+ 
+-static bool sodi_keep_26m;
++/* On by default: the idle state's exit latency was measured with it (D7g) */
++static bool sodi_keep_26m = true;
+ module_param(sodi_keep_26m, bool, 0644);
+ MODULE_PARM_DESC(sodi_keep_26m, "SODI: set DIS_SRCCLKEN_LOW, so 26 MHz and infra stay forced awake (the idle state takes it at load)");
+ 
+@@ -635,6 +637,8 @@ static struct {
+ 	struct backlight_device *bl;
+ 	struct i2c_adapter *i2c6;
+ 	bool idle_registered;
++	/* A system suspend is under way: the idle state stays out of it */
++	bool idle_suspend;
+ 	u32 flags;
+ 	bool hwcid_5140;
+ 	int irq;
+@@ -672,9 +676,12 @@ MODULE_PARM_DESC(gic_mask, "Disable every SPI but the SPM's at the GIC while CPU
+ /*
+  * The SODI wake sources, limited to the vendor's set; the PCM timer is always
+  * on. APXGPT is left out: mainline has no GPT node, so nothing services the
+- * GPT, and in D4 its event was asserted at the start of every period.
++ * GPT, and in D4 its event was asserted at the start of every period. CONN2AP
++ * is left out too: with the Wi-Fi interface down it is asserted for good and
++ * ends every period at once (D6e), and with Wi-Fi up its traffic wakes CPU0
++ * through the WLAN line in SYS_CIRQ instead (D7f-D7h).
+  */
+-static unsigned int sodi_wake_src = SODI_WAKE_SRC & ~WAKE_APXGPT;
++static unsigned int sodi_wake_src = SODI_WAKE_SRC & ~WAKE_APXGPT & ~WAKE_CONN2AP;
+ module_param(sodi_wake_src, uint, 0644);
+ MODULE_PARM_DESC(sodi_wake_src, "SODI wake sources, within 0x0f57c5f5 (the timer is always on)");
+ 
+@@ -1941,10 +1948,10 @@ static u64 sodi_timer_left(void);
+ /*
+  * The idle state: mask the display and display 1 DRAM requests while the
+  * display pipeline is provably stopped, so DRAM can go into self-refresh
+- * with the screen dark (D7d run A). Off by default; it needs
++ * with the screen dark (D7d run A). On by default (D7f-D7h); it needs
+  * sodi_no_event=0 for the program's DRAM handlers to run at all.
+  */
+-static bool sodi_idle_disp_mask;
++static bool sodi_idle_disp_mask = true;
+ module_param(sodi_idle_disp_mask, bool, 0644);
+ MODULE_PARM_DESC(sodi_idle_disp_mask, "SODI idle: ignore the display's DRAM requests while its engines are provably stopped");
+ 
+@@ -2411,7 +2418,7 @@ static int sodi_idle_enter(struct cpuidle_device *dev,
+ 		return sodi_idle_refuse(NO_CPUS);
+ 	if (!backlight_is_blank(s.bl))
+ 		return sodi_idle_refuse(NO_LIT);
+-	if (READ_ONCE(s.pmic_done))
++	if (READ_ONCE(s.pmic_done) || READ_ONCE(s.idle_suspend))
+ 		return sodi_idle_refuse(NO_SUSPEND);
+ 	left = sodi_timer_left();
+ 	us = left == U64_MAX ? U64_MAX :
+@@ -2544,6 +2551,24 @@ static void sodi_idle_put(void)
+ 	s.i2c6 = NULL;
+ }
+ 
++/*
++ * s2idle uses the deepest enabled cpuidle state, which would be this one with
++ * CPU0 alone. That combination is untested, so a system suspend keeps to WFI.
++ */
++static int sodi_idle_pm(struct notifier_block *nb, unsigned long event,
++			void *unused)
++{
++	if (event == PM_SUSPEND_PREPARE)
++		WRITE_ONCE(s.idle_suspend, true);
++	else if (event == PM_POST_SUSPEND)
++		WRITE_ONCE(s.idle_suspend, false);
++	return NOTIFY_DONE;
++}
++
++static struct notifier_block sodi_idle_pm_nb = {
++	.notifier_call = sodi_idle_pm,
++};
++
+ static void sodi_idle_register(void)
+ {
+ 	struct device_node *np;
+@@ -2585,6 +2610,7 @@ static void sodi_idle_register(void)
+ 		return;
+ 	}
+ 	s.idle_registered = true;
++	register_pm_notifier(&sodi_idle_pm_nb);
+ 	sodi_idle_debugfs = debugfs_create_file("sodi_idle", 0400, NULL, NULL,
+ 						&sodi_idle_fops);
+ 	dev_info(&s.pdev->dev, "SODI idle state for CPU0 registered, disabled until enabled in sysfs\n");
+@@ -2595,6 +2621,7 @@ static void sodi_idle_unregister(void)
+ 	if (!s.idle_registered)
+ 		return;
+ 	debugfs_remove(sodi_idle_debugfs);
++	unregister_pm_notifier(&sodi_idle_pm_nb);
+ 	cpuidle_unregister(&sodi_idle_driver);
+ 	sodi_idle_put();
+ 	s.idle_registered = false;
+-- 
+2.43.0
+
