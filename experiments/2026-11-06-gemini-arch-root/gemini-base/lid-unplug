@@ -1,0 +1,18 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Suspends when the charger goes away while the lid is closed (owner, 2026-11-24). logind
+# decides only at the lid event: a lid closed on the charger is ignored
+# (HandleLidSwitchExternalPower=ignore), and nothing suspends later when the charger is
+# removed, so the device stayed awake on battery with the lid shut. Run by udev
+# (lid-unplug.rules) on a charger supply's change to offline.
+# usage: lid-unplug
+closed=$(busctl get-property org.freedesktop.login1 /org/freedesktop/login1 \
+    org.freedesktop.login1.Manager LidClosed 2>/dev/null)
+[ "$closed" = "b true" ] || exit 0
+# Any external supply still online means the charger is still there (or another one is).
+for supply in /sys/class/power_supply/*; do
+    [ "$(cat "$supply/type" 2>/dev/null)" = Battery ] && continue
+    [ "$(cat "$supply/online" 2>/dev/null)" = 1 ] && exit 0
+done
+echo "lid-unplug: charger removed with the lid closed; suspending" >/dev/kmsg 2>/dev/null
+systemctl suspend --no-block

@@ -111,7 +111,9 @@ radius = 3
 # runs these on each lid change and once at startup.
 [events]
 lid_close = "umbriel msg dpms-off"
-lid_open = "umbriel msg dpms-on"
+# Opening the lid isn't input, so Noctalia's idle resume doesn't run: bring back the CPUs
+# cpus-dark took offline here too.
+lid_open = "umbriel msg dpms-on; sudo -n /usr/lib/gemini/cpus-dark on"
 
 [layout.scrolling]
 default_extent_fraction = 1.0

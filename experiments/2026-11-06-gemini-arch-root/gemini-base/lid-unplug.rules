@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: MIT
+# A charger supply going offline: lid-unplug suspends if the lid is closed and nothing else
+# supplies power (owner, 2026-11-24).
+ACTION=="change", SUBSYSTEM=="power_supply", ATTR{type}=="USB|Mains", ATTR{online}=="0", \
+  RUN+="/usr/lib/gemini/lid-unplug"

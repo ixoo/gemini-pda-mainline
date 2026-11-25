@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and display-start
 # and the audio UCM profile here, so each file has one copy in the repository.
 pkgname=gemini-base
-pkgver=71
+pkgver=72
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -52,11 +52,11 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         gemini-battery-capacity.service gemini-battery-calibrate idle-timeout
         battery-guard battery-guard.conf gemini-battery-guard.service upower.conf dma-heap.rules mpv.conf
         gemini-no-av1.user.js noctalia-power.toml gemini-serial-console.service usb-autosuspend.rules
-        cpus-dark gemini-sodi.service sudoers-cpus-dark
+        cpus-dark gemini-sodi.service sudoers-cpus-dark lid-unplug lid-unplug.rules
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
         "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
         "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
-sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
             '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
@@ -141,6 +141,9 @@ package() {
     # The SODI idle state for daily use, with CPU0 alone while the screen is off (cpus-dark,
     # run from Noctalia's idle behavior through sudo).
     install -Dm755 cpus-dark "$pkgdir/usr/lib/gemini/cpus-dark"
+    # Suspend when the charger goes away with the lid closed.
+    install -Dm755 lid-unplug "$pkgdir/usr/lib/gemini/lid-unplug"
+    install -Dm644 lid-unplug.rules "$pkgdir/usr/lib/udev/rules.d/63-gemini-lid-unplug.rules"
     install -Dm644 gemini-sodi.service "$pkgdir/usr/lib/systemd/system/gemini-sodi.service"
     ln -s ../gemini-sodi.service "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/gemini-sodi.service"
     # The internal UART powers down: no getty on it (systemd's generator starts one for every

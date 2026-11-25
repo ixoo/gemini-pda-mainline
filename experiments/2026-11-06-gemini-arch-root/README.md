@@ -2794,3 +2794,29 @@ Tested: ShellCheck on `cpus-dark` and `idle-timeout`; `cpus-dark` against a fake
 and a bad argument); `visudo -c` on the rule; and the generated Noctalia file parses. Built in an
 Arch chroot over card-32's image: `gemini-base-71` (`df1dde46…`). Not on the device; it needs an
 image with 0871.
+
+#### Idle suspend on battery, and suspend on unplug with the lid closed (gemini-base 72, owner, 2026-11-24)
+
+For the owner's trip, by their choices ("Yes, after 10 min (Recommended)", "Yes (Recommended)")
+through the custodian:
+
+- **Idle suspend:** on battery, `idle-timeout` adds a Noctalia `suspend` behavior at 600 s,
+  8 min after the screen-off, without locking first (`lock_before_suspend = false`). On the
+  charger the behavior isn't written, so a plug-in removes it. Noctalia suspends with
+  `systemctl suspend`, and logind's `sleep.conf` keeps s2idle.
+- **Unplug with the lid closed:** logind decides only at the lid event, so a lid closed on the
+  charger stayed awake after the charger was removed (found in the 67 test).
+  `63-gemini-lid-unplug.rules` runs `lid-unplug` when a USB or mains supply goes offline. If
+  logind reports the lid closed and no external supply is online, it suspends.
+- **CPUs on lid open:** opening the lid isn't input, so Noctalia's idle resume, which brings
+  back the CPUs `cpus-dark` took, waits for the first key or touch. Umbriel's `lid_open` now
+  also runs `cpus-dark on`.
+
+Suspending with CPUs 1-7 offline is what 0871's suspend guard covers, by the cpuidle session's
+review: it refuses SODI from the suspend's prepare to its end. A key wake is input, so the
+idle resume brings the CPUs back. A lid wake brings them back through `lid_open`.
+
+Tested: ShellCheck; the generated Noctalia file on battery and on the charger parses as
+intended; `lid-unplug` with stubbed `busctl`, `systemctl` and supplies (suspends only with the
+lid closed and nothing online); and `udevadm verify` on the rule. Built in an Arch chroot over
+card-32's image: `gemini-base-72` (`7b745d75…`), which carries 67-71. Not on the device.

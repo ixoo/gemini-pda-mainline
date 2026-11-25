@@ -1,20 +1,31 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# The screen turns off after 2 min on battery and 10 min on the charger (owner, 2026-11-11).
+# The screen turns off after 2 min on battery and 10 min on the charger (owner, 2026-11-11),
+# and on battery the device suspends after 10 min (2026-11-24).
 # Noctalia has one timeout per idle behavior, so its hooks run this at startup and whenever
 # the battery starts or stops discharging; it writes the timeout into a config file of its
 # own, which Noctalia reloads when it changes. The user's config.toml sorts after it and
 # wins, as do timeouts changed in Noctalia's settings.
 # usage: idle-timeout (from Noctalia's started and battery_* hooks)
 file=${XDG_CONFIG_HOME:-$HOME/.config}/noctalia/50-gemini-idle.toml
+# On battery the device also suspends after 10 min idle (owner, 2026-11-24), without locking
+# first; on the charger it doesn't.
+suspend=
 if [ "$(cat /sys/class/power_supply/battery/status 2>/dev/null)" = Discharging ]; then
     timeout=120
+    suspend='
+
+[idle.behavior.suspend]
+timeout = 600
+action = "suspend"
+lock_before_suspend = false'
 else
     timeout=600
 fi
 # cpus-dark takes CPUs 1-7 offline once the screen is off, and brings them back at the first
 # activity, so the SODI idle state can run (cpus-dark waits for the DPMS off).
-text="# Written by /usr/lib/gemini/idle-timeout: 120 s on battery, 600 s on the charger.
+text="# Written by /usr/lib/gemini/idle-timeout: screen off at 120 s on battery, 600 s on the
+# charger; suspend at 600 s on battery only.
 [idle.behavior.screen-off]
 timeout = $timeout
 
@@ -22,7 +33,7 @@ timeout = $timeout
 timeout = $timeout
 action = \"command\"
 command = \"sudo -n /usr/lib/gemini/cpus-dark off\"
-resume_command = \"sudo -n /usr/lib/gemini/cpus-dark on\""
+resume_command = \"sudo -n /usr/lib/gemini/cpus-dark on\"$suspend"
 [ "$(cat "$file" 2>/dev/null)" = "$text" ] && exit 0
 mkdir -p "${file%/*}"
 printf '%s\n' "$text" >"$file.new" && mv "$file.new" "$file"
