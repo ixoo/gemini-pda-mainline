@@ -2847,3 +2847,15 @@ The stall is more likely a kernel timer or interrupt problem during suspend entr
 sleep hooks have stopped Wi-Fi and Bluetooth. The cpuidle session will trace it. Suspend still
 works for the owner: dark, radios off, and the key and lid wake reliably; it just saves less
 than it should until the entry is fixed. 73 stays as the trip package.
+
+#### No automatic lock at suspend (gemini-base 74, owner, 2026-11-24)
+
+The owner, through the custodian: "the device locks itself when going in suspend, that's likely
+a noctalia setting, can you remove the lock?" The idle suspend behavior already had
+`lock_before_suspend = false`, but Noctalia also locks on logind's PrepareForSleep, for every
+suspend: idle, lid and manual. That is `[lockscreen] lock_before_suspend`, true by default. It is
+now false in `10-gemini-power.toml`, the drop-in `first-login` links into each user's Noctalia
+config. The lock screen stays available by hand. Noctalia reloads the linked file when the
+package replaces its target, so no session restart is needed.
+
+Built in an Arch chroot over card-32's image: `gemini-base-74` (`4f95aa3e…`). Not on the device.

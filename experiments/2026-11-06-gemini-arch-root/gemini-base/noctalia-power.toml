@@ -19,3 +19,10 @@ memory_poll_seconds = 10.0
 network_poll_seconds = 10.0
 gpu_poll_seconds = 0.0
 disk_poll_seconds = 30.0
+
+# No automatic lock at suspend (owner, 2026-11-24): Noctalia locks on logind's PrepareForSleep,
+# which covers the idle, lid and manual suspends, unless this is off. The idle suspend
+# behavior's own lock_before_suspend covers only that one. The lock screen stays available by
+# hand.
+[lockscreen]
+lock_before_suspend = false
