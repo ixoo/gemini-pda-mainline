@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: MIT
+# Enables the SODI idle state from mt6797-spm-sleep (loaded by modules-load.d) for daily use
+# (owner, 2026-11-24). The state refuses unless CPU0 is alone, which cpus-dark arranges while
+# the screen is off. Off switch: systemctl mask --now gemini-sodi (the stop disables the
+# state again). Pulled in by the package's multi-user.target.wants symlink.
+[Unit]
+Description=Enable the SODI idle state
+After=systemd-modules-load.service
+ConditionPathExists=/sys/devices/system/cpu/cpu0/cpuidle/state1/disable
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'echo 0 >/sys/devices/system/cpu/cpu0/cpuidle/state1/disable'
+ExecStop=/bin/sh -c 'echo 1 >/sys/devices/system/cpu/cpu0/cpuidle/state1/disable'

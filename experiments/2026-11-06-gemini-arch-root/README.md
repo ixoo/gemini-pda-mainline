@@ -2763,3 +2763,34 @@ the owner accepted, is that an rfkill block no longer survives a reboot. The dia
 wifi-daily session's.
 
 Built in an Arch chroot over card-32's image: `gemini-base-70` (`11be2595…`). Not on the device.
+
+#### The SODI idle state for daily use (gemini-base 71, owner, 2026-11-24)
+
+The owner wants every energy saving in for a trip ("I want all the energy savings in"), and the
+cpuidle session's SODI idle state is approved for daily use. Its risks and the path are in that
+experiment's "Daily use" section. gemini-base:
+
+- loads `mt6797-spm-sleep` from `modules-load.d`. With 0871 it needs no options. It makes
+  "deep" the kernel's default sleep, so `sleep.conf`'s `MemorySleepMode=s2idle` stays.
+- `gemini-sodi.service`, after `systemd-modules-load`, writes 0 to
+  `cpu0/cpuidle/state1/disable` at start and 1 at stop. It is skipped when the state is missing.
+  The off switch is `systemctl mask --now gemini-sodi`.
+- The state needs CPU0 alone, and Noctalia has no screen-off hook. So `idle-timeout` adds a
+  second idle behavior, `cpus-dark`, at the screen-off's timeout. Its command runs
+  `sudo -n /usr/lib/gemini/cpus-dark off`, which waits up to 10 s for the panel's DPMS to read
+  `Off`, then takes CPUs 1-7 offline and records which it took under `/run/gemini`. Its resume
+  command, at the first activity, runs `cpus-dark on`, which brings back exactly those. The A72
+  cores are left alone. A lock serializes the two, and an `off` that finds the screen back on
+  returns the CPUs. `/etc/sudoers.d/20-gemini-cpus-dark` lets `wheel` run only those two
+  commands without a password.
+
+The behaviour follows the screen-off's timeout as `idle-timeout` writes it: 2 min on battery,
+10 min on the charger. A screen-off timeout changed in Noctalia's settings leaves `cpus-dark` at
+the old one, and if it fires before the screen is off it gives up after 10 s. The new behaviour
+takes effect at Noctalia's next start or the next charger change.
+
+Tested: ShellCheck on `cpus-dark` and `idle-timeout`; `cpus-dark` against a fake sysfs in the VM
+(the DPMS wait, the record, a second `off`, the return with an already offline CPU left off,
+and a bad argument); `visudo -c` on the rule; and the generated Noctalia file parses. Built in an
+Arch chroot over card-32's image: `gemini-base-71` (`df1dde46…`). Not on the device; it needs an
+image with 0871.

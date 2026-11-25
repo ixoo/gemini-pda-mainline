@@ -12,9 +12,17 @@ if [ "$(cat /sys/class/power_supply/battery/status 2>/dev/null)" = Discharging ]
 else
     timeout=600
 fi
+# cpus-dark takes CPUs 1-7 offline once the screen is off, and brings them back at the first
+# activity, so the SODI idle state can run (cpus-dark waits for the DPMS off).
 text="# Written by /usr/lib/gemini/idle-timeout: 120 s on battery, 600 s on the charger.
 [idle.behavior.screen-off]
-timeout = $timeout"
+timeout = $timeout
+
+[idle.behavior.cpus-dark]
+timeout = $timeout
+action = \"command\"
+command = \"sudo -n /usr/lib/gemini/cpus-dark off\"
+resume_command = \"sudo -n /usr/lib/gemini/cpus-dark on\""
 [ "$(cat "$file" 2>/dev/null)" = "$text" ] && exit 0
 mkdir -p "${file%/*}"
 printf '%s\n' "$text" >"$file.new" && mv "$file.new" "$file"

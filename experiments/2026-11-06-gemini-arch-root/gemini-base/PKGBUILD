@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and display-start
 # and the audio UCM profile here, so each file has one copy in the repository.
 pkgname=gemini-base
-pkgver=70
+pkgver=71
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -38,7 +38,7 @@ depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'umbriel' 'nocta
 # The owner's sudo policy is theirs: an edited 10-gemini-wheel stays, and an upgrade puts the
 # package's copy beside it as .pacnew (owner's NOPASSWD was replaced by gemini-base 40 and 42).
 backup=('etc/iwd/main.conf' 'etc/vconsole.conf' 'etc/geoclue/conf.d/95-gemini.conf'
-        'etc/sudoers.d/10-gemini-wheel' 'etc/gemini/battery-guard.conf'
+        'etc/sudoers.d/10-gemini-wheel' 'etc/sudoers.d/20-gemini-cpus-dark' 'etc/gemini/battery-guard.conf'
         'etc/UPower/UPower.conf.d/50-gemini.conf' 'etc/mpv/mpv.conf')
 options=('!debug' '!strip')
 source=(gemini-modules.service modules-load.conf gemini-audio.service audio-start
@@ -52,10 +52,11 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         gemini-battery-capacity.service gemini-battery-calibrate idle-timeout
         battery-guard battery-guard.conf gemini-battery-guard.service upower.conf dma-heap.rules mpv.conf
         gemini-no-av1.user.js noctalia-power.toml gemini-serial-console.service usb-autosuspend.rules
+        cpus-dark gemini-sodi.service sudoers-cpus-dark
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
         "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
         "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
-sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
             '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
@@ -95,6 +96,7 @@ package() {
     # sudo owns /etc/sudoers.d as 0750; a 0755 one here makes pacman warn on every install.
     install -dm750 "$pkgdir/etc/sudoers.d"
     install -m440 sudoers "$pkgdir/etc/sudoers.d/10-gemini-wheel"
+    install -m440 sudoers-cpus-dark "$pkgdir/etc/sudoers.d/20-gemini-cpus-dark"
     install -Dm644 umbriel.toml "$pkgdir/etc/xdg/umbriel/config.toml"
     # Noctalia reads only the user's config directory, so the default reaches each user
     # through useradd -m at first boot.
@@ -136,6 +138,11 @@ package() {
     install -Dm644 gemini-battery-guard.service "$pkgdir/usr/lib/systemd/system/gemini-battery-guard.service"
     ln -s ../gemini-battery-guard.service \
         "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/gemini-battery-guard.service"
+    # The SODI idle state for daily use, with CPU0 alone while the screen is off (cpus-dark,
+    # run from Noctalia's idle behavior through sudo).
+    install -Dm755 cpus-dark "$pkgdir/usr/lib/gemini/cpus-dark"
+    install -Dm644 gemini-sodi.service "$pkgdir/usr/lib/systemd/system/gemini-sodi.service"
+    ln -s ../gemini-sodi.service "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/gemini-sodi.service"
     # The internal UART powers down: no getty on it (systemd's generator starts one for every
     # serial console), and ttyS0 detached as the kernel console once the card is up.
     ln -s /dev/null "$pkgdir/usr/lib/systemd/system/serial-getty@ttyS0.service"

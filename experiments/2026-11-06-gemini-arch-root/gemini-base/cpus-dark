@@ -1,0 +1,58 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# CPU0 alone while the screen is off, so the SODI idle state (mt6797-spm-sleep, enabled by
+# gemini-sodi.service) can be entered (owner, 2026-11-24: "I want all the energy savings in").
+# Run by Noctalia's cpus-dark idle behavior (idle-timeout), through sudo: "off" at the same
+# idle timeout as the screen-off, "on" at the first activity after it.
+#   off: wait, up to 10 s, for the panel's DPMS to read Off (the screen-off fades first), then
+#        take CPUs 1-7 offline and record which it took.
+#   on:  bring back exactly the CPUs it took.
+# The A72 cores (8-9) are left as they are. One run at a time; no polling outside the wait.
+# usage: cpus-dark off|on
+set -u
+dpms=/sys/class/drm/card0-DSI-1/dpms
+cpus=/sys/devices/system/cpu
+state=/run/gemini/cpus-dark
+mkdir -p "${state%/*}"
+exec 9>"$state.lock"
+flock 9
+
+dark() { [ "$(cat "$dpms" 2>/dev/null)" = Off ]; }
+
+bring_back() {
+    [ -r "$state" ] || return 0
+    # shellcheck disable=SC2013 # one CPU number per word
+    for n in $(cat "$state"); do
+        echo 1 >"$cpus/cpu$n/online" 2>/dev/null ||
+            echo "cpus-dark: cpu$n did not come back" >&2
+    done
+    rm -f "$state"
+}
+
+case "${1:-}" in
+off)
+    [ -e "$state" ] && exit 0
+    tries=0
+    until dark; do
+        tries=$((tries + 1))
+        [ "$tries" -le 20 ] || exit 0
+        sleep 0.5
+    done
+    taken=
+    for n in 1 2 3 4 5 6 7; do
+        [ "$(cat "$cpus/cpu$n/online" 2>/dev/null)" = 1 ] || continue
+        echo 0 >"$cpus/cpu$n/online" 2>/dev/null && taken="$taken $n"
+    done
+    echo "$taken" >"$state"
+    # Woken while taking them: give them back.
+    dark || bring_back
+    ;;
+on)
+    bring_back
+    ;;
+*)
+    echo "usage: cpus-dark off|on" >&2
+    exit 2
+    ;;
+esac
+exit 0
