@@ -10851,6 +10851,20 @@ image, cable out, Wi-Fi up, normal desktop:
 Pass is no hang, no lost wake and no warning. Without D, the state is
 not proven for four days unattended.
 
+**Packaged (arch-root, gemini-base 71, 2026-11-24).** `modules-load.d`
+loads the module with no options; `gemini-sodi.service` enables state1
+(off switch: `systemctl mask --now gemini-sodi`). Noctalia has no
+screen-off hook, so `idle-timeout` adds an idle behavior with the
+screen-off timeout that runs `cpus-dark off` (waits up to 10 s for DPMS
+Off, then takes CPUs 1-7 offline and records them) and, at the first
+activity, `cpus-dark on` (brings back the recorded ones), through a
+sudoers rule for those two commands only. Read here: the lock makes a
+wake during the wait return the CPUs, and a lid-close suspend with CPUs
+offline is what 0871's suspend guard covers. If the owner changes the
+screen-off timeout in Noctalia, the CPUs follow the old timeout and,
+when it comes first, the helper gives up after 10 s. Not run on the
+device; it needs a module with 0871.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
