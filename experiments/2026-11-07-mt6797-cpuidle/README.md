@@ -10865,8 +10865,8 @@ screen-off timeout in Noctalia, the CPUs follow the old timeout and,
 when it comes first, the helper gives up after 10 s. Not run on the
 device; it needs a module with 0871.
 
-**Suspend stall with CPU0 alone, not SODI (custodian, image 140, boot
-`cb25f521`, 2026-11-24).** With CPUs 1-7 offline, an s2idle suspend
+**Suspend stall (custodian, image 140, boot `cb25f521`, 2026-11-24).**
+Corrected below: CPU0 alone is not the cause either. With CPUs 1-7 offline, an s2idle suspend
 waited 38 s (auto-suspend), 22 s (lid) and 41 s (`gemini-sodi` stopped,
 state1 disabled) between "PM: suspend entry" and "Filesystems sync",
 each time until a key or the lid ended it; the sync itself took about
@@ -10882,6 +10882,18 @@ over one stall would show what it waits for. Interim (arch-root,
 gemini-base 73): a system-sleep pre hook brings the CPUs back before
 each suspend. The earlier s2idle runs with CPUs offline were on an older
 kernel.
+
+**Correction (same boot).** With gemini-base 73's pre hook, CPUs 1-7 were
+back online 3 s before "PM: suspend entry", and the wait still ran 272 s,
+until a key; the sync then took 0.2 s. So CPU0 alone is not the cause;
+the quick runs with CPUs online were ended early by interrupts. Inference:
+the sync work only progresses on a device interrupt, as if a wakeup
+(IPI or timer) were lost. Every stall was on a boot where the SODI
+module had already run thousands of power-down periods, and the masked
+test only disabled the state afterwards, so GIC or timer state left
+behind by the firmware's save and restore is not excluded. The
+discriminator is a boot with `gemini-sodi` masked from the start (state
+never entered), then a suspend.
 
 ### Request D5n (proposed): two states with no resource events
 
