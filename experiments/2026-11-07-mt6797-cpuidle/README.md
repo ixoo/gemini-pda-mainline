@@ -10895,6 +10895,15 @@ behind by the firmware's save and restore is not excluded. The
 discriminator is a boot with `gemini-sodi` masked from the start (state
 never entered), then a suspend.
 
+**Soak D cut short (custodian, boot `cb25f521`, 2026-11-24).** 23 minutes
+dark-awake, cable out, CPU0 alone: 5957 more entries, stopped 0, error
+0, no warning, no reset; 92 mA mean by the charge counter, with lock and
+unlock attempts and reads in the window, so not comparable with D7. The
+owner ended it to charge. Advice given: mask the state for the trip.
+**The owner's decision:** keep it on ("I keep it on and I can turn it
+off later during the trip if it causes issues"), with the off switch on
+the trip card. The discriminating boot waits until after the trip.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
