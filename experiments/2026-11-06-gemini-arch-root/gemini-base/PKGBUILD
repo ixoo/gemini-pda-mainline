@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and display-start
 # and the audio UCM profile here, so each file has one copy in the repository.
 pkgname=gemini-base
-pkgver=72
+pkgver=73
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -52,11 +52,11 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         gemini-battery-capacity.service gemini-battery-calibrate idle-timeout
         battery-guard battery-guard.conf gemini-battery-guard.service upower.conf dma-heap.rules mpv.conf
         gemini-no-av1.user.js noctalia-power.toml gemini-serial-console.service usb-autosuspend.rules
-        cpus-dark gemini-sodi.service sudoers-cpus-dark lid-unplug lid-unplug.rules
+        cpus-dark gemini-sodi.service sudoers-cpus-dark lid-unplug lid-unplug.rules sleep-cpus
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
         "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
         "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
-sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
             '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
@@ -91,6 +91,8 @@ package() {
     install -Dm644 sleep.conf "$pkgdir/usr/lib/systemd/sleep.conf.d/50-gemini.conf"
     install -Dm644 geoclue.conf "$pkgdir/etc/geoclue/conf.d/95-gemini.conf"
     install -Dm755 sleep-radios "$pkgdir/usr/lib/systemd/system-sleep/gemini-radios"
+    # CPUs 1-7 back before a suspend: with CPU0 alone the suspend stalled before its sync.
+    install -Dm755 sleep-cpus "$pkgdir/usr/lib/systemd/system-sleep/gemini-cpus"
     install -Dm644 iwd-main.conf "$pkgdir/etc/iwd/main.conf"
     install -Dm644 vconsole.conf "$pkgdir/etc/vconsole.conf"
     # sudo owns /etc/sudoers.d as 0750; a 0755 one here makes pacman warn on every install.

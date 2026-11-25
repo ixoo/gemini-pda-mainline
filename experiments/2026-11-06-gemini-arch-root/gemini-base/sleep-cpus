@@ -1,0 +1,10 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# systemd-sleep hook: bring back the CPUs cpus-dark took offline before a suspend
+# (2026-11-24). With CPU0 alone, 7.1's suspend stalled 22-41 s before its filesystem sync,
+# which runs in a worker, until a wake input arrived (card-32, image 140, boot cb25f521), so
+# idle and lid suspends saved almost nothing. After the resume nothing is redone: Noctalia's
+# cpus-dark idle behavior takes them offline again at the next idle screen-off.
+# usage (from systemd-sleep): sleep-cpus pre|post suspend|hibernate|...
+[ "${1:-}" = pre ] || exit 0
+exec /usr/lib/gemini/cpus-dark on

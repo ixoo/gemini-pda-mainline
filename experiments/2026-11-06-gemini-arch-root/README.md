@@ -2820,3 +2820,23 @@ Tested: ShellCheck; the generated Noctalia file on battery and on the charger pa
 intended; `lid-unplug` with stubbed `busctl`, `systemctl` and supplies (suspends only with the
 lid closed and nothing online); and `udevadm verify` on the rule. Built in an Arch chroot over
 card-32's image: `gemini-base-72` (`7b745d75…`), which carries 67-71. Not on the device.
+
+#### CPUs back before a suspend (gemini-base 73, 2026-11-24)
+
+The custodian found, on image 140 with gemini-base 72 (boot `cb25f521`), that a suspend stalls
+22-41 s before its filesystem sync whenever CPU0 is alone. In 7.1 that sync runs in a worker,
+and it started only once a wake input arrived. So the idle and lid suspends saved almost
+nothing.
+
+| CPUs | SODI | Entry to sync |
+| --- | --- | --- |
+| 0-7 | on | 0.66 s, on the charger, then the expected `-EBUSY` abort |
+| 0-7 | off | 4.3 s, slept normally |
+| 0 alone | off | 41 s stall, then 2 s to exit after a key |
+
+The systemd-sleep hook `gemini-cpus` runs `cpus-dark on` at `pre`, which brings back the CPUs
+`cpus-dark` took. Nothing is redone at `post`: Noctalia's `cpus-dark` behavior takes them
+offline again at the next idle screen-off. `cpus-dark off` run by hand with the screen on takes
+nothing, by design: it waits for DPMS Off and gives up after 10 s.
+
+Built in an Arch chroot over card-32's image: `gemini-base-73` (`b446ff64…`). Not on the device.
