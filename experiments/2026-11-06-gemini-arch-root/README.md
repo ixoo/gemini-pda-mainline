@@ -2839,4 +2839,11 @@ The systemd-sleep hook `gemini-cpus` runs `cpus-dark on` at `pre`, which brings 
 offline again at the next idle screen-off. `cpus-dark off` run by hand with the screen on takes
 nothing, by design: it waits for DPMS Off and gives up after 10 s.
 
-Built in an Arch chroot over card-32's image: `gemini-base-73` (`b446ff64…`). Not on the device.
+Built in an Arch chroot over card-32's image: `gemini-base-73` (`b446ff64…`).
+
+**Result** (custodian, image 140): the hook works, and CPUs 1-7 came back about 3 s before the
+suspend entry. But the stall remained, 272 s until a key, so the CPU count wasn't its cause.
+The stall is more likely a kernel timer or interrupt problem during suspend entry, after the
+sleep hooks have stopped Wi-Fi and Bluetooth. The cpuidle session will trace it. Suspend still
+works for the owner: dark, radios off, and the key and lid wake reliably; it just saves less
+than it should until the entry is fixed. 73 stays as the trip package.
