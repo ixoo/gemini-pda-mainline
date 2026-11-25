@@ -351,7 +351,13 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   unmasks, and unicast or a transmit ends the hold. Expected: at most about one wake a second on a chatty LAN,
   none added on a quiet one, and up to a second for the first unicast frame after a quiet spell. The
   firmware's ARP filter (the vendor's suspend-mode and IP-address commands, 0x58 and 0x10) is the next step,
-  after admission. Compiled only.
+  after admission.
+- 0872 on card-32 (boot `73ccbf16`, mac `683fd4f6` with CONSYS `d9f7a1d9`, custodian; screen blanked, charger
+  in, so no current figure): over 181 s windows, WLAN interrupts were 86 (0.48/s) with `irq_holdoff_ms=1000`
+  against 953 (5.3/s) with 0, and received frames 569 against 589 (3.4 % fewer, within the noise of a LAN's
+  broadcasts). The held passes are timer wakes at most once a second, so the Wi-Fi wakes fall from about 5.3/s
+  to at most about 1.5/s. Pings from another host after 30 s idle took 183-421 ms with the hold and 103-512 ms
+  without: the power-save baseline, not the hold. A DHCP renew and outbound pings worked, with no warning.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
