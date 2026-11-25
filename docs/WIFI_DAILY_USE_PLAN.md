@@ -343,6 +343,15 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   ifindex stayed the same, one wlan interface, the soft block stayed off at +10 s and +120 s, no warning, and
   IPv4 returned 14 s after the unblock with 5 of 5 pings. Not exercised: unloading the pair, a fault while
   associated (the halt's disconnect path) and iwd's Powered toggle.
+- The idle wakes with power save on are the LAN's broadcasts (D7g, card-32): almost every WLAN interrupt
+  carried one group-addressed frame, about 4.9 a second; a 60 s count was all broadcast, ARP for other hosts
+  and two unknown ethertypes, which the stack then drops. The driver programs no receive filter. 0872 holds
+  the interrupt on a quiet link: a pass the interrupt woke that found only group frames leaves it masked, and
+  the next pass, `irq_holdoff_ms` later (default 1000), reads what queued meanwhile; a pass that finds nothing
+  unmasks, and unicast or a transmit ends the hold. Expected: at most about one wake a second on a chatty LAN,
+  none added on a quiet one, and up to a second for the first unicast frame after a quiet spell. The
+  firmware's ARP filter (the vendor's suspend-mode and IP-address commands, 0x58 and 0x10) is the next step,
+  after admission. Compiled only.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the

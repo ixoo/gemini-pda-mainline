@@ -1,0 +1,135 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Tue, 24 Nov 2026 19:03:27 -0500
+Subject: [PATCH] wifi: mt6797: hold the WLAN interrupt on a quiet link
+
+Idle and blanked on a LAN with a few broadcasts a second, nearly every
+WLAN interrupt carried one group-addressed frame: about 4.9 wakes a
+second, each one taking the SoC out of SODI.
+
+On a quiet link (no unicast frame either way for a second, no frame
+held for reordering, no work owed) a pass that the interrupt woke and
+that found only such frames now leaves the interrupt masked; the next
+pass, irq_holdoff_ms later, reads what the firmware queued meanwhile
+and holds again if it found more. A pass that finds nothing unmasks,
+so a quiet network stays interrupt-driven without polling. A unicast
+frame or a transmit ends the quiet spell and the hold with it. The
+cost is up to irq_holdoff_ms for the first unicast frame received
+after a quiet spell.
+
+irq_holdoff_ms defaults to 1000, is writable at run time, 0 turns the
+hold off, and it is capped at 2000. A held pass that finds nothing is
+not counted towards giving the interrupt up. The interrupt-reason line
+gains the count of held passes.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   | 31 ++++++++++++++++---
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  9 ++++++
+ drivers/net/wireless/mediatek/mt6797/main.c   |  3 ++
+ 3 files changed, 38 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 8a895f4cb..0a805928d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -2000,6 +2000,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 	bool running, ack = false, completed_internal = false, select;
+ 	unsigned int submits = 0;
+ 	bool pump_progress = false;
++	bool hold = false;
++	unsigned int holdoff_ms;
+ 	bool channel_release_holds_tx = false;
+ 	bool nd_stop = false, nd_over = false;
+ 	/* Diagnostic only: which phase of this tick stopped the lifetime (the
+@@ -3028,7 +3030,19 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 		mac->join_pump_active_ns = ktime_get_ns();
+ 		mac->join_pass_found = true;
+ 	}
+-	if (mt6797_mac_join_irq_served(mac)) {
++	/* A quiet link, where this interrupt pass found only group-addressed
++	 * frames (a unicast frame or a transmit ends the quiet spell), keeps the
++	 * interrupt masked: the next pass reads what arrived meanwhile. A LAN's
++	 * broadcasts then wake the host once per holdoff rather than per frame.
++	 */
++	holdoff_ms = min(READ_ONCE(mt6797_irq_holdoff_ms), MT6797_JOIN_IRQ_HOLDOFF_MAX_MS);
++	hold = holdoff_ms && mac->irq > 0 && atomic_read(&mac->irq_masked) &&
++	       mac->join_pass_read && mac->join_pass_found && !mac->irq_gave_up &&
++	       !pump_progress && !pending && mt6797_mac_join_irq_served(mac) &&
++	       mt6797_mac_join_quiet(mac);
++	if (hold) {
++		delay_ms = holdoff_ms;
++	} else if (mt6797_mac_join_irq_served(mac)) {
+ 		/* The interrupt wakes the worker for receive and for TX done, so
+ 		 * after progress only a short spin follows: work still owed waits
+ 		 * for the interrupt or 20 ms after a few passes, which keeps
+@@ -3080,16 +3094,23 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			mac->irq_found += mac->join_pass_found;
+ 			if (!(mac->irq_passes % 1024))
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "WLAN interrupt reasons: passes=%u tx=%u rx=%u d2h=%u abnormal=%u none=%u found=%u\n",
++					 "WLAN interrupt reasons: passes=%u tx=%u rx=%u d2h=%u abnormal=%u none=%u found=%u held=%u\n",
+ 					 mac->irq_passes, mac->irq_tx, mac->irq_rx,
+ 					 mac->irq_d2h, mac->irq_abnormal, mac->irq_none,
+-					 mac->irq_found);
++					 mac->irq_found, mac->irq_held);
+ 		}
++		/* A held pass that finds nothing is the holdoff ending, not an
++		 * interrupt without a cause.
++		 */
+ 		if (mac->join_pass_found)
+ 			mac->irq_empty = 0;
+-		else if (++mac->irq_empty >= MT6797_MAC_IRQ_EMPTY_LIMIT)
++		else if (!mac->irq_holding &&
++			 ++mac->irq_empty >= MT6797_MAC_IRQ_EMPTY_LIMIT)
+ 			mac->irq_gave_up = true;
+-		if (mac->irq_gave_up) {
++		mac->irq_holding = hold;
++		if (hold) {
++			mac->irq_held++;
++		} else if (mac->irq_gave_up) {
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot WLAN interrupt given up: empty=%u\n",
+ 				 mac->irq_empty);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 2d43ff532..428727b7e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -182,6 +182,10 @@ struct mt6797_join_rearm_state {
+  * interrupt serving the link; MAX_ZERO's 32 when it does not.
+  */
+ #define MT6797_JOIN_PUMP_IRQ_SPIN 8U
++/* The longest interrupt holdoff the parameter may ask for. */
++#define MT6797_JOIN_IRQ_HOLDOFF_MAX_MS 2000U
++
++extern unsigned int mt6797_irq_holdoff_ms;
+ /* Passes woken by the interrupt that found nothing, in a row, after which
+  * the interrupt is given up and receive is polled again.
+  */
+@@ -536,6 +540,11 @@ struct mt6797_mac {
+ 		 */
+ 		unsigned int irq_passes, irq_tx, irq_rx, irq_d2h, irq_abnormal, irq_none,
+ 			     irq_found;
++		/* The interrupt stays masked until the next pass reads the queue,
++		 * and how many passes held it so.
++		 */
++		bool irq_holding;
++		unsigned int irq_held;
+ 		struct mt6797_data_slots data_slots;
+ 		struct sk_buff *join_inflight;
+ 		u64 join_deadline, join_frame_deadline;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index abe982b50..60069fd17 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -18,6 +18,9 @@ module_param(power_save, uint, 0444);
+ MODULE_PARM_DESC(power_save, "802.11 power save offered to mac80211: 0 none, 1 maximum, 2 fast");
+ module_param(wlan_irq, bool, 0444);
+ MODULE_PARM_DESC(wlan_irq, "Serve receive from the WLAN interrupt when the device tree gives one");
++unsigned int mt6797_irq_holdoff_ms = 1000;
++module_param_named(irq_holdoff_ms, mt6797_irq_holdoff_ms, uint, 0644);
++MODULE_PARM_DESC(irq_holdoff_ms, "On a quiet link, keep the WLAN interrupt masked this long after a pass that found only group frames (0: off, at most 2000)");
+ 
+ static irqreturn_t mt6797_mac_irq(int irq, void *data)
+ {
+-- 
+2.43.0
+
