@@ -10865,6 +10865,24 @@ screen-off timeout in Noctalia, the CPUs follow the old timeout and,
 when it comes first, the helper gives up after 10 s. Not run on the
 device; it needs a module with 0871.
 
+**Suspend stall with CPU0 alone, not SODI (custodian, image 140, boot
+`cb25f521`, 2026-11-24).** With CPUs 1-7 offline, an s2idle suspend
+waited 38 s (auto-suspend), 22 s (lid) and 41 s (`gemini-sodi` stopped,
+state1 disabled) between "PM: suspend entry" and "Filesystems sync",
+each time until a key or the lid ended it; the sync itself took about
+0.1 s. With CPUs 0-7 online it went on within 0.7-4.3 s, with a WLAN
+restart just before (so that is not the trigger) and with SODI enabled
+(which cannot enter with other CPUs online). In 7.1, `enter_state()`
+runs `pm_sleep_fs_sync()` before `suspend_prepare()`, so no
+`PM_SUSPEND_PREPARE` notifier (0871's included) has run at that point;
+the sync work on the ordered `pm_fs_sync` workqueue starts late while
+`ksys_sync_helper()` times only its own run. Why the work waits with CPU0
+alone is not known; an ftrace of `workqueue:*` and `sched:sched_wakeup`
+over one stall would show what it waits for. Interim (arch-root,
+gemini-base 73): a system-sleep pre hook brings the CPUs back before
+each suspend. The earlier s2idle runs with CPUs offline were on an older
+kernel.
+
 ### Request D5n (proposed): two states with no resource events
 
 [`0825`](../../patches/proposals/0825-soc-mediatek-mt6797-spm-sleep-optionally-set-SODI_NO.patch)
